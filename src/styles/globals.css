@@ -1,0 +1,216 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Canvas */
+  --color-canvas:       #F6F4EF;
+  --color-panel:        #FFFFFF;
+  --color-panel-raised: #FAFAF7;
+  --color-border:       #E4E0D8;
+  --color-border-hard:  #C8C2B4;
+
+  /* Text */
+  --color-text:         #111010;
+  --color-text-sub:     #4A4640;
+  --color-muted:        #8C8680;
+
+  /* Yellow — FCE205 */
+  --color-gold:         #FCE205;
+  --color-gold-light:   #FDE93A;
+  --color-gold-soft:    rgba(252,226,5,0.15);
+  --color-gold-tint:    rgba(252,226,5,0.08);
+
+  /* Status */
+  --color-success:      #2D7A50;
+  --color-success-bg:   #EAF5EF;
+  --color-warning:      #B86A00;
+  --color-warning-bg:   #FEF3E2;
+  --color-danger:       #B53D3D;
+  --color-danger-bg:    #FDF0F0;
+  --color-info:         #1E5FA4;
+  --color-info-bg:      #EBF2FC;
+
+  /* Surface */
+  --color-mist:         #F0EDE7;
+  --color-ink:          #111010;
+
+  /* Radius */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+
+  /* Shadow */
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md:  0 4px 14px rgba(0,0,0,0.08);
+  --shadow-lg:  0 8px 28px rgba(0,0,0,0.10);
+
+  /* Type */
+  --font-body:  'DM Sans', system-ui, sans-serif;
+  --font-mono:  'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font-body); background: var(--color-canvas); color: var(--color-text); line-height: 1.5; }
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+
+/* BUTTONS */
+.forge-button {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; letter-spacing: 0.01em;
+  padding: 8px 14px; border-radius: var(--radius-md);
+  border: 1px solid transparent; cursor: pointer;
+  transition: all 0.15s ease; white-space: nowrap; line-height: 1;
+}
+.forge-button--sm { font-size: 11px; padding: 6px 10px; }
+.forge-button--lg { font-size: 13px; padding: 10px 18px; }
+
+.forge-button--primary {
+  background: #FCE205;
+  border: 1px solid #111010;
+  color: #111010;
+  box-shadow: 0 2px 12px rgba(252,226,5,0.25), 0 1px 0 rgba(255,255,255,0.25) inset;
+}
+.forge-button--primary:hover {
+  background: #FDE93A;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(252,226,5,0.35);
+}
+.forge-button--primary:active {
+  transform: translateY(0);
+  box-shadow: none;
+  background: #E8D000;
+}
+
+.forge-button--secondary {
+  background: var(--color-panel); border-color: var(--color-border); color: var(--color-text);
+}
+.forge-button--secondary:hover { border-color: var(--color-gold-soft); background: var(--color-gold-tint); }
+
+.forge-button--ghost {
+  background: transparent; border-color: transparent; color: var(--color-muted);
+}
+.forge-button--ghost:hover { background: var(--color-mist); color: var(--color-text); }
+
+.forge-button--danger {
+  background: var(--color-danger-bg); border-color: #DCA0A0; color: var(--color-danger);
+}
+.forge-button--danger:hover { background: #FAE5E5; border-color: var(--color-danger); }
+
+.forge-icon-button {
+  width: 34px; height: 34px; border-radius: var(--radius-md);
+  border: 1px solid var(--color-border); background: var(--color-panel);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.15s ease; color: var(--color-muted); flex-shrink: 0;
+}
+.forge-icon-button:hover { border-color: rgba(252,226,5,0.4); background: rgba(252,226,5,0.08); color: var(--color-text); }
+
+/* CARDS */
+.forge-card {
+  background: var(--color-panel);
+  border: 1px solid rgba(252,226,5,0.10);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.25s cubic-bezier(0.23,1,0.32,1), box-shadow 0.25s cubic-bezier(0.23,1,0.32,1);
+}
+.forge-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.09), 0 0 0 1px rgba(252,226,5,0.12);
+}
+.forge-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(252,226,5,0.08);
+}
+.forge-card-body { padding: 18px; }
+
+/* BADGES */
+.forge-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; padding: 3px 8px;
+  border-radius: 100px; border: 1px solid transparent;
+}
+.forge-badge--success { background: var(--color-success-bg); color: var(--color-success); border-color: #B2D9C0; }
+.forge-badge--warning { background: var(--color-warning-bg); color: var(--color-warning); border-color: #E8CC99; }
+.forge-badge--danger  { background: var(--color-danger-bg);  color: var(--color-danger);  border-color: #DDB0B0; }
+.forge-badge--info    { background: var(--color-info-bg);    color: var(--color-info);    border-color: #A8C8E8; }
+.forge-badge--neutral { background: var(--color-mist);       color: var(--color-text-sub); border-color: var(--color-border); }
+.forge-badge--gold    { background: rgba(252,226,5,0.12);    color: #7A6800; border-color: rgba(252,226,5,0.3); }
+
+/* INPUTS */
+.forge-input {
+  height: 36px; padding: 0 12px; border-radius: var(--radius-md);
+  border: 1px solid var(--color-border); background: var(--color-panel);
+  color: var(--color-text); font-size: 13px; transition: all 0.15s; width: 100%;
+}
+.forge-input:focus {
+  outline: none;
+  border-color: #FCE205;
+  box-shadow: 0 0 0 3px rgba(252,226,5,0.15);
+  background: rgba(252,226,5,0.02);
+}
+.forge-input::placeholder { color: var(--color-muted); }
+
+/* TABLE */
+.forge-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.forge-table th {
+  text-align: left; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-muted); padding: 10px 14px; border-bottom: 1px solid var(--color-border);
+}
+.forge-table td { padding: 11px 14px; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
+.forge-table tbody tr:last-child td { border-bottom: none; }
+.forge-table tbody tr:hover td { background: rgba(252,226,5,0.05); }
+
+/* TYPOGRAPHY */
+.forge-label    { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
+.forge-title    { font-size: 15px; font-weight: 600; color: var(--color-text); }
+.forge-subtitle { font-size: 12px; color: var(--color-text-sub); }
+.forge-mono     { font-family: var(--font-mono); font-size: 12px; }
+
+/* LAYOUT */
+.forge-divider { height: 1px; background: var(--color-border); margin: 0; }
+
+/* SIDEBAR */
+.forge-sidebar { width: 220px; min-height: 100vh; background: var(--color-panel); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }
+.forge-sidebar-logo { padding: 18px 16px 14px; border-bottom: 1px solid var(--color-border); }
+.forge-nav-item {
+  display: flex; align-items: center; gap: 9px; padding: 9px 14px;
+  border-radius: var(--radius-md); margin: 1px 8px; font-size: 13px;
+  font-weight: 500; color: var(--color-text-sub); transition: all 0.1s ease; cursor: pointer;
+}
+.forge-nav-item:hover { background: var(--color-mist); color: var(--color-text); }
+.forge-nav-item.active { background: rgba(252,226,5,0.12); color: #7A6800; border: 1px solid rgba(252,226,5,0.25); }
+.forge-nav-section { padding: 10px 16px 4px; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); }
+
+/* TOPBAR */
+.forge-topbar {
+  height: 52px; background: var(--color-panel); border-bottom: 1px solid var(--color-border);
+  display: flex; align-items: center; padding: 0 20px; gap: 12px; position: sticky; top: 0; z-index: 10;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border-hard); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-muted); }
+
+/* APP SHELL */
+.forge-app-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--color-canvas);
+}
+.forge-app-shell__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+.forge-app-shell__content {
+  flex: 1;
+  overflow-y: auto;
+}
