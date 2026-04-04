@@ -13,6 +13,11 @@ import MFASetupPage from '@/pages/mfasetuppage';
 import InvoicesPage from '@/pages/invoicespage';
 import SettingsPage from '@/pages/settingspage';
 import MailPage from '@/pages/mailpage';
+import QuotesPage from '@/pages/quotespage';
+import QuoteBuilderPage from '@/pages/quotebuilderpage';
+import QuoteViewPage from '@/pages/quoteviewpage';
+import QuoteSignPage from '@/pages/quotesignpage';
+
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -25,6 +30,7 @@ function Placeholder({ name }: { name: string }) {
 
 export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/forge/dashboard" replace /> },
+  { path: '/sign/:id', element: <QuoteSignPage /> },
   {
     path: '/forge',
     children: [
@@ -44,7 +50,6 @@ export const router = createBrowserRouter([
           { path: 'opportunities',      element: <OpportunitiesPage />   },
           { path: 'projects',           element: <ProjectsPage />        },
           { path: 'projects/:id',       element: <ProjectDetailPage />   },
-          { path: 'quotes',             element: <Placeholder name="Quotes" />        },
           { path: 'workorders',         element: <Placeholder name="Work Orders" />   },
           { path: 'procurement',        element: <Placeholder name="Procurement" />   },
           { path: 'invoices', element: <InvoicesPage /> },
@@ -53,6 +58,10 @@ export const router = createBrowserRouter([
           { path: 'settings', element: <SettingsPage /> },
           { path: 'mfa-setup', element: <MFASetupPage /> },
           { path: 'mail', element: <MailPage /> },
+          { path: 'quotes',     element: <QuotesPage />      },
+          { path: 'quotes/new', element: <QuoteBuilderPage /> },
+          { path: 'quotes/:id', element: <QuoteViewPage /> },
+          
         ],
       },
     ],

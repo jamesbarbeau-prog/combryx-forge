@@ -3,6 +3,7 @@ import { Bell, Plus, Search, ChevronRight, HardHat, Sparkles } from 'lucide-reac
 import { useLocation } from 'react-router-dom';
 import AskTheCodeSidebar from '@/components/askthecodesidebar';
 import ForgeAssistant from '@/components/forgeassistant';
+import QuickCreate from '@/components/quickcreate';
 
 const BREADCRUMBS: Record<string, string[]> = {
   '/forge/dashboard':     ['Command Center', 'Dashboard'],
@@ -27,13 +28,15 @@ interface TopBarProps {
 export function TopBar({ title }: TopBarProps) {
   const location  = useLocation();
   const crumbs    = BREADCRUMBS[location.pathname] ?? ['Forge', title];
-  const [askOpen, setAskOpen]             = useState(false);
-  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [askOpen, setAskOpen]                   = useState(false);
+  const [assistantOpen, setAssistantOpen]       = useState(false);
+  const [quickCreateOpen, setQuickCreateOpen]   = useState(false);
 
   return (
     <>
       <AskTheCodeSidebar open={askOpen} onClose={() => setAskOpen(false)} />
       <ForgeAssistant open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+      <QuickCreate open={quickCreateOpen} onClose={() => setQuickCreateOpen(false)} />
 
       <header style={{
         height: 56, background: '#FFFFFF',
@@ -131,7 +134,11 @@ export function TopBar({ title }: TopBarProps) {
         </div>
 
         {/* Quick Create */}
-        <button className="forge-button forge-button--primary" style={{ gap: 6 }}>
+        <button
+          className="forge-button forge-button--primary"
+          style={{ gap: 6 }}
+          onClick={() => setQuickCreateOpen(true)}
+        >
           <Plus size={13} strokeWidth={2.5} /> Quick Create
         </button>
       </header>
