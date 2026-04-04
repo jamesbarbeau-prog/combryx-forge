@@ -12,6 +12,7 @@ import DispatchPage from '@/pages/dispatchpage';
 import MFASetupPage from '@/pages/mfasetuppage';
 import InvoicesPage from '@/pages/invoicespage';
 import SettingsPage from '@/pages/settingspage';
+import MailPage from '@/pages/mailpage';
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
           { path: 'automations',        element: <Placeholder name="Automations" />   },
           { path: 'settings', element: <SettingsPage /> },
           { path: 'mfa-setup', element: <MFASetupPage /> },
+          { path: 'mail', element: <MailPage /> },
         ],
       },
     ],

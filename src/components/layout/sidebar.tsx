@@ -5,7 +5,7 @@ import { useFeatureStore } from '@/store/featurestore';
 import {
   LayoutDashboard, Users, Briefcase, FileText, FolderOpen,
   Hammer, ShoppingCart, Receipt, BarChart2, Settings,
-  ChevronRight, Zap, Radio, Bell, LogOut, Shield,
+  ChevronRight, Zap, Radio, Bell, LogOut, Shield, Mail, Sparkles,
 } from 'lucide-react';
 
 function UserMenu({ user, signOut }: { user: any; signOut: () => void }) {
@@ -145,6 +145,7 @@ export default function Sidebar() {
         { label: 'Clients', path: '/forge/clients', icon: Users },
         ...(features.opportunities ? [{ label: 'Opportunities', path: '/forge/opportunities', icon: Briefcase }] : []),
         ...(features.quotes        ? [{ label: 'Quotes',        path: '/forge/quotes',        icon: FileText  }] : []),
+        { label: 'Mail', path: '/forge/mail', icon: Mail },
       ],
     },
     {
@@ -205,7 +206,24 @@ export default function Sidebar() {
             Forge
           </p>
         </div>
-      </div>
+        </div>
+
+{/* Forge Assistant button */}
+<button
+  onClick={() => {}}
+  style={{
+    margin: '8px 10px 0',
+    padding: '8px 12px', borderRadius: 8,
+    background: 'rgba(30,95,164,0.15)',
+    border: '1px solid rgba(30,95,164,0.3)',
+    display: 'flex', alignItems: 'center', gap: 8,
+    cursor: 'pointer', width: 'calc(100% - 20px)',
+    fontFamily: 'var(--font-body)', transition: 'all 0.12s',
+  }}
+>
+  <Sparkles size={13} color="#6BA3D6" strokeWidth={1.5} />
+  <span style={{ fontSize: 12, fontWeight: 600, color: '#6BA3D6' }}>Forge Assistant</span>
+</button>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>

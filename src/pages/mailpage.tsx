@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import type React from 'react';
 import {
-  Inbox, Star, FileText, Archive, Folder,
-  Search, Plus, ChevronDown, Paperclip,
-  Send, Reply, MoreHorizontal, Link2,
-  User, Building2, AlertTriangle, CheckCircle2,
-  Clock, Mail, Filter, Sparkles, X,
+  Inbox, Star, FileText, Archive,
+  Search, Plus, Paperclip,
+  Send, MoreHorizontal, Link2,
+  User, AlertTriangle,
+  Mail, Sparkles, X,
   FolderOpen, Receipt, Shield,
 } from 'lucide-react';
 
@@ -377,7 +378,8 @@ export default function MailPage() {
                 </p>
 
                 {/* Preview */}
-                <p style={{ fontSize: 10, color: 'var(--color-muted)', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', marginBottom: 8 }}>
+                <p style={{ fontSize: 10, color: 'var(--color-muted)', lineHeight: 1.4, overflow: 'hidden', marginBottom: 8,
+WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, display: '-webkit-box' as const, }}>
                   {msg.preview}
                 </p>
 
