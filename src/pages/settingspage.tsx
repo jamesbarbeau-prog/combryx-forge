@@ -5,12 +5,12 @@ import {
   Building2, DollarSign, Hammer, Users, BookOpen, Zap,
   Lock, Eye, EyeOff, Plus, X, Check, AlertTriangle,
   Download, Shield, UserX, UserCheck,
-  Upload, Image, FileImage, Trash2, Car,
+  Upload, Image, FileImage, Trash2, Car, Palette,
 } from 'lucide-react';
 
 const COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 
-type Tab = 'company' | 'tax' | 'trades' | 'team' | 'bookkeeping' | 'features';
+type Tab = 'company' | 'branding' | 'tax' | 'trades' | 'team' | 'bookkeeping' | 'features';
 
 const TRADE_TAGS = [
   { tag: 'Lead Carpenter',   gifi: '7620' },
@@ -252,12 +252,13 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('company');
 
   const TABS = [
-    { id: 'company',     label: 'Company',     icon: Building2, locked: false },
+    { id: 'company',     label: 'Company',     icon: Building2,  locked: false },
+    { id: 'branding',    label: 'Branding',    icon: Palette,    locked: false },
     { id: 'tax',         label: 'Tax & Rates', icon: DollarSign, locked: false },
-    { id: 'trades',      label: 'Trades',      icon: Hammer,    locked: false },
-    { id: 'team',        label: 'Team',        icon: Users,     locked: true  },
-    { id: 'bookkeeping', label: 'Bookkeeping', icon: BookOpen,  locked: true  },
-    { id: 'features',    label: 'Features',    icon: Zap,       locked: false },
+    { id: 'trades',      label: 'Trades',      icon: Hammer,     locked: false },
+    { id: 'team',        label: 'Team',        icon: Users,      locked: true  },
+    { id: 'bookkeeping', label: 'Bookkeeping', icon: BookOpen,   locked: true  },
+    { id: 'features',    label: 'Features',    icon: Zap,        locked: false },
   ];
 
   return (
@@ -282,6 +283,7 @@ export default function SettingsPage() {
         </div>
         <div>
           {activeTab === 'company'     && <CompanyTab />}
+          {activeTab === 'branding'    && <BrandingTab />}
           {activeTab === 'tax'         && <TaxTab />}
           {activeTab === 'trades'      && <TradesTab />}
           {activeTab === 'team'        && <PinGate section="team"><TeamTab /></PinGate>}
@@ -1038,6 +1040,309 @@ function FeaturesTab() {
       <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#FCE205', border: 'none', color: saved ? '#FFFFFF' : '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
         {saved ? <><Check size={14} /> Saved!</> : saving ? 'Saving...' : 'Save Features'}
       </button>
+    </div>
+  );
+}
+/* ── BRANDING TAB ── */
+/* ── BRANDING TAB ── */
+function BrandingTab() {
+  const [settings, setSettings] = useState<any>({});
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extracted, setExtracted]   = useState<string[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => { load(); }, []);
+
+  async function load() {
+    const { data } = await supabase.from('company_settings').select('settings').eq('company_id', COMPANY_ID).single();
+    if (data?.settings) setSettings(data.settings);
+  }
+
+  async function save() {
+    setSaving(true);
+    await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
+    setSaving(false); setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  function set(key: string, val: string) {
+    setSettings((prev: any) => ({ ...prev, [key]: val }));
+  }
+
+  /* Extract dominant colors from logo using canvas */
+  function extractColorsFromLogo() {
+    const logoUrl = settings.logo_url;
+    if (!logoUrl) return;
+    setExtracting(true);
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d')!;
+      canvas.width  = 80;
+      canvas.height = 80;
+      ctx.drawImage(img, 0, 0, 80, 80);
+
+      const data    = ctx.getImageData(0, 0, 80, 80).data;
+      const buckets: Record<string, number> = {};
+
+      for (let i = 0; i < data.length; i += 16) {
+        const r = Math.round(data[i]     / 32) * 32;
+        const g = Math.round(data[i + 1] / 32) * 32;
+        const b = Math.round(data[i + 2] / 32) * 32;
+        const a = data[i + 3];
+        if (a < 128) continue; // skip transparent
+        // skip near-white and near-black
+        if (r > 230 && g > 230 && b > 230) continue;
+        if (r < 25  && g < 25  && b < 25)  continue;
+        const key = `${r},${g},${b}`;
+        buckets[key] = (buckets[key] ?? 0) + 1;
+      }
+
+      const sorted = Object.entries(buckets)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8)
+        .map(([key]) => {
+          const [r, g, b] = key.split(',').map(Number);
+          return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+        });
+
+      setExtracted(sorted);
+      setExtracting(false);
+    };
+    img.onerror = () => setExtracting(false);
+    img.src = logoUrl;
+  }
+
+  const primary = settings.brand_primary ?? '#FCE205';
+  const dark    = settings.brand_dark    ?? '#111010';
+  const accent  = settings.brand_accent  ?? '#1E5FA4';
+
+  const PRESETS = [
+    { name: 'Classic Yellow',  primary: '#FCE205', dark: '#111010', accent: '#1E5FA4' },
+    { name: 'Deep Navy',       primary: '#1E3A5F', dark: '#FFFFFF', accent: '#3B82F6' },
+    { name: 'Forest',          primary: '#166534', dark: '#111010', accent: '#22C55E' },
+    { name: 'Slate',           primary: '#475569', dark: '#0F172A', accent: '#64748B' },
+    { name: 'Crimson',         primary: '#991B1B', dark: '#111010', accent: '#DC2626' },
+    { name: 'Charcoal',        primary: '#374151', dark: '#111827', accent: '#9CA3AF' },
+    { name: 'Warm Amber',      primary: '#D97706', dark: '#111010', accent: '#F59E0B' },
+    { name: 'Ocean',           primary: '#0369A1', dark: '#111010', accent: '#0EA5E9' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* Step 1 — Logo */}
+      <div className="forge-card" style={{ padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(252,226,5,0.15)', border: '1px solid rgba(252,226,5,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#8A7600', flexShrink: 0 }}>1</div>
+          <p style={{ fontSize: 14, fontWeight: 700 }}>Upload Your Logo</p>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+          Upload your company logo. Once uploaded, we can automatically extract your brand colors from it.
+        </p>
+
+        <FileUpload
+          bucket="company-assets"
+          path={`logos/${COMPANY_ID}`}
+          label="Company Logo"
+          accept="image/png,image/jpeg,image/svg+xml,image/webp"
+          currentUrl={settings.logo_url}
+          isPublic={true}
+          onUploaded={url => set('logo_url', url)}
+        />
+
+        {settings.logo_url && (
+          <button
+            onClick={extractColorsFromLogo}
+            disabled={extracting}
+            style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(30,95,164,0.08)', border: '1px solid rgba(30,95,164,0.2)', color: '#1E5FA4', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(30,95,164,0.14)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(30,95,164,0.08)'; }}
+          >
+            <Palette size={14} strokeWidth={1.5} />
+            {extracting ? 'Reading colors...' : '✨ Extract Colors from Logo'}
+          </button>
+        )}
+
+        {/* Extracted color swatches */}
+        {extracted.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted)', marginBottom: 8 }}>Colors found in your logo — click to apply</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {extracted.map(color => (
+                <div key={color} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                  <button
+                    title={color}
+                    style={{ width: 40, height: 40, borderRadius: 10, background: color, border: '2px solid var(--color-border)', cursor: 'pointer', transition: 'all 0.12s', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.borderColor = color; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}
+                    onClick={() => {
+                      // Show mini picker to choose which slot
+                      set('brand_primary', color);
+                    }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <button onClick={() => set('brand_primary', color)} style={{ fontSize: 8, padding: '1px 4px', borderRadius: 3, border: '1px solid var(--color-border)', background: primary === color ? '#FCE205' : 'var(--color-mist)', color: primary === color ? '#111010' : 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600 }}>Primary</button>
+                    <button onClick={() => set('brand_dark', color)} style={{ fontSize: 8, padding: '1px 4px', borderRadius: 3, border: '1px solid var(--color-border)', background: dark === color ? '#FCE205' : 'var(--color-mist)', color: dark === color ? '#111010' : 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600 }}>Dark</button>
+                    <button onClick={() => set('brand_accent', color)} style={{ fontSize: 8, padding: '1px 4px', borderRadius: 3, border: '1px solid var(--color-border)', background: accent === color ? '#FCE205' : 'var(--color-mist)', color: accent === color ? '#111010' : 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600 }}>Accent</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 10, color: 'var(--color-muted)', marginTop: 8 }}>Click Primary / Dark / Accent under each color to assign it to that role.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Step 2 — Color roles */}
+      <div className="forge-card" style={{ padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(252,226,5,0.15)', border: '1px solid rgba(252,226,5,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#8A7600', flexShrink: 0 }}>2</div>
+          <p style={{ fontSize: 14, fontWeight: 700 }}>Set Your Brand Colors</p>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+          Click any color box to open a color picker. Each role controls a different part of your documents.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
+          {[
+            { key: 'brand_primary', label: 'Primary',  value: primary, sub: 'Letterhead border, total line, buttons, footer strip' },
+            { key: 'brand_dark',    label: 'Dark',     value: dark,    sub: 'Company name, totals, signature lines, headings' },
+            { key: 'brand_accent',  label: 'Accent',   value: accent,  sub: 'Allowance tags, disclaimer boxes, links' },
+          ].map(c => (
+            <div key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', borderRadius: 10, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
+              {/* Big clickable color swatch */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 12, background: c.value, boxShadow: '0 3px 12px rgba(0,0,0,0.15)', border: '3px solid var(--color-panel)' }} />
+                <input
+                  type="color"
+                  value={c.value}
+                  onChange={e => set(c.key, e.target.value)}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', borderRadius: 12 }}
+                />
+                <div style={{ position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'var(--color-panel)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                  <Palette size={9} color="var(--color-muted)" />
+                </div>
+              </div>
+
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{c.label} Color</p>
+                <p style={{ fontSize: 11, color: 'var(--color-muted)', lineHeight: 1.5 }}>{c.sub}</p>
+              </div>
+
+              <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                <p style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-muted)', textTransform: 'uppercase' }}>{c.value}</p>
+                <p style={{ fontSize: 10, color: 'var(--color-muted)', marginTop: 2 }}>Click swatch to change</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Generic presets */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={lbl}>Start from a preset</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {PRESETS.map(preset => (
+              <button
+                key={preset.name}
+                onClick={() => {
+                  set('brand_primary', preset.primary);
+                  set('brand_dark',    preset.dark);
+                  set('brand_accent',  preset.accent);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-panel)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 500, color: 'var(--color-text)', transition: 'all 0.12s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#FCE205'; e.currentTarget.style.background = 'rgba(252,226,5,0.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-panel)'; }}
+              >
+                <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                  <div style={{ width: 14, height: 14, borderRadius: 4, background: preset.primary, border: '1px solid rgba(0,0,0,0.1)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 4, background: preset.dark,    border: '1px solid rgba(0,0,0,0.1)' }} />
+                  <div style={{ width: 14, height: 14, borderRadius: 4, background: preset.accent,  border: '1px solid rgba(0,0,0,0.1)' }} />
+                </div>
+                {preset.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 24px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#FCE205', border: 'none', color: saved ? '#FFFFFF' : '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
+          {saved ? <><Check size={14} /> Brand Saved!</> : saving ? 'Saving...' : 'Save Brand Colors'}
+        </button>
+      </div>
+
+      {/* Step 3 — Live preview */}
+      <div className="forge-card" style={{ padding: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(252,226,5,0.15)', border: '1px solid rgba(252,226,5,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#8A7600', flexShrink: 0 }}>3</div>
+          <p style={{ fontSize: 14, fontWeight: 700 }}>Live Document Preview</p>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16 }}>Updates instantly as you change colors above.</p>
+
+        <div style={{ background: '#F0EDE8', borderRadius: 10, padding: 16 }}>
+          <div style={{ background: '#FFFFFF', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.10)' }}>
+
+            {/* Letterhead */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 24px 16px', borderBottom: `3px solid ${primary}` }}>
+              <div>
+                {settings.logo_url ? (
+                  <img src={settings.logo_url} alt="Logo" style={{ height: 40, marginBottom: 8, objectFit: 'contain', borderRadius: 4 }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+                ) : (
+                  <div style={{ width: 40, height: 40, borderRadius: 9, background: primary, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: dark }}>{(settings.name ?? 'C').charAt(0)}</span>
+                  </div>
+                )}
+                <p style={{ fontSize: 13, fontWeight: 800, color: dark }}>{settings.name || 'Your Company Name'}</p>
+                <p style={{ fontSize: 11, color: '#6B7280' }}>{settings.email || 'info@yourcompany.com'}</p>
+                <p style={{ fontSize: 11, color: '#6B7280' }}>HST# {settings.hst || '000000000 RT0001'}</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: 16, fontWeight: 900, color: dark, letterSpacing: '0.04em' }}>INVOICE</p>
+                <p style={{ fontSize: 11, color: '#8C8680', fontFamily: 'monospace' }}>INV-00142</p>
+                <p style={{ fontSize: 11, color: '#8C8680', marginTop: 6 }}>{new Date().toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+              </div>
+            </div>
+
+            {/* Sample lines */}
+            <div style={{ padding: '16px 24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #F0EDE8' }}>
+                <span style={{ fontSize: 12, color: '#111010' }}>Kitchen Renovation — Labour</span>
+                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>$12,500.00</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #F0EDE8' }}>
+                <span style={{ fontSize: 12, color: '#111010' }}>Materials Allowance</span>
+                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>$8,000.00</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #F0EDE8' }}>
+                <span style={{ fontSize: 12, color: '#111010' }}>HST (13%)</span>
+                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>$2,665.00</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, marginTop: 4, borderTop: `2px solid ${primary}` }}>
+                <span style={{ fontSize: 14, fontWeight: 900, color: dark }}>Total Due</span>
+                <span style={{ fontSize: 14, fontWeight: 900, fontFamily: 'monospace', color: dark }}>$23,165.00</span>
+              </div>
+            </div>
+
+            {/* Accent example */}
+            <div style={{ margin: '0 24px 16px', padding: '10px 14px', borderRadius: 8, background: `${accent}10`, border: `1px solid ${accent}25` }}>
+              <p style={{ fontSize: 10, color: accent, fontStyle: 'italic' }}>
+                <strong>Note:</strong> Allowance items are estimates. Final costs adjusted on actuals.
+              </p>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '10px 24px', background: primary, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <p style={{ fontSize: 11, fontWeight: 700, color: dark }}>{settings.name || 'Your Company'}</p>
+              <p style={{ fontSize: 10, color: dark, opacity: 0.75 }}>Thank you for your business</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

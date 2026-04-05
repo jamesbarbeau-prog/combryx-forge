@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
 import {
-  Plus, Search, Download, X, Check, ChevronRight,
+  Plus, Search, Download, X, Check,
   FileText, AlertTriangle, Clock, CheckCircle,
-  Send, Edit3, Trash2, GripVertical, DollarSign,
-  ArrowUp, Copy, ExternalLink,
+  Send, Trash2, GripVertical, ArrowUp, Copy,
 } from 'lucide-react';
 
 const COMPANY_ID = '00000000-0000-0000-0000-000000000001';
@@ -20,15 +19,9 @@ const CO_STATUSES = [
 ];
 
 const CO_REASONS = [
-  'Client Request',
-  'Design Change',
-  'Site Condition',
-  'Allowance Overage',
-  'Unforeseen Work',
-  'Material Substitution',
-  'Code Requirement',
-  'Scope Clarification',
-  'Other',
+  'Client Request', 'Design Change', 'Site Condition',
+  'Allowance Overage', 'Unforeseen Work', 'Material Substitution',
+  'Code Requirement', 'Scope Clarification', 'Other',
 ];
 
 const inp: React.CSSProperties = {
@@ -55,50 +48,44 @@ function blur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTex
 function uid() { return Math.random().toString(36).slice(2); }
 
 export default function ChangeOrdersPage() {
-  const navigate                        = useNavigate();
-  const [searchParams]                  = useSearchParams();
-  const [cos, setCos]                   = useState<any[]>([]);
-  const [projects, setProjects]         = useState<any[]>([]);
-  const [clients, setClients]           = useState<any[]>([]);
-  const [quotes, setQuotes]             = useState<any[]>([]);
-  const [loading, setLoading]           = useState(true);
-  const [showModal, setShowModal]       = useState(false);
-  const [search, setSearch]             = useState('');
+  const navigate       = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const [cos, setCos]             = useState<any[]>([]);
+  const [projects, setProjects]   = useState<any[]>([]);
+  const [clients, setClients]     = useState<any[]>([]);
+  const [quotes, setQuotes]       = useState<any[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [search, setSearch]       = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [saving, setSaving]             = useState(false);
-  const [copied, setCopied]             = useState<string | null>(null);
+  const [saving, setSaving]       = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [copied, setCopied]       = useState<string | null>(null);
 
   const [form, setForm] = useState<any>({
-    project_id:     '',
-    client_id:      '',
-    quote_id:       '',
-    title:          '',
-    description:    '',
-    reason:         'Client Request',
-    requested_by:   '',
-    original_value: '',
-    tax_rate:       13,
-    valid_until:    '',
-    notes:          '',
+    project_id: '', client_id: '', quote_id: '',
+    title: '', description: '', reason: 'Client Request',
+    requested_by: '', original_value: '', tax_rate: 13,
+    valid_until: '', notes: '',
     line_items: [{ id: uid(), description: '', quantity: 1, unit: 'ls', rate: 0, amount: 0 }],
   });
 
   useEffect(() => { fetchAll(); }, []);
 
-  /* Pre-fill from quote if coming from allowance reconciliation */
   useEffect(() => {
-    const fromQuote  = searchParams.get('fromQuote');
-    const title      = searchParams.get('title');
-    const amount     = searchParams.get('amount');
-    const projectId  = searchParams.get('projectId');
+    const fromQuote = searchParams.get('fromQuote');
+    const title     = searchParams.get('title');
+    const amount    = searchParams.get('amount');
+    const projectId = searchParams.get('projectId');
     if (fromQuote) {
       setForm((prev: any) => ({
         ...prev,
-        quote_id:    fromQuote,
-        title:       title ? decodeURIComponent(title) : 'Change Order',
-        project_id:  projectId ?? '',
-        line_items:  amount ? [{ id: uid(), description: decodeURIComponent(title ?? 'Scope change'), quantity: 1, unit: 'ls', rate: Number(amount), amount: Number(amount) }] : prev.line_items,
-        reason:      'Allowance Overage',
+        quote_id:   fromQuote,
+        title:      title ? decodeURIComponent(title) : 'Change Order',
+        project_id: projectId ?? '',
+        line_items: amount ? [{ id: uid(), description: decodeURIComponent(title ?? 'Scope change'), quantity: 1, unit: 'ls', rate: Number(amount), amount: Number(amount) }] : prev.line_items,
+        reason:     'Allowance Overage',
       }));
       setShowModal(true);
     }
@@ -107,7 +94,7 @@ export default function ChangeOrdersPage() {
   async function fetchAll() {
     setLoading(true);
     const [coRes, projRes, clientRes, quoteRes] = await Promise.all([
-      supabase.from('change_orders').select('*, projects(name, value), clients(first_name, last_name)').eq('company_id', COMPANY_ID).order('created_at', { ascending: false }),
+      supabase.from('change_orders').select('*').eq('company_id', COMPANY_ID).order('created_at', { ascending: false }),
       supabase.from('projects').select('id, name, value, client_id').eq('company_id', COMPANY_ID),
       supabase.from('clients').select('id, first_name, last_name').eq('company_id', COMPANY_ID),
       supabase.from('quotes').select('id, quote_number, title, total').eq('company_id', COMPANY_ID).in('status', ['signed', 'converted']),
@@ -137,7 +124,6 @@ export default function ChangeOrdersPage() {
   const taxAmount = subtotal * (form.tax_rate / 100);
   const total     = subtotal + taxAmount;
 
-  /* When project selected → auto-fill client + original value */
   function onProjectChange(projectId: string) {
     setF('project_id', projectId);
     const proj = projects.find(p => p.id === projectId);
@@ -155,15 +141,19 @@ export default function ChangeOrdersPage() {
       valid_until: '', notes: '',
       line_items: [{ id: uid(), description: '', quantity: 1, unit: 'ls', rate: 0, amount: 0 }],
     });
+    setSaveError('');
   }
 
   async function save() {
-    if (!form.title || !form.project_id) return;
+    if (!form.title)      { setSaveError('Title is required'); return; }
+    if (!form.project_id) { setSaveError('Please select a project'); return; }
+    setSaveError('');
     setSaving(true);
-    const coNum        = `CO-${Date.now().toString().slice(-5)}`;
-    const originalVal  = Number(form.original_value) || 0;
-    const revisedVal   = originalVal + total;
-    await supabase.from('change_orders').insert({
+    const coNum       = `CO-${Date.now().toString().slice(-5)}`;
+    const originalVal = Number(form.original_value) || 0;
+    const revisedVal  = originalVal + total;
+
+    const { error: insertErr } = await supabase.from('change_orders').insert({
       company_id:     COMPANY_ID,
       project_id:     form.project_id,
       client_id:      form.client_id || null,
@@ -184,7 +174,9 @@ export default function ChangeOrdersPage() {
       valid_until:    form.valid_until || null,
       notes:          form.notes || null,
     });
+
     setSaving(false);
+    if (insertErr) { setSaveError(insertErr.message); return; }
     setShowModal(false);
     resetForm();
     fetchAll();
@@ -195,11 +187,11 @@ export default function ChangeOrdersPage() {
     setCos(prev => prev.map(c => c.id === id ? { ...c, status } : c));
   }
 
-  function copySigningLink(id: string) {
-    const link = `${window.location.origin}/co-sign/${id}`;
-    navigator.clipboard.writeText(link);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
+  /* Helpers to look up related data */
+  function projectName(id: string) { return projects.find(p => p.id === id)?.name ?? '—'; }
+  function clientName(id: string) {
+    const c = clients.find(c => c.id === id);
+    return c ? `${c.first_name} ${c.last_name}` : '—';
   }
 
   function exportXLSX() {
@@ -207,8 +199,8 @@ export default function ChangeOrdersPage() {
     const ws = XLSX.utils.json_to_sheet(filtered.map(co => ({
       'CO #':           co.co_number,
       'Title':          co.title,
-      'Project':        co.projects?.name ?? '—',
-      'Client':         co.clients ? `${co.clients.first_name} ${co.clients.last_name}` : '—',
+      'Project':        projectName(co.project_id),
+      'Client':         clientName(co.client_id),
       'Reason':         co.reason,
       'Status':         co.status,
       'Original Value': co.original_value?.toFixed(2),
@@ -222,18 +214,17 @@ export default function ChangeOrdersPage() {
     XLSX.writeFile(wb, `Change_Orders_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 
-  /* Stats */
-  const totalValue    = cos.reduce((s, c) => s + (c.total ?? 0), 0);
-  const signedValue   = cos.filter(c => c.status === 'signed').reduce((s, c) => s + (c.total ?? 0), 0);
-  const pendingCount  = cos.filter(c => c.status === 'pending').length;
-  const avgDelta      = cos.length > 0 ? totalValue / cos.length : 0;
+  const totalValue   = cos.reduce((s, c) => s + (c.total ?? 0), 0);
+  const signedValue  = cos.filter(c => c.status === 'signed').reduce((s, c) => s + (c.total ?? 0), 0);
+  const pendingCount = cos.filter(c => c.status === 'pending').length;
+  const avgDelta     = cos.length > 0 ? totalValue / cos.length : 0;
 
   const filtered = cos.filter(co => {
     const matchStatus = statusFilter === 'all' || co.status === statusFilter;
     const matchSearch = !search ||
       co.co_number?.toLowerCase().includes(search.toLowerCase()) ||
       co.title?.toLowerCase().includes(search.toLowerCase()) ||
-      co.projects?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      projectName(co.project_id).toLowerCase().includes(search.toLowerCase()) ||
       co.reason?.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
@@ -241,7 +232,7 @@ export default function ChangeOrdersPage() {
   return (
     <div style={{ padding: '24px 28px', maxWidth: 1200, margin: '0 auto' }}>
 
-      {/* ── New CO Modal ── */}
+      {/* ── Modal ── */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}
           onClick={e => { if (e.target === e.currentTarget) { setShowModal(false); resetForm(); } }}>
@@ -257,7 +248,6 @@ export default function ChangeOrdersPage() {
 
             <div style={{ padding: '20px', maxHeight: '78vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {/* Project + Client */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                 <div>
                   <label style={lbl}>Project *</label>
@@ -275,7 +265,6 @@ export default function ChangeOrdersPage() {
                 </div>
               </div>
 
-              {/* Title + Reason */}
               <div>
                 <label style={lbl}>Change Order Title *</label>
                 <input style={inp} placeholder="e.g. Upgraded Flooring — Master Bedroom" value={form.title} onChange={e => setF('title', e.target.value)} onFocus={focus} onBlur={blur} />
@@ -294,13 +283,11 @@ export default function ChangeOrdersPage() {
                 </div>
               </div>
 
-              {/* Description */}
               <div>
                 <label style={lbl}>Description</label>
                 <textarea style={{ ...inp, height: 72, padding: '8px 10px', resize: 'none' }} value={form.description} onChange={e => setF('description', e.target.value)} onFocus={focus} onBlur={blur} placeholder="Detailed description of the scope change..." />
               </div>
 
-              {/* Original contract + signed quote link */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                 <div>
                   <label style={lbl}>Original Contract Value</label>
@@ -361,7 +348,7 @@ export default function ChangeOrdersPage() {
                 </button>
               </div>
 
-              {/* Totals + impact */}
+              {/* Totals */}
               <div style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                   <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>CO Subtotal</span>
@@ -375,16 +362,16 @@ export default function ChangeOrdersPage() {
                   <span style={{ fontSize: 14, fontWeight: 800 }}>CO Total</span>
                   <span style={{ fontSize: 14, fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#8A7600' }}>${total.toFixed(2)}</span>
                 </div>
-                {form.original_value && (
-                  <div style={{ padding: '10px 12px', borderRadius: 8, background: total > 0 ? 'rgba(220,38,38,0.06)' : 'rgba(22,163,74,0.06)', border: `1px solid ${total > 0 ? 'rgba(220,38,38,0.2)' : 'rgba(22,163,74,0.2)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {form.original_value && Number(form.original_value) > 0 && (
+                  <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <p style={{ fontSize: 10, fontWeight: 700, color: total > 0 ? '#DC2626' : '#16A34A', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Contract Impact</p>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Contract Impact</p>
                       <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>Original: ${Number(form.original_value).toLocaleString()} → Revised: ${(Number(form.original_value) + total).toLocaleString()}</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <ArrowUp size={14} color={total > 0 ? '#DC2626' : '#16A34A'} strokeWidth={2} style={{ transform: total < 0 ? 'rotate(180deg)' : 'none' }} />
-                      <span style={{ fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-mono)', color: total > 0 ? '#DC2626' : '#16A34A' }}>
-                        {total > 0 ? '+' : ''}{((total / Number(form.original_value)) * 100).toFixed(1)}%
+                      <ArrowUp size={14} color="#DC2626" strokeWidth={2} />
+                      <span style={{ fontSize: 16, fontWeight: 900, fontFamily: 'var(--font-mono)', color: '#DC2626' }}>
+                        +{((total / Number(form.original_value)) * 100).toFixed(1)}%
                       </span>
                     </div>
                   </div>
@@ -397,11 +384,18 @@ export default function ChangeOrdersPage() {
               </div>
             </div>
 
-            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--color-panel-raised)' }}>
-              <button onClick={() => { setShowModal(false); resetForm(); }} className="forge-button forge-button--secondary">Cancel</button>
-              <button onClick={save} disabled={saving || !form.title || !form.project_id} className="forge-button forge-button--primary" style={{ gap: 6 }}>
-                <FileText size={13} /> {saving ? 'Saving...' : 'Create Change Order'}
-              </button>
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', background: 'var(--color-panel-raised)' }}>
+              {saveError && (
+                <div style={{ padding: '8px 12px', borderRadius: 7, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 10 }}>
+                  <p style={{ fontSize: 12, color: '#DC2626' }}>{saveError}</p>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                <button onClick={() => { setShowModal(false); resetForm(); }} className="forge-button forge-button--secondary">Cancel</button>
+                <button onClick={save} disabled={saving} className="forge-button forge-button--primary" style={{ gap: 6 }}>
+                  <FileText size={13} /> {saving ? 'Saving...' : 'Create Change Order'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -427,10 +421,10 @@ export default function ChangeOrdersPage() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'Total CO Value',  value: `$${totalValue.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`,  color: '#DC2626' },
-          { label: 'Signed Value',    value: `$${signedValue.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`, color: '#16A34A' },
-          { label: 'Pending Client',  value: String(pendingCount),                                                       color: '#D97706' },
-          { label: 'Avg CO Value',    value: `$${avgDelta.toLocaleString('en-CA', { minimumFractionDigits: 0 })}`,     color: '#6B7280' },
+          { label: 'Total CO Value', value: `$${totalValue.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`,  color: '#DC2626' },
+          { label: 'Signed Value',   value: `$${signedValue.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`, color: '#16A34A' },
+          { label: 'Pending Client', value: String(pendingCount),                                                      color: '#D97706' },
+          { label: 'Avg CO Value',   value: `$${avgDelta.toLocaleString('en-CA', { minimumFractionDigits: 0 })}`,    color: '#6B7280' },
         ].map(stat => (
           <div key={stat.label} style={{ padding: '16px 18px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
             <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 6 }}>{stat.label}</p>
@@ -469,20 +463,20 @@ export default function ChangeOrdersPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(co => {
-            const sc      = CO_STATUSES.find(s => s.id === co.status) ?? CO_STATUSES[0];
-            const Icon    = sc.icon;
+            const sc        = CO_STATUSES.find(s => s.id === co.status) ?? CO_STATUSES[0];
+            const Icon      = sc.icon;
             const pctChange = co.original_value > 0 ? ((co.total / co.original_value) * 100).toFixed(1) : null;
+            const projName  = projectName(co.project_id);
+            const cliName   = clientName(co.client_id);
 
             return (
-              <div key={co.id} style={{ padding: '16px 20px', borderRadius: 12, background: 'var(--color-panel)', border: `1px solid ${co.status === 'pending' ? 'rgba(217,119,6,0.25)' : 'var(--color-border)'}`, transition: 'all 0.12s' }}>
+              <div key={co.id} style={{ padding: '16px 20px', borderRadius: 12, background: 'var(--color-panel)', border: `1px solid ${co.status === 'pending' ? 'rgba(217,119,6,0.25)' : 'var(--color-border)'}` }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
 
-                  {/* Status icon */}
                   <div style={{ width: 40, height: 40, borderRadius: 10, background: sc.bg, border: `1px solid ${sc.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon size={18} color={sc.color} strokeWidth={1.5} />
                   </div>
 
-                  {/* Info */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>{co.title}</p>
@@ -491,26 +485,22 @@ export default function ChangeOrdersPage() {
                     </div>
                     <div style={{ display: 'flex', gap: 14, marginBottom: 6 }}>
                       <p style={{ fontSize: 11, color: 'var(--color-muted)', fontFamily: 'var(--font-mono)' }}>{co.co_number}</p>
-                      {co.projects?.name && <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>{co.projects.name}</p>}
-                      {co.clients && <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>{co.clients.first_name} {co.clients.last_name}</p>}
+                      {projName !== '—' && <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>{projName}</p>}
+                      {cliName !== '—' && <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>{cliName}</p>}
                       <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>{new Date(co.created_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
                     </div>
                     {co.description && <p style={{ fontSize: 11, color: 'var(--color-text)', lineHeight: 1.6, maxWidth: 500 }}>{co.description}</p>}
 
-                    {/* Contract impact bar */}
-                    {co.original_value > 0 && (
+                    {co.original_value > 0 && pctChange && (
                       <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ flex: 1, height: 6, borderRadius: 100, background: 'var(--color-mist)', overflow: 'hidden', maxWidth: 300 }}>
-                          <div style={{ height: '100%', width: `${Math.min(100, (co.total / co.original_value) * 100)}%`, borderRadius: 100, background: co.total > co.original_value * 0.1 ? '#DC2626' : '#FCE205' }} />
+                          <div style={{ height: '100%', width: `${Math.min(100, (co.total / co.original_value) * 100)}%`, borderRadius: 100, background: '#DC2626' }} />
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#DC2626' }}>+{pctChange}% scope change</span>
-                        <span style={{ fontSize: 10, color: 'var(--color-muted)' }}>
-                          ${co.original_value?.toLocaleString()} → ${co.revised_value?.toLocaleString()}
-                        </span>
+                        <span style={{ fontSize: 10, color: 'var(--color-muted)' }}>${co.original_value?.toLocaleString()} → ${co.revised_value?.toLocaleString()}</span>
                       </div>
                     )}
 
-                    {/* Signed info */}
                     {co.status === 'signed' && co.signed_at && (
                       <p style={{ fontSize: 10, color: '#1E5FA4', fontWeight: 600, marginTop: 6 }}>
                         Signed by {co.signed_by} on {new Date(co.signed_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -518,14 +508,12 @@ export default function ChangeOrdersPage() {
                     )}
                   </div>
 
-                  {/* Right — value + actions */}
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <div style={{ marginBottom: 10 }}>
                       <p style={{ fontSize: 20, fontWeight: 900, fontFamily: 'var(--font-mono)', color: '#DC2626' }}>+${co.total?.toFixed(2)}</p>
                       <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>incl. HST</p>
                     </div>
 
-                    {/* Status actions */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
                       {co.status === 'draft' && (
                         <button onClick={() => updateStatus(co.id, 'pending')} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 7, fontSize: 10, fontWeight: 700, background: 'rgba(217,119,6,0.10)', border: '1px solid rgba(217,119,6,0.25)', color: '#D97706', cursor: 'pointer', fontFamily: 'var(--font-body)', whiteSpace: 'nowrap' }}>
@@ -551,7 +539,6 @@ export default function ChangeOrdersPage() {
                         </button>
                       )}
 
-                      {/* Status dropdown for manual override */}
                       <select
                         value={co.status}
                         onChange={e => updateStatus(co.id, e.target.value)}

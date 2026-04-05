@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/layouts/applayout';
 import ProtectedRoute from '@/components/auth/protectedroute';
 import LoginPage from '@/pages/loginpage';
@@ -22,6 +22,7 @@ import ReportsPage from '@/pages/reportspage';
 import ExpensesPage from '@/pages/expensespage';
 import ProcurementPage from '@/pages/procurementpage';
 import ChangeOrdersPage from '@/pages/changeorderspage';
+import COSignPage from '@/pages/cosignpage';
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -33,8 +34,9 @@ function Placeholder({ name }: { name: string }) {
 }
 
 export const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/forge/dashboard" replace /> },
-  { path: '/sign/:id', element: <QuoteSignPage /> },
+  { path: '/',           element: <Navigate to="/forge/dashboard" replace /> },
+  { path: '/sign/:id',   element: <QuoteSignPage /> },
+  { path: '/co-sign/:id', element: <COSignPage />   },
   {
     path: '/forge',
     children: [
@@ -47,30 +49,27 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard',          element: <DashboardPage />      },
-          { path: 'dispatch',           element: <DispatchPage />        },
-          { path: 'clients',            element: <ClientsPage />         },
-          { path: 'clients/:id',        element: <ClientDetailPage />    },
-          { path: 'opportunities',      element: <OpportunitiesPage />   },
-          { path: 'projects',           element: <ProjectsPage />        },
-          { path: 'projects/:id',       element: <ProjectDetailPage />   },
-          { path: 'workorders',         element: <Placeholder name="Work Orders" />   },
-          { path: 'expenses', element: <ExpensesPage /> },
-          { path: 'invoices',     element: <InvoicesPage />     },
-          { path: 'invoices/:id', element: <InvoiceViewPage />  },
-          { path: 'reports', element: <ReportsPage /> },
-          { path: 'automations',        element: <Placeholder name="Automations" />   },
-          { path: 'settings', element: <SettingsPage /> },
-          { path: 'mfa-setup', element: <MFASetupPage /> },
-          { path: 'mail', element: <MailPage /> },
-          { path: 'quotes',     element: <QuotesPage />      },
-          { path: 'quotes/new', element: <QuoteBuilderPage /> },
-          { path: 'quotes/:id', element: <QuoteViewPage /> },
-          { path: 'procurement',  element: <ProcurementPage />  },
-          { path: 'change-orders', element: <ChangeOrdersPage /> },
-          
-          
-          
+          { path: 'dashboard',     element: <DashboardPage />    },
+          { path: 'dispatch',      element: <DispatchPage />      },
+          { path: 'clients',       element: <ClientsPage />       },
+          { path: 'clients/:id',   element: <ClientDetailPage />  },
+          { path: 'opportunities', element: <OpportunitiesPage /> },
+          { path: 'projects',      element: <ProjectsPage />      },
+          { path: 'projects/:id',  element: <ProjectDetailPage /> },
+          { path: 'workorders',    element: <Placeholder name="Work Orders" /> },
+          { path: 'expenses',      element: <ExpensesPage />      },
+          { path: 'invoices',      element: <InvoicesPage />      },
+          { path: 'invoices/:id',  element: <InvoiceViewPage />   },
+          { path: 'reports',       element: <ReportsPage />       },
+          { path: 'automations',   element: <Placeholder name="Automations" /> },
+          { path: 'settings',      element: <SettingsPage />      },
+          { path: 'mfa-setup',     element: <MFASetupPage />      },
+          { path: 'mail',          element: <MailPage />          },
+          { path: 'quotes',        element: <QuotesPage />        },
+          { path: 'quotes/new',    element: <QuoteBuilderPage />  },
+          { path: 'quotes/:id',    element: <QuoteViewPage />     },
+          { path: 'procurement',   element: <ProcurementPage />   },
+          { path: 'change-orders', element: <ChangeOrdersPage />  },
         ],
       },
     ],
