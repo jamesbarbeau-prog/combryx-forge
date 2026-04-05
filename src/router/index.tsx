@@ -17,7 +17,10 @@ import QuotesPage from '@/pages/quotespage';
 import QuoteBuilderPage from '@/pages/quotebuilderpage';
 import QuoteViewPage from '@/pages/quoteviewpage';
 import QuoteSignPage from '@/pages/quotesignpage';
-
+import InvoiceViewPage from '@/pages/invoiceviewpage';
+import ReportsPage from '@/pages/reportspage';
+import ExpensesPage from '@/pages/expensespage';
+import ProcurementPage from '@/pages/procurementpage';
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -51,9 +54,10 @@ export const router = createBrowserRouter([
           { path: 'projects',           element: <ProjectsPage />        },
           { path: 'projects/:id',       element: <ProjectDetailPage />   },
           { path: 'workorders',         element: <Placeholder name="Work Orders" />   },
-          { path: 'procurement',        element: <Placeholder name="Procurement" />   },
-          { path: 'invoices', element: <InvoicesPage /> },
-          { path: 'reports',            element: <Placeholder name="Reports" />       },
+          { path: 'expenses', element: <ExpensesPage /> },
+          { path: 'invoices',     element: <InvoicesPage />     },
+          { path: 'invoices/:id', element: <InvoiceViewPage />  },
+          { path: 'reports', element: <ReportsPage /> },
           { path: 'automations',        element: <Placeholder name="Automations" />   },
           { path: 'settings', element: <SettingsPage /> },
           { path: 'mfa-setup', element: <MFASetupPage /> },
@@ -61,6 +65,8 @@ export const router = createBrowserRouter([
           { path: 'quotes',     element: <QuotesPage />      },
           { path: 'quotes/new', element: <QuoteBuilderPage /> },
           { path: 'quotes/:id', element: <QuoteViewPage /> },
+          { path: 'procurement',  element: <ProcurementPage />  },
+          
           
         ],
       },

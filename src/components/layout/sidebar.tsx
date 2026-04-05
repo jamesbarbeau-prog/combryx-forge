@@ -160,6 +160,7 @@ export default function Sidebar() {
       items: [
         ...(features.procurement ? [{ label: 'Procurement', path: '/forge/procurement', icon: ShoppingCart }] : []),
         { label: 'Invoices', path: '/forge/invoices', icon: Receipt },
+        { path: '/forge/expenses', label: 'Expenses', icon: Receipt },
         ...(features.reports ? [{ label: 'Reports', path: '/forge/reports', icon: BarChart2 }] : []),
       ],
     },
