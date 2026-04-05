@@ -21,6 +21,7 @@ import InvoiceViewPage from '@/pages/invoiceviewpage';
 import ReportsPage from '@/pages/reportspage';
 import ExpensesPage from '@/pages/expensespage';
 import ProcurementPage from '@/pages/procurementpage';
+import ChangeOrdersPage from '@/pages/changeorderspage';
 
 function Placeholder({ name }: { name: string }) {
   return (
@@ -66,6 +67,8 @@ export const router = createBrowserRouter([
           { path: 'quotes/new', element: <QuoteBuilderPage /> },
           { path: 'quotes/:id', element: <QuoteViewPage /> },
           { path: 'procurement',  element: <ProcurementPage />  },
+          { path: 'change-orders', element: <ChangeOrdersPage /> },
+          
           
           
         ],

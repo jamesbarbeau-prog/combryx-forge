@@ -5,7 +5,7 @@ import { useFeatureStore } from '@/store/featurestore';
 import {
   LayoutDashboard, Users, Briefcase, FileText, FolderOpen,
   Hammer, ShoppingCart, Receipt, BarChart2, Settings,
-  ChevronRight, Zap, Radio, Bell, LogOut, Shield, Mail, Sparkles,
+  ChevronRight, Zap, Radio, Bell, LogOut, Shield, Mail, Sparkles, Wallet,
 } from 'lucide-react';
 
 function UserMenu({ user, signOut }: { user: any; signOut: () => void }) {
@@ -160,7 +160,8 @@ export default function Sidebar() {
       items: [
         ...(features.procurement ? [{ label: 'Procurement', path: '/forge/procurement', icon: ShoppingCart }] : []),
         { label: 'Invoices', path: '/forge/invoices', icon: Receipt },
-        { path: '/forge/expenses', label: 'Expenses', icon: Receipt },
+        { path: '/forge/change-orders', label: 'Change Orders', icon: FileText },
+        { path: '/forge/expenses', label: 'Expenses', icon: Wallet },
         ...(features.reports ? [{ label: 'Reports', path: '/forge/reports', icon: BarChart2 }] : []),
       ],
     },
