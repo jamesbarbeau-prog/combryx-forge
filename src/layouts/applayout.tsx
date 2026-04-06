@@ -19,14 +19,22 @@ const TITLES: Record<string, string> = {
 
 export function AppLayout() {
   const location = useLocation();
-  const title = TITLES[location.pathname] ?? 'Forge';
+  const isWarranty = location.pathname.startsWith('/warranty');
+
+  if (isWarranty) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--color-canvas)' }}>
+        <Outlet />
+      </div>
+    );
+  }
 
   return (
-    <div className="forge-app-shell">
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
       <Sidebar />
-      <div className="forge-app-shell__main">
-        <TopBar title={title} />
-        <main className="forge-app-shell__content">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <TopBar />
+        <main style={{ flex: 1, overflow: 'auto' }}>
           <Outlet />
         </main>
       </div>

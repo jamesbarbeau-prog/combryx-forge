@@ -1,0 +1,120 @@
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useAuth } from '@/hooks/useauth';
+
+const today = new Date().toLocaleDateString('en-CA', {
+  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+});
+
+const NAV = [
+  { id: 'today',       label: 'Today',       path: '/warranty/today'       },
+  { id: 'communities', label: 'Communities',  path: '/warranty/communities' },
+  { id: 'lots',        label: 'Lots',         path: '/warranty/lots'        },
+  { id: 'cases',       label: 'Cases',        path: '/warranty/cases'       },
+  { id: 'work-orders', label: 'Work Orders',  path: '/warranty/work-orders' },
+  { id: 'po-requests', label: 'PO Requests',  path: '/warranty/po-requests' },
+  { id: 'settlements', label: 'Settlements',  path: '/warranty/settlements' },
+  { id: 'reports',     label: 'Reports',      path: '/warranty/reports'     },
+  { id: 'settings',    label: 'Settings',     path: '/warranty/settings'    },
+];
+
+export default function WarrantyLayout() {
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const { signOut, user } = useAuth();
+
+  return (
+    <div style={{ minHeight: '100vh', background: 'var(--color-canvas)', fontFamily: 'var(--font-body)' }}>
+
+      {/* Top nav */}
+      <div style={{
+        borderBottom: '1px solid rgba(252,226,5,0.10)',
+        background: 'radial-gradient(ellipse at top left, #4A4D52 0%, #3A3C40 40%, #2E3033 100%)',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
+        padding: '0 28px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        height: 56,
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 7,
+              background: 'linear-gradient(135deg, #FCE205 0%, #D4A800 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 900, color: '#111' }}>W</span>
+            </div>
+            <div>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#FCE205', letterSpacing: '-0.02em' }}>Combryx</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#FFFFFF', marginLeft: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Warranty</span>
+            </div>
+          </div>
+
+          <div style={{ width: 1, height: 20, background: 'rgba(252,226,5,0.15)' }} />
+
+          {/* Nav items */}
+          {NAV.map(n => {
+            const active = location.pathname === n.path ||
+              (n.id !== 'today' && location.pathname.startsWith(n.path));
+            return (
+              <button
+                key={n.id}
+                onClick={() => navigate(n.path)}
+                style={{
+                  padding: '6px 12px', borderRadius: 6, fontSize: 12,
+                  fontWeight: active ? 700 : 500,
+                  background: active ? 'rgba(252,226,5,0.15)' : 'transparent',
+                  border: active ? '1px solid rgba(252,226,5,0.30)' : '1px solid transparent',
+                  color: active ? '#FCE205' : 'rgba(255,255,255,0.85)',
+                  cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.12s',
+                }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.color = '#FFFFFF'; }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
+              >
+                {n.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700,
+            background: 'rgba(252,226,5,0.10)', border: '1px solid rgba(252,226,5,0.25)',
+            color: '#FCE205', cursor: 'pointer', fontFamily: 'var(--font-body)',
+          }}>
+            ↓ Pull BuilderLink Lists
+          </button>
+          <div style={{
+            fontSize: 11, color: 'rgba(255,255,255,0.4)',
+            padding: '5px 10px', borderRadius: 6,
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            {today}
+          </div>
+          <button
+            onClick={signOut}
+            style={{
+              padding: '5px 10px', borderRadius: 6, fontSize: 11,
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
+              color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontFamily: 'var(--font-body)',
+            }}
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+
+      {/* Page content */}
+      <Outlet />
+    </div>
+  );
+}
