@@ -133,46 +133,42 @@ export default function Sidebar() {
 
   const NAV = [
     {
-      section: 'Command',
+      section: 'Overview',
       items: [
-        { label: 'Dashboard', path: '/forge/dashboard', icon: LayoutDashboard },
-        ...(features.dispatch ? [{ label: 'Dispatch', path: '/forge/dispatch', icon: Radio }] : []),
+        { label: 'Today',        path: '/warranty/today',       icon: LayoutDashboard },
       ],
     },
     {
-      section: 'CRM',
+      section: 'Portfolio',
       items: [
-        { label: 'Clients', path: '/forge/clients', icon: Users },
-        ...(features.opportunities ? [{ label: 'Opportunities', path: '/forge/opportunities', icon: Briefcase }] : []),
-        ...(features.quotes        ? [{ label: 'Quotes',        path: '/forge/quotes',        icon: FileText  }] : []),
-        { label: 'Mail', path: '/forge/mail', icon: Mail },
+        { label: 'Communities',  path: '/warranty/communities',  icon: Building2      },
+        { label: 'Lots',         path: '/warranty/lots',         icon: Home           },
+        { label: 'Cases',        path: '/warranty/cases',        icon: FileText       },
       ],
     },
     {
-      section: 'Projects',
+      section: 'Operations',
       items: [
-        { label: 'All Projects', path: '/forge/projects', icon: FolderOpen },
-        ...(features.dispatch ? [{ label: 'Work Orders', path: '/forge/workorders', icon: Hammer }] : []),
+        { label: 'Work Orders',  path: '/warranty/work-orders',  icon: Wrench         },
+        { label: 'PO Requests',  path: '/warranty/po-requests',  icon: ShoppingCart   },
+        { label: 'Settlements',  path: '/warranty/settlements',  icon: DollarSign     },
+        { label: 'Dispatch',     path: '/warranty/dispatch',     icon: MapPin         },
       ],
     },
     {
-      section: 'Financial',
+      section: 'Documents',
       items: [
-        ...(features.procurement ? [{ label: 'Procurement', path: '/forge/procurement', icon: ShoppingCart }] : []),
-        { label: 'Invoices', path: '/forge/invoices', icon: Receipt },
-        { path: '/forge/change-orders', label: 'Change Orders', icon: FileText },
-        { path: '/forge/expenses', label: 'Expenses', icon: Wallet },
-        ...(features.reports ? [{ label: 'Reports', path: '/forge/reports', icon: BarChart2 }] : []),
+        { label: 'Mail',         path: '/warranty/mail',         icon: Mail           },
+        { label: 'Reports',      path: '/warranty/reports',      icon: BarChart2      },
       ],
     },
     {
       section: 'System',
       items: [
-        ...(features.automations ? [{ label: 'Automations', path: '/forge/automations', icon: Zap }] : []),
-        { label: 'Settings', path: '/forge/settings', icon: Settings },
+        { label: 'Settings',     path: '/warranty/settings',     icon: Settings       },
       ],
     },
-  ].filter(group => group.items.length > 0);
+  ];
 
   return (
     <aside style={{
@@ -205,7 +201,7 @@ export default function Sidebar() {
             Combryx
           </p>
           <p style={{ fontSize: 9, fontWeight: 700, color: '#FCE205', letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2 }}>
-            Forge
+            Warranty
           </p>
         </div>
         </div>
