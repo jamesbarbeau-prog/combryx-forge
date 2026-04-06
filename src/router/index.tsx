@@ -5,6 +5,7 @@ import LoginPage from '@/pages/loginpage';
 import MFASetupPage from '@/pages/mfasetuppage';
 import SettingsPage from '@/pages/settingspage';
 import MailPage from '@/pages/mailpage';
+import DispatchPage from '@/pages/dispatchpage';
 
 // Warranty pages (build these next)
 import WarrantyTodayPage    from '@/pages/warrantytodaypage';
@@ -54,6 +55,7 @@ export const router = createBrowserRouter([
           { path: 'mail',         element: <MailPage />            },
           { path: 'settings',     element: <SettingsPage />        },
           { path: 'mfa-setup',    element: <MFASetupPage />        },
+          { path: 'dispatch', element: <DispatchPage /> },
         ],
       },
     ],

@@ -78,7 +78,7 @@ export default function LoginPage() {
     }
 
     setLoading(false);
-    navigate('/forge/dashboard');
+    navigate('/warranty/today')
   }
 
   async function handleSignUp() {

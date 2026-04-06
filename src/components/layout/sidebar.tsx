@@ -5,7 +5,7 @@ import { useFeatureStore } from '@/store/featurestore';
 import {
   LayoutDashboard, Users, Briefcase, FileText, FolderOpen,
   Hammer, ShoppingCart, Receipt, BarChart2, Settings,
-  ChevronRight, Zap, Radio, Bell, LogOut, Shield, Mail, Sparkles, Wallet,
+  ChevronRight, Zap, Radio, Bell, LogOut, Shield, Mail, Sparkles, Wallet, Building2, Home, Wrench, MapPin, Banknote,
 } from 'lucide-react';
 
 function UserMenu({ user, signOut }: { user: any; signOut: () => void }) {
@@ -151,7 +151,7 @@ export default function Sidebar() {
       items: [
         { label: 'Work Orders',  path: '/warranty/work-orders',  icon: Wrench         },
         { label: 'PO Requests',  path: '/warranty/po-requests',  icon: ShoppingCart   },
-        { label: 'Settlements',  path: '/warranty/settlements',  icon: DollarSign     },
+        { label: 'Settlements',  path: '/warranty/settlements',  icon: Banknote     },
         { label: 'Dispatch',     path: '/warranty/dispatch',     icon: MapPin         },
       ],
     },
