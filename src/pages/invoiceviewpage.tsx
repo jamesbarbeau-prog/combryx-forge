@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useBrand } from '@/hooks/useBrand';
 import {
   ChevronLeft, Download, Send, CheckCircle,
   Clock, AlertTriangle, DollarSign, Receipt,
-  Edit3, X, Check, FileText,
+  X, Check,
 } from 'lucide-react';
 
 interface Invoice {
@@ -39,16 +40,17 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string; 
 };
 
 export default function InvoiceViewPage() {
-  const { id }   = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const { id }    = useParams<{ id: string }>();
+  const navigate  = useNavigate();
+  const { brand } = useBrand();
 
-  const [invoice, setInvoice]       = useState<Invoice | null>(null);
-  const [loading, setLoading]       = useState(true);
+  const [invoice, setInvoice]         = useState<Invoice | null>(null);
+  const [loading, setLoading]         = useState(true);
   const [showPayment, setShowPayment] = useState(false);
-  const [payAmount, setPayAmount]   = useState('');
-  const [payDate, setPayDate]       = useState(new Date().toISOString().split('T')[0]);
-  const [saving, setSaving]         = useState(false);
-  const [company, setCompany]       = useState<any>(null);
+  const [payAmount, setPayAmount]     = useState('');
+  const [payDate, setPayDate]         = useState(new Date().toISOString().split('T')[0]);
+  const [saving, setSaving]           = useState(false);
+  const [company, setCompany]         = useState<any>(null);
 
   useEffect(() => { if (id) fetchInvoice(); }, [id]);
 
@@ -101,14 +103,13 @@ export default function InvoiceViewPage() {
     <>
       <div className="no-print" style={{ display: 'flex', height: 'calc(100vh - 56px)', overflow: 'hidden' }}>
 
-        {/* Left sidebar */}
+        {/* Sidebar */}
         <div style={{ width: 260, borderRight: '1px solid var(--color-border)', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flexShrink: 0 }}>
 
           <button onClick={() => navigate('/forge/invoices')} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', fontSize: 12, fontFamily: 'var(--font-body)', padding: '0 0 8px 0', borderBottom: '1px solid var(--color-border)' }}>
             <ChevronLeft size={14} /> Back to Invoices
           </button>
 
-          {/* Status */}
           <div style={{ padding: '12px', borderRadius: 9, background: sc.bg, border: `1px solid ${sc.color}22` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <StatusIcon size={13} color={sc.color} strokeWidth={1.5} />
@@ -119,7 +120,6 @@ export default function InvoiceViewPage() {
             {invoice.draw_number && <p style={{ fontSize: 10, color: 'var(--color-muted)', marginTop: 2 }}>Draw #{invoice.draw_number}</p>}
           </div>
 
-          {/* Client */}
           {invoice.clients && (
             <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
               <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 4 }}>Client</p>
@@ -128,7 +128,6 @@ export default function InvoiceViewPage() {
             </div>
           )}
 
-          {/* Project */}
           {invoice.projects && (
             <div style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
               <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 4 }}>Project</p>
@@ -136,7 +135,6 @@ export default function InvoiceViewPage() {
             </div>
           )}
 
-          {/* Financials */}
           <div style={{ padding: '12px', borderRadius: 9, background: 'rgba(252,226,5,0.06)', border: '1px solid rgba(252,226,5,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
               <span style={{ fontSize: 10, color: 'var(--color-muted)' }}>Total</span>
@@ -152,7 +150,6 @@ export default function InvoiceViewPage() {
             </div>
           </div>
 
-          {/* Due date */}
           {invoice.due_date && (
             <div style={{ padding: '8px 12px', borderRadius: 8, background: isOverdue ? 'rgba(220,38,38,0.06)' : 'var(--color-mist)', border: `1px solid ${isOverdue ? 'rgba(220,38,38,0.2)' : 'var(--color-border)'}` }}>
               <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 3 }}>Due Date</p>
@@ -162,7 +159,6 @@ export default function InvoiceViewPage() {
             </div>
           )}
 
-          {/* Actions */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
             <button onClick={() => window.print()} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, background: '#FCE205', border: 'none', color: '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               <Download size={13} strokeWidth={2} /> Download PDF
@@ -181,7 +177,6 @@ export default function InvoiceViewPage() {
             )}
           </div>
 
-          {/* Record payment panel */}
           {showPayment && (
             <div style={{ padding: '14px', borderRadius: 9, background: 'rgba(22,163,74,0.05)', border: '1px solid rgba(22,163,74,0.2)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -207,7 +202,6 @@ export default function InvoiceViewPage() {
             </div>
           )}
 
-          {/* Paid confirmation */}
           {invoice.status === 'paid' && (
             <div style={{ padding: '12px', borderRadius: 8, background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
@@ -219,13 +213,12 @@ export default function InvoiceViewPage() {
           )}
         </div>
 
-        {/* Right — document */}
+        {/* Document */}
         <div style={{ flex: 1, overflowY: 'auto', background: '#ECEAE5', padding: '24px' }}>
-          <InvoiceDocument invoice={invoice} company={company} />
+          <InvoiceDocument invoice={invoice} company={company} brand={brand} />
         </div>
       </div>
 
-      {/* Print styles */}
       <style>{`
         @media print {
           .no-print { display: none !important; }
@@ -237,33 +230,51 @@ export default function InvoiceViewPage() {
       `}</style>
 
       <div className="print-only" style={{ padding: '28px 32px', background: '#FFFFFF', minHeight: '100vh' }}>
-        <InvoiceDocument invoice={invoice} company={company} print />
+        <InvoiceDocument invoice={invoice} company={company} brand={brand} print />
       </div>
     </>
   );
 }
 
-function InvoiceDocument({ invoice, company, print = false }: { invoice: Invoice; company: any; print?: boolean }) {
+function InvoiceDocument({ invoice, company, brand, print = false }: {
+  invoice: Invoice;
+  company: any;
+  brand: any;
+  print?: boolean;
+}) {
+  const p = brand?.primary  ?? '#FCE205';
+  const d = brand?.dark     ?? '#111010';
+  const a = brand?.accent   ?? '#1E5FA4';
+  const companyName  = brand?.name     || company?.name  || 'Your Company';
+  const companyEmail = brand?.email    || company?.email || '';
+  const companyHST   = brand?.hst      || company?.hst   || '—';
+  const logoUrl      = brand?.logo_url || company?.logo_url || '';
+
   const outstanding = invoice.total - invoice.amount_paid;
+
   return (
     <div style={{ background: '#FFFFFF', borderRadius: print ? 0 : 12, boxShadow: print ? 'none' : '0 4px 24px rgba(0,0,0,0.10)', padding: print ? '28px 32px' : '32px 28px', maxWidth: 720, margin: '0 auto', fontFamily: 'DM Sans, sans-serif' }}>
 
       {/* Letterhead */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, paddingBottom: 20, borderBottom: '3px solid #FCE205' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, paddingBottom: 20, borderBottom: `3px solid ${p}` }}>
         <div>
-          <div style={{ width: 48, height: 48, borderRadius: 10, background: '#FCE205', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
-            <Receipt size={22} color="#111010" strokeWidth={1.5} />
-          </div>
-          <p style={{ fontSize: 14, fontWeight: 800, color: '#111010' }}>{company?.name ?? 'Your Company'}</p>
-          <p style={{ fontSize: 11, color: '#8C8680' }}>{company?.email ?? ''}</p>
-          <p style={{ fontSize: 11, color: '#8C8680' }}>HST# {company?.hst ?? '—'}</p>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Logo" style={{ height: 48, marginBottom: 10, objectFit: 'contain', borderRadius: 4 }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+          ) : (
+            <div style={{ width: 48, height: 48, borderRadius: 10, background: p, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 20, fontWeight: 900, color: d }}>{companyName.charAt(0)}</span>
+            </div>
+          )}
+          <p style={{ fontSize: 14, fontWeight: 800, color: d }}>{companyName}</p>
+          <p style={{ fontSize: 11, color: '#8C8680' }}>{companyEmail}</p>
+          <p style={{ fontSize: 11, color: '#8C8680' }}>HST# {companyHST}</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: 20, fontWeight: 900, color: '#111010', letterSpacing: '0.04em' }}>INVOICE</p>
+          <p style={{ fontSize: 20, fontWeight: 900, color: d, letterSpacing: '0.04em' }}>INVOICE</p>
           <p style={{ fontSize: 11, color: '#8C8680', fontFamily: 'monospace' }}>{invoice.invoice_number}</p>
           {invoice.draw_number && <p style={{ fontSize: 11, color: '#8C8680' }}>Draw #{invoice.draw_number}</p>}
           <p style={{ fontSize: 11, color: '#8C8680', marginTop: 6 }}>{new Date(invoice.created_at).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-          {invoice.due_date && <p style={{ fontSize: 11, color: '#111010', fontWeight: 700, marginTop: 4 }}>Due: {new Date(invoice.due_date).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>}
+          {invoice.due_date && <p style={{ fontSize: 11, color: d, fontWeight: 700, marginTop: 4 }}>Due: {new Date(invoice.due_date).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>}
         </div>
       </div>
 
@@ -272,7 +283,7 @@ function InvoiceDocument({ invoice, company, print = false }: { invoice: Invoice
         <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8C8680', marginBottom: 4 }}>Bill To</p>
         {invoice.clients ? (
           <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#111010' }}>{invoice.clients.first_name} {invoice.clients.last_name}</p>
+            <p style={{ fontSize: 15, fontWeight: 700, color: d }}>{invoice.clients.first_name} {invoice.clients.last_name}</p>
             {invoice.clients.email && <p style={{ fontSize: 12, color: '#6B7280' }}>{invoice.clients.email}</p>}
           </div>
         ) : <p style={{ fontSize: 14, color: '#6B7280' }}>—</p>}
@@ -289,7 +300,7 @@ function InvoiceDocument({ invoice, company, print = false }: { invoice: Invoice
           </div>
           {(invoice.line_items ?? []).map((item: any, i: number) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 60px 80px 90px 90px', gap: 8, padding: '8px', borderBottom: '1px solid #F0EDE8', alignItems: 'center' }}>
-              <p style={{ fontSize: 12, color: '#111010' }}>{item.description}</p>
+              <p style={{ fontSize: 12, color: d }}>{item.description}</p>
               <p style={{ fontSize: 12, color: '#6B7280', textAlign: 'right', fontFamily: 'monospace' }}>{item.quantity}</p>
               <p style={{ fontSize: 12, color: '#6B7280' }}>{item.unit}</p>
               <p style={{ fontSize: 12, color: '#6B7280', textAlign: 'right', fontFamily: 'monospace' }}>${item.rate?.toLocaleString()}</p>
@@ -302,7 +313,7 @@ function InvoiceDocument({ invoice, company, print = false }: { invoice: Invoice
       {/* Totals */}
       <div style={{ padding: '14px 16px', borderRadius: 10, background: '#F8F7F4', marginBottom: 20 }}>
         {[
-          { label: 'Subtotal',   value: `$${invoice.subtotal.toFixed(2)}` },
+          { label: 'Subtotal',              value: `$${invoice.subtotal.toFixed(2)}` },
           { label: `HST (${invoice.tax_rate}%)`, value: `$${invoice.tax_amount.toFixed(2)}` },
           ...(invoice.holdback_amount > 0 ? [{ label: 'Holdback', value: `-$${invoice.holdback_amount.toFixed(2)}` }] : []),
         ].map(row => (
@@ -311,9 +322,9 @@ function InvoiceDocument({ invoice, company, print = false }: { invoice: Invoice
             <span style={{ fontSize: 11, fontFamily: 'monospace' }}>{row.value}</span>
           </div>
         ))}
-        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '2px solid #FCE205', marginTop: 4 }}>
-          <span style={{ fontSize: 15, fontWeight: 900, color: '#111010' }}>Total Due</span>
-          <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'monospace', color: '#111010' }}>${invoice.total.toFixed(2)}</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: `2px solid ${p}`, marginTop: 4 }}>
+          <span style={{ fontSize: 15, fontWeight: 900, color: d }}>Total Due</span>
+          <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'monospace', color: d }}>${invoice.total.toFixed(2)}</span>
         </div>
         {invoice.amount_paid > 0 && (
           <>
@@ -331,8 +342,8 @@ function InvoiceDocument({ invoice, company, print = false }: { invoice: Invoice
 
       {/* Payment terms */}
       {invoice.payment_terms && (
-        <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(30,95,164,0.05)', border: '1px solid rgba(30,95,164,0.12)', marginBottom: 16 }}>
-          <p style={{ fontSize: 11, color: '#1E5FA4' }}>
+        <div style={{ padding: '10px 14px', borderRadius: 8, background: `${a}08`, border: `1px solid ${a}20`, marginBottom: 16 }}>
+          <p style={{ fontSize: 11, color: a }}>
             <strong>Payment Terms:</strong> {invoice.payment_terms.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
           </p>
         </div>
@@ -340,7 +351,7 @@ function InvoiceDocument({ invoice, company, print = false }: { invoice: Invoice
 
       {/* Closing */}
       {invoice.closing_message && (
-        <div style={{ padding: '14px', borderRadius: 8, background: 'rgba(252,226,5,0.05)', border: '1px solid rgba(252,226,5,0.2)', marginBottom: 20 }}>
+        <div style={{ padding: '14px', borderRadius: 8, background: `${p}08`, border: `1px solid ${p}30`, marginBottom: 20 }}>
           <p style={{ fontSize: 12, color: '#4A4640', lineHeight: 1.7, fontStyle: 'italic' }}>{invoice.closing_message}</p>
         </div>
       )}

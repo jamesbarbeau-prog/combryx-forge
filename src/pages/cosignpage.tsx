@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { FileText, Check, AlertCircle, Edit3, Type, MousePointer } from 'lucide-react';
@@ -25,6 +25,16 @@ interface ChangeOrder {
   projects?: { name: string } | null;
 }
 
+interface Brand {
+  primary: string;
+  dark: string;
+  accent: string;
+  name: string;
+  email: string;
+  hst: string;
+  logo_url: string;
+}
+
 type SigMode = 'draw' | 'type';
 
 const SIG_FONTS = [
@@ -34,24 +44,30 @@ const SIG_FONTS = [
   { id: 'caveat',   label: 'Handwritten', style: "'Caveat', cursive"          },
 ];
 
+const DEFAULT_BRAND: Brand = {
+  primary: '#DC2626', dark: '#111010', accent: '#1E5FA4',
+  name: '', email: '', hst: '', logo_url: '',
+};
+
 export default function COSignPage() {
   const { id }        = useParams<{ id: string }>();
   const canvasRef     = useRef<HTMLCanvasElement>(null);
   const typeCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [co, setCo]               = useState<ChangeOrder | null>(null);
-  const [loading, setLoading]     = useState(true);
-  const [name, setName]           = useState('');
-  const [sigMode, setSigMode]     = useState<SigMode>('draw');
+  const [co, setCo]             = useState<ChangeOrder | null>(null);
+  const [brand, setBrand]       = useState<Brand>(DEFAULT_BRAND);
+  const [loading, setLoading]   = useState(true);
+  const [name, setName]         = useState('');
+  const [sigMode, setSigMode]   = useState<SigMode>('draw');
   const [selectedFont, setSelectedFont] = useState(SIG_FONTS[0].id);
-  const [drawing, setDrawing]     = useState(false);
-  const [hasSig, setHasSig]       = useState(false);
-  const [agreed, setAgreed]       = useState(false);
+  const [drawing, setDrawing]   = useState(false);
+  const [hasSig, setHasSig]     = useState(false);
+  const [agreed, setAgreed]     = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [done, setDone]           = useState(false);
-  const [error, setError]         = useState('');
+  const [done, setDone]         = useState(false);
+  const [error, setError]       = useState('');
 
-  useEffect(() => { if (id) fetchCO(); }, [id]);
+  useEffect(() => { if (id) fetchAll(); }, [id]);
 
   useEffect(() => {
     const link = document.createElement('link');
@@ -65,53 +81,53 @@ export default function COSignPage() {
     if (sigMode !== 'type' || !name.trim()) { setHasSig(false); return; }
     const canvas = typeCanvasRef.current;
     if (!canvas) return;
-    const ctx  = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d')!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const font = SIG_FONTS.find(f => f.id === selectedFont)?.style ?? SIG_FONTS[0].style;
-    ctx.font          = `56px ${font}`;
-    ctx.fillStyle     = '#111010';
-    ctx.textBaseline  = 'middle';
-    ctx.textAlign     = 'center';
+    ctx.font = `56px ${font}`;
+    ctx.fillStyle = '#111010';
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
     ctx.fillText(name.trim(), canvas.width / 2, canvas.height / 2);
     setHasSig(true);
   }, [name, selectedFont, sigMode]);
 
-  async function fetchCO() {
-    const { data: coData } = await supabase
-      .from('change_orders')
-      .select('*')
-      .eq('id', id!)
-      .single();
+  async function fetchAll() {
+    const [coRes, brandRes] = await Promise.all([
+      supabase.from('change_orders').select('*').eq('id', id!).single(),
+      supabase.from('company_settings').select('settings').eq('company_id', '00000000-0000-0000-0000-000000000001').single(),
+    ]);
 
-    if (coData) {
-      let enriched = { ...coData, clients: null, projects: null };
+    if (brandRes.data?.settings) {
+      const s = brandRes.data.settings;
+      setBrand({
+        primary:  s.brand_primary ?? '#DC2626',
+        dark:     s.brand_dark    ?? '#111010',
+        accent:   s.brand_accent  ?? '#1E5FA4',
+        name:     s.name          ?? '',
+        email:    s.email         ?? '',
+        hst:      s.hst           ?? '',
+        logo_url: s.logo_url      ?? '',
+      });
+    }
 
-      if (coData.client_id) {
-        const { data: clientData } = await supabase
-          .from('clients')
-          .select('first_name, last_name, email')
-          .eq('id', coData.client_id)
-          .single();
-        if (clientData) enriched.clients = clientData;
+    if (coRes.data) {
+      let enriched: any = { ...coRes.data, clients: null, projects: null };
+      if (coRes.data.client_id) {
+        const { data: cd } = await supabase.from('clients').select('first_name, last_name, email').eq('id', coRes.data.client_id).single();
+        if (cd) enriched.clients = cd;
       }
-
-      if (coData.project_id) {
-        const { data: projData } = await supabase
-          .from('projects')
-          .select('name')
-          .eq('id', coData.project_id)
-          .single();
-        if (projData) enriched.projects = projData;
+      if (coRes.data.project_id) {
+        const { data: pd } = await supabase.from('projects').select('name').eq('id', coRes.data.project_id).single();
+        if (pd) enriched.projects = pd;
       }
-
       setCo(enriched as ChangeOrder);
     }
-    if (data) setCo(data as ChangeOrder);
     setLoading(false);
   }
 
   function getPos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
-    const rect   = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     if ('touches' in e) {
@@ -122,8 +138,8 @@ export default function COSignPage() {
 
   function startDraw(e: React.MouseEvent | React.TouchEvent) {
     const canvas = canvasRef.current; if (!canvas) return;
-    const ctx    = canvas.getContext('2d')!;
-    const pos    = getPos(e, canvas);
+    const ctx = canvas.getContext('2d')!;
+    const pos = getPos(e, canvas);
     ctx.beginPath(); ctx.moveTo(pos.x, pos.y);
     setDrawing(true);
   }
@@ -132,9 +148,9 @@ export default function COSignPage() {
     if (!drawing) return;
     e.preventDefault();
     const canvas = canvasRef.current; if (!canvas) return;
-    const ctx    = canvas.getContext('2d')!;
+    const ctx = canvas.getContext('2d')!;
     ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#111010';
-    const pos    = getPos(e, canvas);
+    const pos = getPos(e, canvas);
     ctx.lineTo(pos.x, pos.y); ctx.stroke();
     setHasSig(true);
   }
@@ -173,6 +189,9 @@ export default function COSignPage() {
   }
 
   const fmtMoney = (v: number) => `$${v.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`;
+  const p = brand.primary;
+  const d = brand.dark;
+  const a = brand.accent;
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F6F4EF', fontFamily: 'DM Sans, sans-serif', color: '#8C8680' }}>
@@ -197,9 +216,9 @@ export default function COSignPage() {
         <p style={{ fontSize: 22, fontWeight: 900, color: '#111010', marginBottom: 10 }}>Change Order Signed</p>
         <p style={{ fontSize: 14, color: '#6B7280', lineHeight: 1.7, marginBottom: 6 }}>{co.title}</p>
         <p style={{ fontSize: 13, color: '#8C8680', marginBottom: 24 }}>Thank you. Your contractor has been notified.</p>
-        <div style={{ padding: '16px 24px', borderRadius: 10, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 12 }}>
-          <p style={{ fontSize: 13, fontWeight: 800, color: '#DC2626' }}>+{fmtMoney(co.total)} added to contract</p>
-          <p style={{ fontSize: 11, color: '#DC2626' }}>Revised total: {fmtMoney(co.revised_value)}</p>
+        <div style={{ padding: '16px 24px', borderRadius: 10, background: `${p}10`, border: `1px solid ${p}30`, marginBottom: 12 }}>
+          <p style={{ fontSize: 13, fontWeight: 800, color: p }}>+{fmtMoney(co.total)} added to contract</p>
+          <p style={{ fontSize: 11, color: p }}>Revised total: {fmtMoney(co.revised_value)}</p>
         </div>
         <p style={{ fontSize: 11, color: '#8C8680' }}>You agreed to this change on {new Date().toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
       </div>
@@ -212,8 +231,8 @@ export default function COSignPage() {
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 9, background: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <FileText size={18} color="#FFFFFF" strokeWidth={1.5} />
+          <div style={{ width: 38, height: 38, borderRadius: 9, background: p, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <FileText size={18} color={d} strokeWidth={1.5} />
           </div>
           <div>
             <p style={{ fontSize: 13, fontWeight: 800, color: '#111010' }}>Change Order — Review & Sign</p>
@@ -230,15 +249,21 @@ export default function COSignPage() {
         <div style={{ background: '#FFFFFF', borderRadius: 14, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: '28px', marginBottom: 20 }}>
 
           {/* Letterhead */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 16, borderBottom: '3px solid #DC2626' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, paddingBottom: 16, borderBottom: `3px solid ${p}` }}>
             <div>
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                <FileText size={20} color="#FFFFFF" strokeWidth={1.5} />
-              </div>
-              <p style={{ fontSize: 13, fontWeight: 800, color: '#111010' }}>Change Order</p>
+              {brand.logo_url ? (
+                <img src={brand.logo_url} alt="Logo" style={{ height: 44, marginBottom: 8, objectFit: 'contain', borderRadius: 4 }} onError={e => { e.currentTarget.style.display = 'none'; }} />
+              ) : (
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: p, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 18, fontWeight: 900, color: d }}>{(brand.name || 'C').charAt(0)}</span>
+                </div>
+              )}
+              <p style={{ fontSize: 13, fontWeight: 800, color: d }}>{brand.name || 'Your Company'}</p>
+              {brand.email && <p style={{ fontSize: 11, color: '#8C8680' }}>{brand.email}</p>}
+              {brand.hst && <p style={{ fontSize: 11, color: '#8C8680' }}>HST# {brand.hst}</p>}
             </div>
             <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: 18, fontWeight: 900, color: '#DC2626', letterSpacing: '0.04em' }}>CHANGE ORDER</p>
+              <p style={{ fontSize: 18, fontWeight: 900, color: p, letterSpacing: '0.04em' }}>CHANGE ORDER</p>
               <p style={{ fontSize: 11, color: '#8C8680', fontFamily: 'monospace' }}>{co.co_number}</p>
               <p style={{ fontSize: 11, color: '#8C8680', marginTop: 4 }}>{new Date().toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
             </div>
@@ -249,22 +274,21 @@ export default function COSignPage() {
             {co.clients && (
               <div>
                 <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8C8680', marginBottom: 4 }}>Prepared for</p>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#111010' }}>{co.clients.first_name} {co.clients.last_name}</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: d }}>{co.clients.first_name} {co.clients.last_name}</p>
                 {co.clients.email && <p style={{ fontSize: 11, color: '#6B7280' }}>{co.clients.email}</p>}
               </div>
             )}
             {co.projects && (
               <div>
                 <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8C8680', marginBottom: 4 }}>Project</p>
-                <p style={{ fontSize: 14, fontWeight: 700, color: '#111010' }}>{co.projects.name}</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: d }}>{co.projects.name}</p>
               </div>
             )}
           </div>
 
-          {/* Title + reason */}
-          <p style={{ fontSize: 17, fontWeight: 900, color: '#111010', marginBottom: 6 }}>{co.title}</p>
+          <p style={{ fontSize: 17, fontWeight: 900, color: d, marginBottom: 6 }}>{co.title}</p>
           {co.reason && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: 'rgba(220,38,38,0.08)', color: '#DC2626', border: '1px solid rgba(220,38,38,0.2)', display: 'inline-block', marginBottom: 12 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 100, background: `${p}15`, color: p, border: `1px solid ${p}30`, display: 'inline-block', marginBottom: 12 }}>
               {co.reason}
             </span>
           )}
@@ -277,10 +301,10 @@ export default function COSignPage() {
               {(co.line_items ?? []).map((item: any, i: number) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #F8F7F4' }}>
                   <div style={{ flex: 1, marginRight: 16 }}>
-                    <p style={{ fontSize: 12, color: '#111010', fontWeight: 500 }}>{item.description}</p>
+                    <p style={{ fontSize: 12, color: d, fontWeight: 500 }}>{item.description}</p>
                     {item.quantity !== 1 && <p style={{ fontSize: 10, color: '#8C8680' }}>{item.quantity} {item.unit} × ${item.rate?.toLocaleString()}</p>}
                   </div>
-                  <p style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace', flexShrink: 0, color: '#DC2626' }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace', flexShrink: 0, color: p }}>
                     +${item.amount?.toLocaleString()}
                   </p>
                 </div>
@@ -298,32 +322,32 @@ export default function COSignPage() {
               <span style={{ fontSize: 11, color: '#6B7280' }}>HST ({co.tax_rate}%)</span>
               <span style={{ fontSize: 11, fontFamily: 'monospace' }}>${co.tax_amount.toFixed(2)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '2px solid #DC2626' }}>
-              <span style={{ fontSize: 15, fontWeight: 900, color: '#DC2626' }}>Change Order Total</span>
-              <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'monospace', color: '#DC2626' }}>+{fmtMoney(co.total)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: `2px solid ${p}` }}>
+              <span style={{ fontSize: 15, fontWeight: 900, color: p }}>Change Order Total</span>
+              <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'monospace', color: p }}>+{fmtMoney(co.total)}</span>
             </div>
           </div>
 
           {/* Contract impact */}
-          <div style={{ padding: '14px 16px', borderRadius: 10, background: 'rgba(220,38,38,0.04)', border: '1px solid rgba(220,38,38,0.15)', marginBottom: 18 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#DC2626', marginBottom: 10 }}>Contract Impact</p>
+          <div style={{ padding: '14px 16px', borderRadius: 10, background: `${p}06`, border: `1px solid ${p}20`, marginBottom: 18 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: p, marginBottom: 10 }}>Contract Impact</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
               <span style={{ fontSize: 12, color: '#6B7280' }}>Original Contract Value</span>
               <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#6B7280' }}>{fmtMoney(co.original_value)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-              <span style={{ fontSize: 12, color: '#DC2626', fontWeight: 600 }}>This Change Order</span>
-              <span style={{ fontSize: 12, fontFamily: 'monospace', color: '#DC2626', fontWeight: 700 }}>+{fmtMoney(co.total)}</span>
+              <span style={{ fontSize: 12, color: p, fontWeight: 600 }}>This Change Order</span>
+              <span style={{ fontSize: 12, fontFamily: 'monospace', color: p, fontWeight: 700 }}>+{fmtMoney(co.total)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid rgba(220,38,38,0.2)' }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#111010' }}>New Contract Total</span>
-              <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'monospace', color: '#111010' }}>{fmtMoney(co.revised_value)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: `1px solid ${p}25` }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: d }}>New Contract Total</span>
+              <span style={{ fontSize: 13, fontWeight: 800, fontFamily: 'monospace', color: d }}>{fmtMoney(co.revised_value)}</span>
             </div>
           </div>
 
           {/* Legal notice */}
-          <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(30,95,164,0.04)', border: '1px solid rgba(30,95,164,0.12)' }}>
-            <p style={{ fontSize: 10, color: '#1E5FA4', lineHeight: 1.7, fontStyle: 'italic' }}>
+          <div style={{ padding: '10px 14px', borderRadius: 8, background: `${a}06`, border: `1px solid ${a}18` }}>
+            <p style={{ fontSize: 10, color: a, lineHeight: 1.7, fontStyle: 'italic' }}>
               <strong>Important:</strong> By signing this Change Order, you authorize the additional work described above and agree to the revised contract total. This document supplements and forms part of the original contract agreement.
             </p>
           </div>
@@ -331,12 +355,11 @@ export default function COSignPage() {
 
         {/* Signature panel */}
         <div style={{ background: '#FFFFFF', borderRadius: 14, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: '28px', marginBottom: 24 }}>
-          <p style={{ fontSize: 16, fontWeight: 800, color: '#111010', marginBottom: 6 }}>Authorize This Change</p>
+          <p style={{ fontSize: 16, fontWeight: 800, color: d, marginBottom: 6 }}>Authorize This Change</p>
           <p style={{ fontSize: 12, color: '#6B7280', lineHeight: 1.6, marginBottom: 20 }}>
             By signing below, you authorize the additional work and agree to the revised contract total of <strong>{fmtMoney(co.revised_value)}</strong>.
           </p>
 
-          {/* Full name */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: '#8C8680', display: 'block', marginBottom: 6 }}>Full Legal Name</label>
             <input
@@ -344,25 +367,24 @@ export default function COSignPage() {
               placeholder="John Henderson"
               value={name}
               onChange={e => setName(e.target.value)}
-              onFocus={e => { e.currentTarget.style.borderColor = '#DC2626'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(220,38,38,0.10)'; }}
+              onFocus={e => { e.currentTarget.style.borderColor = p; e.currentTarget.style.boxShadow = `0 0 0 3px ${p}20`; }}
               onBlur={e => { e.currentTarget.style.borderColor = '#E4E0D8'; e.currentTarget.style.boxShadow = 'none'; }}
             />
           </div>
 
-          {/* Signature method */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: '#8C8680', display: 'block', marginBottom: 8 }}>Signature Method</label>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
-                { id: 'draw' as SigMode, label: 'Draw',  sub: 'Mouse or stylus', icon: MousePointer },
-                { id: 'type' as SigMode, label: 'Type',  sub: 'Choose a style',  icon: Type         },
+                { id: 'draw' as SigMode, label: 'Draw', sub: 'Mouse or stylus', icon: MousePointer },
+                { id: 'type' as SigMode, label: 'Type', sub: 'Choose a style',  icon: Type        },
               ].map(opt => {
                 const Icon   = opt.icon;
                 const active = sigMode === opt.id;
                 return (
-                  <button key={opt.id} onClick={() => { setSigMode(opt.id); setHasSig(false); }} style={{ flex: 1, padding: '12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textAlign: 'center', background: active ? 'rgba(220,38,38,0.08)' : '#FAFAF9', border: active ? '2px solid #DC2626' : '2px solid #E4E0D8', transition: 'all 0.12s' }}>
-                    <Icon size={16} color={active ? '#DC2626' : '#8C8680'} strokeWidth={1.5} style={{ marginBottom: 5 }} />
-                    <p style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#DC2626' : '#4A4640', marginBottom: 2 }}>{opt.label}</p>
+                  <button key={opt.id} onClick={() => { setSigMode(opt.id); setHasSig(false); }} style={{ flex: 1, padding: '12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textAlign: 'center', background: active ? `${p}12` : '#FAFAF9', border: active ? `2px solid ${p}` : '2px solid #E4E0D8', transition: 'all 0.12s' }}>
+                    <Icon size={16} color={active ? p : '#8C8680'} strokeWidth={1.5} style={{ marginBottom: 5 }} />
+                    <p style={{ fontSize: 12, fontWeight: active ? 700 : 500, color: active ? p : '#4A4640', marginBottom: 2 }}>{opt.label}</p>
                     <p style={{ fontSize: 10, color: '#8C8680' }}>{opt.sub}</p>
                   </button>
                 );
@@ -370,18 +392,14 @@ export default function COSignPage() {
             </div>
           </div>
 
-          {/* Draw mode */}
           {sigMode === 'draw' && (
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: '#8C8680' }}>Draw your signature</label>
-                {hasSig && <button onClick={clearSig} style={{ fontSize: 11, color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Clear</button>}
+                {hasSig && <button onClick={clearSig} style={{ fontSize: 11, color: p, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Clear</button>}
               </div>
-              <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: `2px solid ${hasSig ? '#DC2626' : '#E4E0D8'}`, transition: 'border-color 0.15s' }}>
-                <canvas
-                  ref={canvasRef}
-                  width={640} height={180}
-                  style={{ display: 'block', width: '100%', height: 180, cursor: 'crosshair', touchAction: 'none', background: '#FAFAF9' }}
+              <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: `2px solid ${hasSig ? p : '#E4E0D8'}`, transition: 'border-color 0.15s' }}>
+                <canvas ref={canvasRef} width={640} height={180} style={{ display: 'block', width: '100%', height: 180, cursor: 'crosshair', touchAction: 'none', background: '#FAFAF9' }}
                   onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
                   onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={endDraw}
                 />
@@ -397,20 +415,19 @@ export default function COSignPage() {
             </div>
           )}
 
-          {/* Type mode */}
           {sigMode === 'type' && (
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: '#8C8680', display: 'block', marginBottom: 8 }}>Choose a signature style</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 12 }}>
                 {SIG_FONTS.map(font => (
-                  <button key={font.id} onClick={() => setSelectedFont(font.id)} style={{ padding: '14px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: font.style, fontSize: 22, color: '#111010', background: selectedFont === font.id ? 'rgba(220,38,38,0.08)' : '#FAFAF9', border: selectedFont === font.id ? '2px solid #DC2626' : '2px solid #E4E0D8', transition: 'all 0.12s', textAlign: 'center' }}>
+                  <button key={font.id} onClick={() => setSelectedFont(font.id)} style={{ padding: '14px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: font.style, fontSize: 22, color: '#111010', background: selectedFont === font.id ? `${p}12` : '#FAFAF9', border: selectedFont === font.id ? `2px solid ${p}` : '2px solid #E4E0D8', transition: 'all 0.12s', textAlign: 'center' }}>
                     {name.trim() || 'Your Name'}
                   </button>
                 ))}
               </div>
               <canvas ref={typeCanvasRef} width={640} height={100} style={{ display: 'none' }} />
               {name.trim() ? (
-                <div style={{ padding: '20px', borderRadius: 10, background: '#FAFAF9', border: `2px solid ${hasSig ? '#DC2626' : '#E4E0D8'}`, textAlign: 'center' }}>
+                <div style={{ padding: '20px', borderRadius: 10, background: '#FAFAF9', border: `2px solid ${hasSig ? p : '#E4E0D8'}`, textAlign: 'center' }}>
                   <p style={{ fontFamily: SIG_FONTS.find(f => f.id === selectedFont)?.style ?? SIG_FONTS[0].style, fontSize: 40, color: '#111010', lineHeight: 1.2 }}>{name}</p>
                 </div>
               ) : (
@@ -421,26 +438,20 @@ export default function COSignPage() {
             </div>
           )}
 
-          {/* Agreement checkbox */}
           <div style={{ padding: '16px', borderRadius: 10, background: '#F8F7F4', border: '1px solid #E4E0D8', marginBottom: 20 }}>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-              <div onClick={() => setAgreed(!agreed)} style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${agreed ? '#DC2626' : '#C8C2B4'}`, background: agreed ? '#DC2626' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1, cursor: 'pointer', transition: 'all 0.15s' }}>
+              <div onClick={() => setAgreed(!agreed)} style={{ width: 20, height: 20, borderRadius: 5, border: `2px solid ${agreed ? p : '#C8C2B4'}`, background: agreed ? p : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1, cursor: 'pointer', transition: 'all 0.15s' }}>
                 {agreed && <Check size={11} color="#FFFFFF" strokeWidth={3} />}
               </div>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: '#111010', marginBottom: 4 }}>I authorize this change to my contract</p>
                 <p style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.6 }}>
-                  By checking this box and signing above, I confirm I have read and understood this Change Order including the additional scope, cost of{' '}
-                  <strong>{fmtMoney(co.total)}</strong>, and the revised contract total of{' '}
-                  <strong>{fmtMoney(co.revised_value)}</strong>. I acknowledge that my{' '}
-                  {sigMode === 'type' ? 'typed name in the selected style' : 'drawn signature'}{' '}
-                  constitutes a legally binding electronic signature under applicable Canadian law.
+                  By checking this box and signing above, I confirm I have read and understood this Change Order including the additional scope, cost of <strong>{fmtMoney(co.total)}</strong>, and the revised contract total of <strong>{fmtMoney(co.revised_value)}</strong>. I acknowledge that my {sigMode === 'type' ? 'typed name in the selected style' : 'drawn signature'} constitutes a legally binding electronic signature under applicable Canadian law.
                 </p>
               </div>
             </label>
           </div>
 
-          {/* Error */}
           {error && (
             <div style={{ display: 'flex', gap: 8, padding: '10px 14px', borderRadius: 8, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 14 }}>
               <AlertCircle size={14} color="#DC2626" strokeWidth={1.5} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -448,18 +459,16 @@ export default function COSignPage() {
             </div>
           )}
 
-          {/* Submit */}
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            style={{ width: '100%', padding: '16px', borderRadius: 10, fontSize: 15, fontWeight: 900, background: agreed && hasSig ? '#DC2626' : '#E4E0D8', border: 'none', color: agreed && hasSig ? '#FFFFFF' : '#8C8680', cursor: agreed && hasSig ? 'pointer' : 'default', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s', letterSpacing: '-0.01em' }}
+            style={{ width: '100%', padding: '16px', borderRadius: 10, fontSize: 15, fontWeight: 900, background: agreed && hasSig ? p : '#E4E0D8', border: 'none', color: agreed && hasSig ? d : '#8C8680', cursor: agreed && hasSig ? 'pointer' : 'default', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s', letterSpacing: '-0.01em' }}
           >
             {submitting ? 'Submitting...' : `I Authorize — +${fmtMoney(co.total)} to Contract`}
           </button>
 
           <p style={{ fontSize: 10, color: '#8C8680', textAlign: 'center', marginTop: 10, lineHeight: 1.7 }}>
-            Your signature, name, and timestamp are recorded at the time of signing.
-            This constitutes a legally binding electronic authorization under Canadian electronic commerce legislation.
+            Your signature, name, and timestamp are recorded at the time of signing. This constitutes a legally binding electronic authorization under Canadian electronic commerce legislation.
           </p>
         </div>
       </div>
