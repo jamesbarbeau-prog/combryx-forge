@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Hammer, Mail, Lock, AlertTriangle, Eye, EyeOff, Shield, UserPlus, LogIn } from 'lucide-react';
 
@@ -7,6 +7,7 @@ type Mode = 'signin' | 'signup' | 'mfa';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [mode, setMode]           = useState<Mode>('signin');
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
@@ -78,7 +79,8 @@ export default function LoginPage() {
     }
 
     setLoading(false);
-    navigate('/warranty/today')
+    const from = (location.state as any)?.from ?? '/warranty/today';
+navigate(from, { replace: true });
   }
 
   async function handleSignUp() {

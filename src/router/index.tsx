@@ -21,6 +21,7 @@ function Placeholder({ name }: { name: string }) {
   return <div style={{ padding: 40 }}><h2>{name}</h2></div>;
 }
 
+
 export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/warranty/today" replace /> },
   {
@@ -28,26 +29,36 @@ export const router = createBrowserRouter([
     children: [
       { path: 'login', element: <LoginPage /> },
       {
+        path: 'mail-window',
+        element: (
+          <ProtectedRoute>
+            <div style={{ minHeight: '100vh', background: 'var(--color-canvas)' }}>
+              <MailPage />
+            </div>
+          </ProtectedRoute>
+        ),
+      },
+      {
         element: (
           <ProtectedRoute>
             <WarrantyLayout />
           </ProtectedRoute>
         ),
         children: [
-          { index: true,          element: <Navigate to="today" replace />  },
-          { path: 'today',        element: <WarrantyTodayPage />            },
-          { path: 'communities',  element: <CommunitiesPage />              },
-          { path: 'lots',         element: <LotsPage />                    },
-          { path: 'lots/:id',     element: <LotDetailPage />               },
-          { path: 'cases',        element: <CasesPage />                   },
-          { path: 'cases/:id',    element: <CaseDetailPage />              },
-          { path: 'work-orders',  element: <WorkOrdersPage />              },
-          { path: 'po-requests',  element: <PORequestsPage />              },
-          { path: 'settlements',  element: <SettlementsPage />             },
-          { path: 'reports',      element: <WarrantyReportsPage />         },
-          { path: 'mail',         element: <MailPage />                    },
-          { path: 'settings',     element: <SettingsPage />                },
-          { path: 'mfa-setup',    element: <MFASetupPage />                },
+          { index: true,         element: <Navigate to="today" replace /> },
+          { path: 'today',       element: <WarrantyTodayPage />           },
+          { path: 'communities', element: <CommunitiesPage />             },
+          { path: 'lots',        element: <LotsPage />                   },
+          { path: 'lots/:id',    element: <LotDetailPage />              },
+          { path: 'cases',       element: <CasesPage />                  },
+          { path: 'cases/:id',   element: <CaseDetailPage />             },
+          { path: 'work-orders', element: <WorkOrdersPage />             },
+          { path: 'po-requests', element: <PORequestsPage />             },
+          { path: 'settlements', element: <SettlementsPage />            },
+          { path: 'reports',     element: <WarrantyReportsPage />        },
+          { path: 'mail',        element: <MailPage />                   },
+          { path: 'settings',    element: <SettingsPage />               },
+          { path: 'mfa-setup',   element: <MFASetupPage />               },
         ],
       },
     ],
