@@ -3,30 +3,31 @@ import * as XLSX from 'xlsx';
 import { supabase } from '@/lib/supabase';
 import {
   Building2, DollarSign, Hammer, Users, BookOpen, Zap,
-  Lock, Eye, EyeOff, Plus, X, Check, AlertTriangle,
+  Lock, Eye, EyeOff, Plus, X, Check,
   Download, Shield, UserX, UserCheck,
-  Upload, Image, FileImage, Trash2, Car, Palette,
+  Upload, Trash2, Car, Palette,
+  Mail, RefreshCw,
 } from 'lucide-react';
 
 const COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 
-type Tab = 'company' | 'branding' | 'tax' | 'trades' | 'team' | 'bookkeeping' | 'features';
+type Tab = 'company' | 'branding' | 'tax' | 'trades' | 'team' | 'bookkeeping' | 'features' | 'warranty' | 'email';
 
 const TRADE_TAGS = [
-  { tag: 'Lead Carpenter',   gifi: '7620' },
-  { tag: 'Apprentice',       gifi: '7620' },
-  { tag: 'Electrician',      gifi: '7621' },
-  { tag: 'Plumber',          gifi: '7622' },
-  { tag: 'HVAC Tech',        gifi: '7623' },
-  { tag: 'Framer',           gifi: '7620' },
-  { tag: 'Drywaller',        gifi: '7620' },
-  { tag: 'Painter',          gifi: '7624' },
-  { tag: 'Tile Setter',      gifi: '7620' },
-  { tag: 'Labourer',         gifi: '7620' },
-  { tag: 'Site Supervisor',  gifi: '7610' },
-  { tag: 'Project Manager',  gifi: '7600' },
-  { tag: 'Estimator',        gifi: '7600' },
-  { tag: 'Office Admin',     gifi: '7590' },
+  { tag: 'Lead Carpenter',  gifi: '7620' },
+  { tag: 'Apprentice',      gifi: '7620' },
+  { tag: 'Electrician',     gifi: '7621' },
+  { tag: 'Plumber',         gifi: '7622' },
+  { tag: 'HVAC Tech',       gifi: '7623' },
+  { tag: 'Framer',          gifi: '7620' },
+  { tag: 'Drywaller',       gifi: '7620' },
+  { tag: 'Painter',         gifi: '7624' },
+  { tag: 'Tile Setter',     gifi: '7620' },
+  { tag: 'Labourer',        gifi: '7620' },
+  { tag: 'Site Supervisor', gifi: '7610' },
+  { tag: 'Project Manager', gifi: '7600' },
+  { tag: 'Estimator',       gifi: '7600' },
+  { tag: 'Office Admin',    gifi: '7590' },
 ];
 
 const COA_DEFAULTS = [
@@ -46,7 +47,6 @@ const COA_DEFAULTS = [
   { forge_trade: 'Overhead',      account_code: '6000', account_name: 'Overhead — General'         },
 ];
 
-/* ── Shared input styles ── */
 const inp: React.CSSProperties = {
   height: 38, padding: '0 10px', borderRadius: 8,
   border: '1px solid var(--color-border)',
@@ -69,17 +69,12 @@ function blur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTex
   e.currentTarget.style.boxShadow   = 'none';
 }
 
-/* ── File Upload Component ── */
+/* ── File Upload ── */
 interface FileUploadProps {
-  bucket:      string;
-  path:        string;
-  label:       string;
-  accept?:     string;
-  currentUrl?: string;
-  isPublic?:   boolean;
-  onUploaded:  (url: string) => void;
+  bucket: string; path: string; label: string;
+  accept?: string; currentUrl?: string; isPublic?: boolean;
+  onUploaded: (url: string) => void;
 }
-
 function FileUpload({ bucket, path, label, accept = 'image/*', currentUrl, isPublic = false, onUploaded }: FileUploadProps) {
   const [dragging, setDragging]   = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -92,7 +87,7 @@ function FileUpload({ bucket, path, label, accept = 'image/*', currentUrl, isPub
   const upload = useCallback(async (file: File) => {
     if (!file) return;
     setUploading(true); setError('');
-    const ext      = file.name.split('.').pop();
+    const ext = file.name.split('.').pop();
     const filename = `${path}.${ext}`;
     const { error: upErr } = await supabase.storage.from(bucket).upload(filename, file, { upsert: true });
     if (upErr) { setError(upErr.message); setUploading(false); return; }
@@ -104,9 +99,7 @@ function FileUpload({ bucket, path, label, accept = 'image/*', currentUrl, isPub
       const { data } = await supabase.storage.from(bucket).createSignedUrl(filename, 60 * 60 * 24 * 365);
       url = data?.signedUrl ?? '';
     }
-    setPreview(url);
-    onUploaded(url);
-    setUploading(false);
+    setPreview(url); onUploaded(url); setUploading(false);
   }, [bucket, path, isPublic, onUploaded]);
 
   function onDrop(e: React.DragEvent) {
@@ -114,15 +107,9 @@ function FileUpload({ bucket, path, label, accept = 'image/*', currentUrl, isPub
     const file = e.dataTransfer.files[0];
     if (file) upload(file);
   }
-
   function onChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) upload(file);
-  }
-
-  async function remove() {
-    setPreview(null);
-    onUploaded('');
   }
 
   return (
@@ -130,39 +117,16 @@ function FileUpload({ bucket, path, label, accept = 'image/*', currentUrl, isPub
       <label style={lbl}>{label}</label>
       {preview ? (
         <div style={{ position: 'relative', display: 'inline-block' }}>
-          <img
-            src={preview}
-            alt={label}
-            style={{ maxHeight: 120, maxWidth: '100%', borderRadius: 8, border: '1px solid var(--color-border)', display: 'block', objectFit: 'cover' }}
-            onError={() => setPreview(null)}
-          />
-          <button
-            onClick={remove}
-            style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#DC2626', border: '2px solid var(--color-panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
+          <img src={preview} alt={label} style={{ maxHeight: 120, maxWidth: '100%', borderRadius: 8, border: '1px solid var(--color-border)', display: 'block', objectFit: 'cover' }} onError={() => setPreview(null)} />
+          <button onClick={() => { setPreview(null); onUploaded(''); }} style={{ position: 'absolute', top: -8, right: -8, width: 22, height: 22, borderRadius: '50%', background: '#DC2626', border: '2px solid var(--color-panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <X size={10} color="#FFFFFF" strokeWidth={3} />
           </button>
-          <button
-            onClick={() => inputRef.current?.click()}
-            style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 6, background: 'var(--color-mist)', border: '1px solid var(--color-border)', fontSize: 10, fontWeight: 600, color: 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
-          >
+          <button onClick={() => inputRef.current?.click()} style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 6, background: 'var(--color-mist)', border: '1px solid var(--color-border)', fontSize: 10, fontWeight: 600, color: 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             <Upload size={10} /> Replace
           </button>
         </div>
       ) : (
-        <div
-          onDragOver={e => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-          onClick={() => inputRef.current?.click()}
-          style={{
-            border: `2px dashed ${dragging ? '#FCE205' : 'var(--color-border)'}`,
-            borderRadius: 10, padding: '28px 20px',
-            background: dragging ? 'rgba(252,226,5,0.06)' : 'var(--color-mist)',
-            textAlign: 'center', cursor: 'pointer',
-            transition: 'all 0.15s',
-          }}
-        >
+        <div onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop} onClick={() => inputRef.current?.click()} style={{ border: `2px dashed ${dragging ? '#FCE205' : 'var(--color-border)'}`, borderRadius: 10, padding: '28px 20px', background: dragging ? 'rgba(252,226,5,0.06)' : 'var(--color-mist)', textAlign: 'center', cursor: 'pointer', transition: 'all 0.15s' }}>
           {uploading ? (
             <div>
               <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #FCE205', borderTopColor: 'transparent', margin: '0 auto 10px', animation: 'spin 0.8s linear infinite' }} />
@@ -171,9 +135,7 @@ function FileUpload({ bucket, path, label, accept = 'image/*', currentUrl, isPub
           ) : (
             <div>
               <Upload size={22} color={dragging ? '#8A7600' : 'var(--color-muted)'} strokeWidth={1.5} style={{ margin: '0 auto 10px' }} />
-              <p style={{ fontSize: 12, fontWeight: 600, color: dragging ? '#8A7600' : 'var(--color-text)', marginBottom: 4 }}>
-                {dragging ? 'Drop to upload' : 'Drop file here or click to browse'}
-              </p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: dragging ? '#8A7600' : 'var(--color-text)', marginBottom: 4 }}>{dragging ? 'Drop to upload' : 'Drop file here or click to browse'}</p>
               <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>PNG, JPG, PDF accepted</p>
             </div>
           )}
@@ -223,16 +185,7 @@ function PinGate({ section, children }: { section: string; children: React.React
         <p style={{ fontSize: 16, fontWeight: 800, color: 'var(--color-text)', marginBottom: 6 }}>Admin Access Required</p>
         <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 24, lineHeight: 1.6 }}>This section is restricted. Enter your admin PIN to continue.</p>
         <div style={{ position: 'relative', marginBottom: 12 }}>
-          <input
-            style={{ ...inp, textAlign: 'center', fontSize: 24, letterSpacing: '0.3em', fontFamily: 'var(--font-mono)', height: 52 }}
-            type={show ? 'text' : 'password'}
-            placeholder="••••"
-            value={pin}
-            onChange={e => setPin(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && checkPin()}
-            onFocus={focus} onBlur={blur}
-            maxLength={8}
-          />
+          <input style={{ ...inp, textAlign: 'center', fontSize: 24, letterSpacing: '0.3em', fontFamily: 'var(--font-mono)', height: 52 }} type={show ? 'text' : 'password'} placeholder="••••" value={pin} onChange={e => setPin(e.target.value)} onKeyDown={e => e.key === 'Enter' && checkPin()} onFocus={focus} onBlur={blur} maxLength={8} />
           <button onClick={() => setShow(!show)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer' }}>
             {show ? <EyeOff size={14} color="var(--color-muted)" /> : <Eye size={14} color="var(--color-muted)" />}
           </button>
@@ -243,6 +196,16 @@ function PinGate({ section, children }: { section: string; children: React.React
         </button>
         <p style={{ fontSize: 10, color: 'var(--color-muted)', marginTop: 14 }}>Default PIN: 1234</p>
       </div>
+    </div>
+  );
+}
+
+/* ── Section helper ── */
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A7600', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid var(--color-border)' }}>{title}</p>
+      {children}
     </div>
   );
 }
@@ -259,6 +222,8 @@ export default function SettingsPage() {
     { id: 'team',        label: 'Team',        icon: Users,      locked: true  },
     { id: 'bookkeeping', label: 'Bookkeeping', icon: BookOpen,   locked: true  },
     { id: 'features',    label: 'Features',    icon: Zap,        locked: false },
+    { id: 'warranty',    label: 'Warranty',    icon: Shield,     locked: false },
+    { id: 'email',       label: 'Email & API', icon: Mail,       locked: true  },
   ];
 
   return (
@@ -289,6 +254,8 @@ export default function SettingsPage() {
           {activeTab === 'team'        && <PinGate section="team"><TeamTab /></PinGate>}
           {activeTab === 'bookkeeping' && <PinGate section="bookkeeping"><BookkeepingTab /></PinGate>}
           {activeTab === 'features'    && <FeaturesTab />}
+          {activeTab === 'warranty'    && <WarrantySettingsTab />}
+          {activeTab === 'email'       && <PinGate section="team"><EmailConnectionsTab /></PinGate>}
         </div>
       </div>
     </div>
@@ -302,46 +269,31 @@ function CompanyTab() {
   const [saved, setSaved]       = useState(false);
 
   useEffect(() => { load(); }, []);
-
   async function load() {
     const { data } = await supabase.from('company_settings').select('settings').eq('company_id', COMPANY_ID).single();
     if (data?.settings) setSettings(data.settings);
   }
-
   async function save() {
     setSaving(true);
     await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
   }
-
   function set(key: string, val: string) { setSettings((prev: any) => ({ ...prev, [key]: val })); }
 
   return (
     <div className="forge-card" style={{ padding: '24px' }}>
       <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 20 }}>Company Information</p>
-
-      {/* Logo upload */}
       <div style={{ marginBottom: 20 }}>
-        <FileUpload
-          bucket="company-assets"
-          path={`logos/${COMPANY_ID}`}
-          label="Company Logo"
-          accept="image/png,image/jpeg,image/svg+xml"
-          currentUrl={settings.logo_url}
-          isPublic={true}
-          onUploaded={url => set('logo_url', url)}
-        />
+        <FileUpload bucket="company-assets" path={`logos/${COMPANY_ID}`} label="Company Logo" accept="image/png,image/jpeg,image/svg+xml" currentUrl={settings.logo_url} isPublic={true} onUploaded={url => set('logo_url', url)} />
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
         {[
-          { key: 'name',    label: 'Company Name',       placeholder: 'Combryx Construction Inc.' },
-          { key: 'phone',   label: 'Phone',               placeholder: '416-555-0100'              },
-          { key: 'email',   label: 'Email',               placeholder: 'office@combryx.ca'         },
-          { key: 'website', label: 'Website',             placeholder: 'www.combryx.ca'            },
-          { key: 'hst',     label: 'HST Registration #',  placeholder: '123456789 RT0001'          },
-          { key: 'cra',     label: 'Business Number',     placeholder: '123456789'                 },
+          { key: 'name',    label: 'Company Name',      placeholder: 'Combryx Construction Inc.' },
+          { key: 'phone',   label: 'Phone',              placeholder: '416-555-0100'              },
+          { key: 'email',   label: 'Email',              placeholder: 'office@combryx.ca'         },
+          { key: 'website', label: 'Website',            placeholder: 'www.combryx.ca'            },
+          { key: 'hst',     label: 'HST Registration #', placeholder: '123456789 RT0001'          },
+          { key: 'cra',     label: 'Business Number',    placeholder: '123456789'                 },
         ].map(f => (
           <div key={f.key}>
             <label style={lbl}>{f.label}</label>
@@ -354,7 +306,7 @@ function CompanyTab() {
         <input style={inp} placeholder="123 Main St, Toronto, ON M5V 1A1" value={settings.address ?? ''} onChange={e => set('address', e.target.value)} onFocus={focus} onBlur={blur} />
       </div>
       <div style={{ marginBottom: 24 }}>
-        <label style={lbl}>Closing Message (appears on quotes & invoices)</label>
+        <label style={lbl}>Closing Message</label>
         <textarea style={{ ...inp, height: 72, padding: '8px 10px', resize: 'none' }} value={settings.closing_message ?? ''} onChange={e => set('closing_message', e.target.value)} onFocus={focus} onBlur={blur} placeholder="Thank you for choosing us." />
       </div>
       <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#FCE205', border: 'none', color: saved ? '#FFFFFF' : '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
@@ -371,19 +323,15 @@ function TaxTab() {
   const [saved, setSaved]       = useState(false);
 
   useEffect(() => { load(); }, []);
-
   async function load() {
     const { data } = await supabase.from('company_settings').select('settings').eq('company_id', COMPANY_ID).single();
     if (data?.settings) setSettings(data.settings);
   }
-
   async function save() {
     setSaving(true);
     await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
   }
-
   function set(key: string, val: any) { setSettings((prev: any) => ({ ...prev, [key]: val })); }
 
   return (
@@ -410,14 +358,7 @@ function TaxTab() {
         <div>
           <label style={lbl}>Default Payment Terms</label>
           <select style={inp} value={settings.payment_terms ?? 'net_30'} onChange={e => set('payment_terms', e.target.value)} onFocus={focus} onBlur={blur}>
-            {[
-              { id: 'due_on_receipt', label: 'Due on Receipt' },
-              { id: 'net_7',  label: 'Net 7'  },
-              { id: 'net_14', label: 'Net 14' },
-              { id: 'net_30', label: 'Net 30' },
-              { id: 'net_45', label: 'Net 45' },
-              { id: 'net_60', label: 'Net 60' },
-            ].map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            {[{id:'due_on_receipt',label:'Due on Receipt'},{id:'net_7',label:'Net 7'},{id:'net_14',label:'Net 14'},{id:'net_30',label:'Net 30'},{id:'net_45',label:'Net 45'},{id:'net_60',label:'Net 60'}].map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
           </select>
         </div>
         <div>
@@ -442,13 +383,11 @@ function TradesTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { load(); }, []);
-
   async function load() {
     const { data } = await supabase.from('trade_matrix').select('*').order('sort_order');
     if (data) setTrades(data);
     setLoading(false);
   }
-
   async function updateTrade(id: string, field: string, val: any) {
     setTrades(prev => prev.map(t => t.id === id ? { ...t, [field]: val } : t));
     await supabase.from('trade_matrix').update({ [field]: val }).eq('id', id);
@@ -465,11 +404,7 @@ function TradesTab() {
       <div style={{ overflowX: 'auto' }}>
         <table className="forge-table">
           <thead>
-            <tr>
-              <th>Trade</th><th>Unit</th><th>Labour Rate</th>
-              <th>Markup</th><th>Std Allow</th><th>Prem Allow</th>
-              <th>Lux Allow</th><th>Sundries %</th>
-            </tr>
+            <tr><th>Trade</th><th>Unit</th><th>Labour Rate</th><th>Markup</th><th>Std Allow</th><th>Prem Allow</th><th>Lux Allow</th><th>Sundries %</th></tr>
           </thead>
           <tbody>
             {trades.map(t => (
@@ -478,14 +413,7 @@ function TradesTab() {
                 <td style={{ fontSize: 11, color: 'var(--color-muted)' }}>{t.unit}</td>
                 {(['labour_rate','markup_multiplier','allowance_standard','allowance_premium','allowance_luxury','sundries_percent'] as const).map(field => (
                   <td key={field}>
-                    <input
-                      style={{ width: 76, height: 28, padding: '0 6px', borderRadius: 5, border: '1px solid transparent', background: 'transparent', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text)', outline: 'none' }}
-                      type="number" step="0.01"
-                      value={t[field] ?? ''}
-                      onChange={e => updateTrade(t.id, field, Number(e.target.value))}
-                      onFocus={e => { e.currentTarget.style.borderColor = '#FCE205'; e.currentTarget.style.background = 'var(--color-panel)'; }}
-                      onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }}
-                    />
+                    <input style={{ width: 76, height: 28, padding: '0 6px', borderRadius: 5, border: '1px solid transparent', background: 'transparent', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text)', outline: 'none' }} type="number" step="0.01" value={t[field] ?? ''} onChange={e => updateTrade(t.id, field, Number(e.target.value))} onFocus={e => { e.currentTarget.style.borderColor = '#FCE205'; e.currentTarget.style.background = 'var(--color-panel)'; }} onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }} />
                   </td>
                 ))}
               </tr>
@@ -512,41 +440,26 @@ function TeamTab() {
     base_rate: '', vacation_pct: 4, burden_pct: 20,
     hsa_monthly: 0, rrsp_match_pct: 0, tool_allowance: 0,
     sin_last4: '', address: '', notes: '',
-    has_vehicle: false,
-    license_class: 'G', license_expiry: '',
-    drivers_license_url: '',
-    background_check_date: '', first_aid_expiry: '',
+    has_vehicle: false, license_class: 'G', license_expiry: '',
+    drivers_license_url: '', background_check_date: '', first_aid_expiry: '',
     photo_url: '',
   });
 
   useEffect(() => { load(); }, []);
-
   async function load() {
     const { data } = await supabase.from('employees').select('*').eq('company_id', COMPANY_ID).order('last_name');
     if (data) setEmployees(data);
     setLoading(false);
   }
-
   function setF(key: string, val: any) { setForm((prev: any) => ({ ...prev, [key]: val })); }
-
-  const burdenedRate = form.base_rate
-    ? (Number(form.base_rate) * (1 + Number(form.burden_pct) / 100)).toFixed(2)
-    : '0.00';
+  const burdenedRate = form.base_rate ? (Number(form.base_rate) * (1 + Number(form.burden_pct) / 100)).toFixed(2) : '0.00';
 
   async function onboard() {
     if (!form.first_name || !form.last_name) return;
     setSaving(true);
     const gifi = TRADE_TAGS.find(t => t.tag === form.trade_tag)?.gifi ?? '7620';
-    await supabase.from('employees').insert({
-      ...form,
-      company_id: COMPANY_ID,
-      gifi_code:  gifi,
-      status:     'active',
-      base_rate:  Number(form.base_rate),
-    });
-    setSaving(false);
-    setShowModal(false);
-    load();
+    await supabase.from('employees').insert({ ...form, company_id: COMPANY_ID, gifi_code: gifi, status: 'active', base_rate: Number(form.base_rate) });
+    setSaving(false); setShowModal(false); load();
   }
 
   async function toggleStatus(emp: any) {
@@ -554,8 +467,7 @@ function TeamTab() {
     const updates: any = { status: newStatus };
     if (newStatus === 'terminated') updates.termination_date = new Date().toISOString().split('T')[0];
     await supabase.from('employees').update(updates).eq('id', emp.id);
-    setFiring(null);
-    load();
+    setFiring(null); load();
   }
 
   const active     = employees.filter(e => e.status === 'active');
@@ -565,22 +477,17 @@ function TeamTab() {
 
   return (
     <div>
-      {/* Modal */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }}
-          onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px', overflowY: 'auto' }} onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
           <div style={{ background: 'var(--color-panel)', borderRadius: 14, width: '100%', maxWidth: 680, boxShadow: '0 24px 60px rgba(0,0,0,0.18)', border: '1px solid var(--color-border)', overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(252,226,5,0.03)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <UserCheck size={15} color="#FCE205" strokeWidth={1.5} />
                 <span style={{ fontSize: 15, fontWeight: 700 }}>Onboard New Employee</span>
               </div>
               <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={16} color="var(--color-muted)" /></button>
             </div>
-
             <div style={{ padding: '20px', maxHeight: '78vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
-
-              {/* Personal */}
               <Section title="Personal Information">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div><label style={lbl}>First Name *</label><input style={inp} value={form.first_name} onChange={e => setF('first_name', e.target.value)} onFocus={focus} onBlur={blur} /></div>
@@ -599,21 +506,9 @@ function TeamTab() {
                 </div>
                 <div style={{ marginTop: 12 }}><label style={lbl}>Address</label><input style={inp} value={form.address} onChange={e => setF('address', e.target.value)} onFocus={focus} onBlur={blur} /></div>
               </Section>
-
-              {/* Profile photo */}
               <Section title="Profile Photo">
-                <FileUpload
-                  bucket="employee-docs"
-                  path={`photos/${form.employee_id}`}
-                  label="Employee Photo"
-                  accept="image/png,image/jpeg"
-                  currentUrl={form.photo_url}
-                  isPublic={false}
-                  onUploaded={url => setF('photo_url', url)}
-                />
+                <FileUpload bucket="employee-docs" path={`photos/${form.employee_id}`} label="Employee Photo" accept="image/png,image/jpeg" currentUrl={form.photo_url} isPublic={false} onUploaded={url => setF('photo_url', url)} />
               </Section>
-
-              {/* Trade & Rate */}
               <Section title="Trade & Compensation">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
@@ -626,9 +521,7 @@ function TeamTab() {
                     <label style={lbl}>Vacation Pay</label>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {[4, 6].map(v => (
-                        <button key={v} onClick={() => setF('vacation_pct', v)} style={{ flex: 1, padding: '8px', borderRadius: 7, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: form.vacation_pct === v ? 700 : 400, background: form.vacation_pct === v ? 'rgba(252,226,5,0.12)' : 'var(--color-mist)', border: form.vacation_pct === v ? '1px solid rgba(252,226,5,0.3)' : '1px solid var(--color-border)', color: form.vacation_pct === v ? '#8A7600' : 'var(--color-muted)' }}>
-                          {v}%
-                        </button>
+                        <button key={v} onClick={() => setF('vacation_pct', v)} style={{ flex: 1, padding: '8px', borderRadius: 7, cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: form.vacation_pct === v ? 700 : 400, background: form.vacation_pct === v ? 'rgba(252,226,5,0.12)' : 'var(--color-mist)', border: form.vacation_pct === v ? '1px solid rgba(252,226,5,0.3)' : '1px solid var(--color-border)', color: form.vacation_pct === v ? '#8A7600' : 'var(--color-muted)' }}>{v}%</button>
                       ))}
                     </div>
                     <p style={{ fontSize: 9, color: 'var(--color-muted)', marginTop: 3 }}>Ontario min 4% (6% after 5 yrs)</p>
@@ -656,8 +549,6 @@ function TeamTab() {
                   </div>
                 )}
               </Section>
-
-              {/* Benefits */}
               <Section title="Benefits & Allowances">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <div>
@@ -666,7 +557,6 @@ function TeamTab() {
                       <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--color-muted)' }}>$</span>
                       <input style={{ ...inp, paddingLeft: 20, fontFamily: 'var(--font-mono)' }} type="number" min="0" step="50" value={form.hsa_monthly} onChange={e => setF('hsa_monthly', e.target.value)} onFocus={focus} onBlur={blur} />
                     </div>
-                    <p style={{ fontSize: 9, color: 'var(--color-muted)', marginTop: 3 }}>Health Spending Account</p>
                   </div>
                   <div>
                     <label style={lbl}>RRSP Match (%)</label>
@@ -678,12 +568,9 @@ function TeamTab() {
                       <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--color-muted)' }}>$</span>
                       <input style={{ ...inp, paddingLeft: 20, fontFamily: 'var(--font-mono)' }} type="number" min="0" step="100" value={form.tool_allowance} onChange={e => setF('tool_allowance', e.target.value)} onFocus={focus} onBlur={blur} />
                     </div>
-                    <p style={{ fontSize: 9, color: 'var(--color-muted)', marginTop: 3 }}>Non-taxable</p>
                   </div>
                 </div>
               </Section>
-
-              {/* Vehicle & License */}
               <Section title="Vehicle & Driving">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, padding: '10px 14px', borderRadius: 8, background: 'var(--color-mist)', border: '1px solid var(--color-border)', cursor: 'pointer' }} onClick={() => setF('has_vehicle', !form.has_vehicle)}>
                   <div style={{ width: 36, height: 20, borderRadius: 100, background: form.has_vehicle ? '#FCE205' : 'var(--color-border)', position: 'relative', transition: 'all 0.2s', flexShrink: 0 }}>
@@ -694,7 +581,6 @@ function TeamTab() {
                     <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>Requires valid driver's license on file</p>
                   </div>
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
                   <div>
                     <label style={lbl}>License Class</label>
@@ -702,39 +588,17 @@ function TeamTab() {
                       {['G','G2','AZ','DZ','BZ','CZ'].map(c => <option key={c}>{c}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label style={lbl}>License Expiry</label>
-                    <input style={inp} type="date" value={form.license_expiry} onChange={e => setF('license_expiry', e.target.value)} onFocus={focus} onBlur={blur} />
-                  </div>
-                  <div>
-                    <label style={lbl}>Background Check Date</label>
-                    <input style={inp} type="date" value={form.background_check_date} onChange={e => setF('background_check_date', e.target.value)} onFocus={focus} onBlur={blur} />
-                  </div>
-                  <div>
-                    <label style={lbl}>First Aid Cert Expiry</label>
-                    <input style={inp} type="date" value={form.first_aid_expiry} onChange={e => setF('first_aid_expiry', e.target.value)} onFocus={focus} onBlur={blur} />
-                  </div>
+                  <div><label style={lbl}>License Expiry</label><input style={inp} type="date" value={form.license_expiry} onChange={e => setF('license_expiry', e.target.value)} onFocus={focus} onBlur={blur} /></div>
+                  <div><label style={lbl}>Background Check Date</label><input style={inp} type="date" value={form.background_check_date} onChange={e => setF('background_check_date', e.target.value)} onFocus={focus} onBlur={blur} /></div>
+                  <div><label style={lbl}>First Aid Cert Expiry</label><input style={inp} type="date" value={form.first_aid_expiry} onChange={e => setF('first_aid_expiry', e.target.value)} onFocus={focus} onBlur={blur} /></div>
                 </div>
-
-                {/* Driver's License Upload */}
-                <FileUpload
-                  bucket="employee-docs"
-                  path={`licenses/${form.employee_id}`}
-                  label="Driver's License (photo or scan)"
-                  accept="image/png,image/jpeg,application/pdf"
-                  currentUrl={form.drivers_license_url}
-                  isPublic={false}
-                  onUploaded={url => setF('drivers_license_url', url)}
-                />
+                <FileUpload bucket="employee-docs" path={`licenses/${form.employee_id}`} label="Driver's License (photo or scan)" accept="image/png,image/jpeg,application/pdf" currentUrl={form.drivers_license_url} isPublic={false} onUploaded={url => setF('drivers_license_url', url)} />
               </Section>
-
-              {/* Notes */}
               <div>
                 <label style={lbl}>Internal Notes</label>
                 <textarea style={{ ...inp, height: 64, padding: '8px 10px', resize: 'none' }} value={form.notes} onChange={e => setF('notes', e.target.value)} onFocus={focus} onBlur={blur} placeholder="Certifications, emergency contact, special notes..." />
               </div>
             </div>
-
             <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--color-panel-raised)' }}>
               <button onClick={() => setShowModal(false)} className="forge-button forge-button--secondary">Cancel</button>
               <button onClick={onboard} disabled={saving || !form.first_name || !form.last_name} className="forge-button forge-button--primary" style={{ gap: 6 }}>
@@ -744,8 +608,6 @@ function TeamTab() {
           </div>
         </div>
       )}
-
-      {/* List header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Team</p>
@@ -755,7 +617,6 @@ function TeamTab() {
           <Plus size={13} /> Onboard Employee
         </button>
       </div>
-
       {employees.length === 0 ? (
         <div className="forge-card" style={{ padding: '60px', textAlign: 'center' }}>
           <Users size={32} color="var(--color-muted)" strokeWidth={1} style={{ marginBottom: 12 }} />
@@ -770,14 +631,9 @@ function TeamTab() {
             const licenseExpiring = emp.license_expiry && new Date(emp.license_expiry) < new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
             return (
               <div key={emp.id} style={{ padding: '14px 18px', borderRadius: 10, background: 'var(--color-panel)', border: `1px solid ${isActive ? 'var(--color-border)' : 'rgba(220,38,38,0.15)'}`, display: 'flex', alignItems: 'center', gap: 14 }}>
-                {/* Avatar */}
                 <div style={{ width: 40, height: 40, borderRadius: '50%', background: isActive ? 'rgba(252,226,5,0.12)' : 'rgba(220,38,38,0.08)', border: `1px solid ${isActive ? 'rgba(252,226,5,0.25)' : 'rgba(220,38,38,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: isActive ? '#8A7600' : '#DC2626', flexShrink: 0, overflow: 'hidden' }}>
-                  {emp.photo_url
-                    ? <img src={emp.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none'; }} />
-                    : <>{emp.first_name[0]}{emp.last_name[0]}</>
-                  }
+                  {emp.photo_url ? <img src={emp.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.style.display = 'none'; }} /> : <>{emp.first_name[0]}{emp.last_name[0]}</>}
                 </div>
-
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                     <p style={{ fontSize: 13, fontWeight: 700 }}>{emp.first_name} {emp.last_name}</p>
@@ -792,21 +648,17 @@ function TeamTab() {
                     {emp.hire_date && <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>Hired {new Date(emp.hire_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}</p>}
                   </div>
                 </div>
-
                 {burdened && (
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
                     <p style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--font-mono)', color: '#8A7600' }}>${burdened}/hr</p>
                     <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>burdened · ${emp.base_rate}/hr base</p>
                   </div>
                 )}
-
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                   {firing === emp.id ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px', borderRadius: 7, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)' }}>
                       <p style={{ fontSize: 11, color: '#DC2626', fontWeight: 600 }}>Confirm?</p>
-                      <button onClick={() => toggleStatus(emp)} style={{ padding: '3px 8px', borderRadius: 5, background: '#DC2626', border: 'none', color: '#FFF', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                        {isActive ? 'Terminate' : 'Reactivate'}
-                      </button>
+                      <button onClick={() => toggleStatus(emp)} style={{ padding: '3px 8px', borderRadius: 5, background: '#DC2626', border: 'none', color: '#FFF', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>{isActive ? 'Terminate' : 'Reactivate'}</button>
                       <button onClick={() => setFiring(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={12} color="var(--color-muted)" /></button>
                     </div>
                   ) : (
@@ -824,61 +676,41 @@ function TeamTab() {
   );
 }
 
-/* ── Section helper ── */
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8A7600', marginBottom: 12, paddingBottom: 6, borderBottom: '1px solid var(--color-border)' }}>{title}</p>
-      {children}
-    </div>
-  );
-}
-
 /* ── BOOKKEEPING TAB ── */
 function BookkeepingTab() {
   const [coa, setCoa]             = useState<any[]>(COA_DEFAULTS.map((c, i) => ({ ...c, id: i })));
   const [invoices, setInvoices]   = useState<any[]>([]);
   const [quotes, setQuotes]       = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [clients, setClients]     = useState<any[]>([]);
   const [loading, setLoading]     = useState(true);
 
   useEffect(() => { load(); }, []);
-
   async function load() {
-    const [invRes, quoteRes, empRes, clientRes] = await Promise.all([
+    const [invRes, quoteRes, empRes] = await Promise.all([
       supabase.from('invoices').select('*, clients(first_name, last_name), projects(name)').eq('company_id', COMPANY_ID),
       supabase.from('quotes').select('*, clients(first_name, last_name)').eq('company_id', COMPANY_ID).in('status', ['signed','converted']),
       supabase.from('employees').select('*').eq('company_id', COMPANY_ID).eq('status', 'active'),
-      supabase.from('clients').select('*').eq('company_id', COMPANY_ID),
     ]);
-    if (invRes.data)    setInvoices(invRes.data);
-    if (quoteRes.data)  setQuotes(quoteRes.data);
-    if (empRes.data)    setEmployees(empRes.data);
-    if (clientRes.data) setClients(clientRes.data);
+    if (invRes.data)   setInvoices(invRes.data);
+    if (quoteRes.data) setQuotes(quoteRes.data);
+    if (empRes.data)   setEmployees(empRes.data);
     setLoading(false);
   }
-
-  function updateCoa(id: number, field: string, val: string) {
-    setCoa(prev => prev.map(c => c.id === id ? { ...c, [field]: val } : c));
-  }
+  function updateCoa(id: number, field: string, val: string) { setCoa(prev => prev.map(c => c.id === id ? { ...c, [field]: val } : c)); }
 
   function exportFile(sheets: { name: string; data: any[] }[], filename: string) {
     const wb = XLSX.utils.book_new();
-    sheets.forEach(s => {
-      const ws = XLSX.utils.json_to_sheet(s.data);
-      XLSX.utils.book_append_sheet(wb, ws, s.name);
-    });
+    sheets.forEach(s => { const ws = XLSX.utils.json_to_sheet(s.data); XLSX.utils.book_append_sheet(wb, ws, s.name); });
     XLSX.writeFile(wb, filename);
   }
 
   function exportJournalEntries() {
-    const now  = new Date().toLocaleDateString('en-CA');
+    const now = new Date().toLocaleDateString('en-CA');
     const rows: any[] = [];
     invoices.forEach(inv => {
-      const client  = inv.clients ? `${inv.clients.first_name} ${inv.clients.last_name}` : 'Unknown';
+      const client = inv.clients ? `${inv.clients.first_name} ${inv.clients.last_name}` : 'Unknown';
       const project = inv.projects?.name ?? '—';
-      const ref     = inv.invoice_number;
+      const ref = inv.invoice_number;
       rows.push({ 'Date': now, 'Ref Number': ref, 'Account': '1100 - Accounts Receivable', 'Debit': inv.total.toFixed(2), 'Credit': '', 'Memo': `Invoice ${ref} — ${client}`, 'Customer:Job': `${client}:${project}`, 'Type': 'Invoice' });
       rows.push({ 'Date': now, 'Ref Number': ref, 'Account': '4000 - Revenue', 'Debit': '', 'Credit': inv.subtotal.toFixed(2), 'Memo': `Revenue — ${client}`, 'Customer:Job': `${client}:${project}`, 'Type': 'Invoice' });
       if (inv.tax_amount > 0) rows.push({ 'Date': now, 'Ref Number': ref, 'Account': '2200 - HST Payable', 'Debit': '', 'Credit': inv.tax_amount.toFixed(2), 'Memo': `HST ${inv.tax_rate}% — ${ref}`, 'Customer:Job': `${client}:${project}`, 'Type': 'Invoice' });
@@ -900,7 +732,7 @@ function BookkeepingTab() {
   }
 
   function exportSignedQuotes() {
-    const rows = quotes.map(q => ({ 'Quote #': q.quote_number, 'Client': q.clients ? `${q.clients.first_name} ${q.clients.last_name}` : '—', 'Title': q.title, 'Type': q.type, 'Trade': q.trade ?? '—', 'Subtotal': q.subtotal?.toFixed(2) ?? '0.00', 'HST': q.tax_amount?.toFixed(2) ?? '0.00', 'Total': q.total?.toFixed(2) ?? '0.00', 'Signed Date': q.signed_at ? new Date(q.signed_at).toLocaleDateString('en-CA') : '—', 'Signed By': q.signed_by ?? '—', 'Status': q.status, 'Account Code': coa.find(c => c.forge_trade === q.trade)?.account_code ?? '4000' }));
+    const rows = quotes.map(q => ({ 'Quote #': q.quote_number, 'Client': q.clients ? `${q.clients.first_name} ${q.clients.last_name}` : '—', 'Title': q.title, 'Type': q.type, 'Trade': q.trade ?? '—', 'Subtotal': q.subtotal?.toFixed(2) ?? '0.00', 'HST': q.tax_amount?.toFixed(2) ?? '0.00', 'Total': q.total?.toFixed(2) ?? '0.00', 'Signed Date': q.signed_at ? new Date(q.signed_at).toLocaleDateString('en-CA') : '—', 'Status': q.status, 'Account Code': coa.find(c => c.forge_trade === q.trade)?.account_code ?? '4000' }));
     exportFile([{ name: 'Signed Quotes', data: rows }], `Signed_Quotes_${new Date().toISOString().split('T')[0]}.xlsx`);
   }
 
@@ -923,10 +755,10 @@ function BookkeepingTab() {
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Total Invoiced',   value: `$${totalInvoiced.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`,    color: '#1E5FA4' },
-          { label: 'Collected',        value: `$${totalCollected.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`,   color: '#16A34A' },
+          { label: 'Total Invoiced',   value: `$${totalInvoiced.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`,                    color: '#1E5FA4' },
+          { label: 'Collected',        value: `$${totalCollected.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`,                   color: '#16A34A' },
           { label: 'Outstanding',      value: `$${(totalInvoiced - totalCollected).toLocaleString('en-CA', { minimumFractionDigits: 2 })}`, color: '#DC2626' },
-          { label: 'Signed Contracts', value: `$${totalSigned.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`,      color: '#8A7600' },
+          { label: 'Signed Contracts', value: `$${totalSigned.toLocaleString('en-CA', { minimumFractionDigits: 2 })}`,                      color: '#8A7600' },
         ].map(stat => (
           <div key={stat.label} style={{ padding: '14px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
             <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 5 }}>{stat.label}</p>
@@ -934,20 +766,17 @@ function BookkeepingTab() {
           </div>
         ))}
       </div>
-
       <div className="forge-card" style={{ padding: '20px', marginBottom: 24 }}>
         <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Export for Bookkeeper</p>
         <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16, lineHeight: 1.6 }}>Clean XLSX files ready for QuickBooks, Sage, or any accounting software import.</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           {[
-            { label: 'Journal Entries',        sub: 'Double-entry: AR, Revenue, HST, Bank',        fn: exportJournalEntries,    color: '#1E5FA4' },
-            { label: 'AR Aging Summary',       sub: 'All outstanding invoices by client',           fn: exportARSummary,         color: '#DC2626' },
-            { label: 'Signed Quotes Register', sub: 'Revenue recognized from signed contracts',     fn: exportSignedQuotes,      color: '#16A34A' },
-            { label: 'Full Reconciliation',    sub: 'All-in-one: invoices, quotes, team, COA',     fn: exportFullReconciliation, color: '#8A7600' },
+            { label: 'Journal Entries',        sub: 'Double-entry: AR, Revenue, HST, Bank',    fn: exportJournalEntries,    color: '#1E5FA4' },
+            { label: 'AR Aging Summary',       sub: 'All outstanding invoices by client',       fn: exportARSummary,         color: '#DC2626' },
+            { label: 'Signed Quotes Register', sub: 'Revenue recognized from signed contracts', fn: exportSignedQuotes,      color: '#16A34A' },
+            { label: 'Full Reconciliation',    sub: 'All-in-one: invoices, quotes, team, COA', fn: exportFullReconciliation, color: '#8A7600' },
           ].map(btn => (
-            <button key={btn.label} onClick={btn.fn} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 10, background: `${btn.color}08`, border: `1px solid ${btn.color}22`, cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left', transition: 'all 0.12s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = `${btn.color}14`; }}
-              onMouseLeave={e => { e.currentTarget.style.background = `${btn.color}08`; }}>
+            <button key={btn.label} onClick={btn.fn} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 10, background: `${btn.color}08`, border: `1px solid ${btn.color}22`, cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left', transition: 'all 0.12s' }} onMouseEnter={e => { e.currentTarget.style.background = `${btn.color}14`; }} onMouseLeave={e => { e.currentTarget.style.background = `${btn.color}08`; }}>
               <Download size={16} color={btn.color} strokeWidth={1.5} style={{ flexShrink: 0 }} />
               <div>
                 <p style={{ fontSize: 12, fontWeight: 700, color: btn.color, marginBottom: 2 }}>{btn.label}</p>
@@ -957,7 +786,6 @@ function BookkeepingTab() {
           ))}
         </div>
       </div>
-
       <div className="forge-card">
         <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--color-border)' }}>
           <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>Chart of Accounts Mapping</p>
@@ -969,12 +797,8 @@ function BookkeepingTab() {
             {coa.map(c => (
               <tr key={c.id}>
                 <td style={{ fontSize: 12, fontWeight: 600 }}>{c.forge_trade}</td>
-                <td>
-                  <input style={{ width: 80, height: 28, padding: '0 6px', borderRadius: 5, border: '1px solid transparent', background: 'transparent', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text)', outline: 'none' }} value={c.account_code} onChange={e => updateCoa(c.id, 'account_code', e.target.value)} onFocus={e => { e.currentTarget.style.borderColor = '#FCE205'; e.currentTarget.style.background = 'var(--color-panel)'; }} onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }} />
-                </td>
-                <td>
-                  <input style={{ width: '100%', height: 28, padding: '0 6px', borderRadius: 5, border: '1px solid transparent', background: 'transparent', fontSize: 11, color: 'var(--color-text)', fontFamily: 'var(--font-body)', outline: 'none' }} value={c.account_name} onChange={e => updateCoa(c.id, 'account_name', e.target.value)} onFocus={e => { e.currentTarget.style.borderColor = '#FCE205'; e.currentTarget.style.background = 'var(--color-panel)'; }} onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }} />
-                </td>
+                <td><input style={{ width: 80, height: 28, padding: '0 6px', borderRadius: 5, border: '1px solid transparent', background: 'transparent', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--color-text)', outline: 'none' }} value={c.account_code} onChange={e => updateCoa(c.id, 'account_code', e.target.value)} onFocus={e => { e.currentTarget.style.borderColor = '#FCE205'; e.currentTarget.style.background = 'var(--color-panel)'; }} onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }} /></td>
+                <td><input style={{ width: '100%', height: 28, padding: '0 6px', borderRadius: 5, border: '1px solid transparent', background: 'transparent', fontSize: 11, color: 'var(--color-text)', fontFamily: 'var(--font-body)', outline: 'none' }} value={c.account_name} onChange={e => updateCoa(c.id, 'account_name', e.target.value)} onFocus={e => { e.currentTarget.style.borderColor = '#FCE205'; e.currentTarget.style.background = 'var(--color-panel)'; }} onBlur={e => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = 'transparent'; }} /></td>
               </tr>
             ))}
           </tbody>
@@ -991,30 +815,27 @@ function FeaturesTab() {
   const [saved, setSaved]       = useState(false);
 
   useEffect(() => { load(); }, []);
-
   async function load() {
     const { data } = await supabase.from('company_settings').select('settings').eq('company_id', COMPANY_ID).single();
     if (data?.settings?.features) setFeatures(data.settings.features);
   }
-
   async function save() {
     setSaving(true);
     const { data } = await supabase.from('company_settings').select('settings').eq('company_id', COMPANY_ID).single();
-    const updated  = { ...(data?.settings ?? {}), features };
+    const updated = { ...(data?.settings ?? {}), features };
     await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings: updated });
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
   }
 
   const FEATURE_LIST = [
-    { key: 'forge_mail',      label: 'Forge Mail',        sub: '3-pane email client with CRM linking'  },
-    { key: 'quick_create',    label: 'Quick Create',      sub: '5-step guided estimate wizard'         },
-    { key: 'digital_signing', label: 'Digital Signing',   sub: 'Client e-signature on quotes'          },
-    { key: 'ask_the_code',    label: 'Ask The Code',      sub: 'OBC 2024 AI search'                    },
-    { key: 'forge_ai',        label: 'Forge Assistant',   sub: 'CRM AI powered by live data'           },
-    { key: 'reports',         label: 'Reports',           sub: 'Revenue, WIP, AR Aging, Allowances'    },
-    { key: 'defense_vault',   label: 'Defense Vault',     sub: 'Court-ready documentation package'     },
-    { key: 'dispatch',        label: 'Dispatch Board',    sub: 'Real-time crew scheduling'             },
+    { key: 'forge_mail',      label: 'Forge Mail',      sub: '3-pane email client with CRM linking'  },
+    { key: 'quick_create',    label: 'Quick Create',    sub: '5-step guided estimate wizard'         },
+    { key: 'digital_signing', label: 'Digital Signing', sub: 'Client e-signature on quotes'          },
+    { key: 'ask_the_code',    label: 'Ask The Code',    sub: 'OBC 2024 AI search'                    },
+    { key: 'forge_ai',        label: 'Forge Assistant', sub: 'CRM AI powered by live data'           },
+    { key: 'reports',         label: 'Reports',         sub: 'Revenue, WIP, AR Aging, Allowances'    },
+    { key: 'defense_vault',   label: 'Defense Vault',   sub: 'Court-ready documentation package'     },
+    { key: 'dispatch',        label: 'Dispatch Board',  sub: 'Real-time crew scheduling'             },
   ];
 
   return (
@@ -1043,76 +864,58 @@ function FeaturesTab() {
     </div>
   );
 }
-/* ── BRANDING TAB ── */
+
 /* ── BRANDING TAB ── */
 function BrandingTab() {
-  const [settings, setSettings] = useState<any>({});
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
+  const [settings, setSettings]     = useState<any>({});
+  const [saving, setSaving]         = useState(false);
+  const [saved, setSaved]           = useState(false);
   const [extracting, setExtracting] = useState(false);
   const [extracted, setExtracted]   = useState<string[]>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => { load(); }, []);
-
   async function load() {
     const { data } = await supabase.from('company_settings').select('settings').eq('company_id', COMPANY_ID).single();
     if (data?.settings) setSettings(data.settings);
   }
-
   async function save() {
     setSaving(true);
     await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
   }
+  function set(key: string, val: string) { setSettings((prev: any) => ({ ...prev, [key]: val })); }
 
-  function set(key: string, val: string) {
-    setSettings((prev: any) => ({ ...prev, [key]: val }));
-  }
-
-  /* Extract dominant colors from logo using canvas */
   function extractColorsFromLogo() {
     const logoUrl = settings.logo_url;
     if (!logoUrl) return;
     setExtracting(true);
-
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d')!;
-      canvas.width  = 80;
-      canvas.height = 80;
+      canvas.width = 80; canvas.height = 80;
       ctx.drawImage(img, 0, 0, 80, 80);
-
-      const data    = ctx.getImageData(0, 0, 80, 80).data;
+      const data = ctx.getImageData(0, 0, 80, 80).data;
       const buckets: Record<string, number> = {};
-
       for (let i = 0; i < data.length; i += 16) {
-        const r = Math.round(data[i]     / 32) * 32;
+        const r = Math.round(data[i] / 32) * 32;
         const g = Math.round(data[i + 1] / 32) * 32;
         const b = Math.round(data[i + 2] / 32) * 32;
         const a = data[i + 3];
-        if (a < 128) continue; // skip transparent
-        // skip near-white and near-black
+        if (a < 128) continue;
         if (r > 230 && g > 230 && b > 230) continue;
         if (r < 25  && g < 25  && b < 25)  continue;
         const key = `${r},${g},${b}`;
         buckets[key] = (buckets[key] ?? 0) + 1;
       }
-
-      const sorted = Object.entries(buckets)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8)
-        .map(([key]) => {
-          const [r, g, b] = key.split(',').map(Number);
-          return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
-        });
-
-      setExtracted(sorted);
-      setExtracting(false);
+      const sorted = Object.entries(buckets).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([key]) => {
+        const [r, g, b] = key.split(',').map(Number);
+        return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
+      });
+      setExtracted(sorted); setExtracting(false);
     };
     img.onerror = () => setExtracting(false);
     img.src = logoUrl;
@@ -1123,70 +926,39 @@ function BrandingTab() {
   const accent  = settings.brand_accent  ?? '#1E5FA4';
 
   const PRESETS = [
-    { name: 'Classic Yellow',  primary: '#FCE205', dark: '#111010', accent: '#1E5FA4' },
-    { name: 'Deep Navy',       primary: '#1E3A5F', dark: '#FFFFFF', accent: '#3B82F6' },
-    { name: 'Forest',          primary: '#166534', dark: '#111010', accent: '#22C55E' },
-    { name: 'Slate',           primary: '#475569', dark: '#0F172A', accent: '#64748B' },
-    { name: 'Crimson',         primary: '#991B1B', dark: '#111010', accent: '#DC2626' },
-    { name: 'Charcoal',        primary: '#374151', dark: '#111827', accent: '#9CA3AF' },
-    { name: 'Warm Amber',      primary: '#D97706', dark: '#111010', accent: '#F59E0B' },
-    { name: 'Ocean',           primary: '#0369A1', dark: '#111010', accent: '#0EA5E9' },
+    { name: 'Classic Yellow', primary: '#FCE205', dark: '#111010', accent: '#1E5FA4' },
+    { name: 'Deep Navy',      primary: '#1E3A5F', dark: '#FFFFFF', accent: '#3B82F6' },
+    { name: 'Forest',         primary: '#166534', dark: '#111010', accent: '#22C55E' },
+    { name: 'Slate',          primary: '#475569', dark: '#0F172A', accent: '#64748B' },
+    { name: 'Crimson',        primary: '#991B1B', dark: '#111010', accent: '#DC2626' },
+    { name: 'Charcoal',       primary: '#374151', dark: '#111827', accent: '#9CA3AF' },
+    { name: 'Warm Amber',     primary: '#D97706', dark: '#111010', accent: '#F59E0B' },
+    { name: 'Ocean',          primary: '#0369A1', dark: '#111010', accent: '#0EA5E9' },
   ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      {/* Step 1 — Logo */}
       <div className="forge-card" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(252,226,5,0.15)', border: '1px solid rgba(252,226,5,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#8A7600', flexShrink: 0 }}>1</div>
           <p style={{ fontSize: 14, fontWeight: 700 }}>Upload Your Logo</p>
         </div>
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16, lineHeight: 1.6 }}>
-          Upload your company logo. Once uploaded, we can automatically extract your brand colors from it.
-        </p>
-
-        <FileUpload
-          bucket="company-assets"
-          path={`logos/${COMPANY_ID}`}
-          label="Company Logo"
-          accept="image/png,image/jpeg,image/svg+xml,image/webp"
-          currentUrl={settings.logo_url}
-          isPublic={true}
-          onUploaded={url => set('logo_url', url)}
-        />
-
+        <FileUpload bucket="company-assets" path={`logos/${COMPANY_ID}`} label="Company Logo" accept="image/png,image/jpeg,image/svg+xml,image/webp" currentUrl={settings.logo_url} isPublic={true} onUploaded={url => set('logo_url', url)} />
         {settings.logo_url && (
-          <button
-            onClick={extractColorsFromLogo}
-            disabled={extracting}
-            style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(30,95,164,0.08)', border: '1px solid rgba(30,95,164,0.2)', color: '#1E5FA4', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(30,95,164,0.14)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(30,95,164,0.08)'; }}
-          >
+          <button onClick={extractColorsFromLogo} disabled={extracting} style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(30,95,164,0.08)', border: '1px solid rgba(30,95,164,0.2)', color: '#1E5FA4', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             <Palette size={14} strokeWidth={1.5} />
             {extracting ? 'Reading colors...' : '✨ Extract Colors from Logo'}
           </button>
         )}
-
-        {/* Extracted color swatches */}
         {extracted.length > 0 && (
           <div style={{ marginTop: 14 }}>
             <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted)', marginBottom: 8 }}>Colors found in your logo — click to apply</p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {extracted.map(color => (
                 <div key={color} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                  <button
-                    title={color}
-                    style={{ width: 40, height: 40, borderRadius: 10, background: color, border: '2px solid var(--color-border)', cursor: 'pointer', transition: 'all 0.12s', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.borderColor = color; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.borderColor = 'var(--color-border)'; }}
-                    onClick={() => {
-                      // Show mini picker to choose which slot
-                      set('brand_primary', color);
-                    }}
-                  />
+                  <button title={color} style={{ width: 40, height: 40, borderRadius: 10, background: color, border: '2px solid var(--color-border)', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.12)' }} onClick={() => set('brand_primary', color)} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <button onClick={() => set('brand_primary', color)} style={{ fontSize: 8, padding: '1px 4px', borderRadius: 3, border: '1px solid var(--color-border)', background: primary === color ? '#FCE205' : 'var(--color-mist)', color: primary === color ? '#111010' : 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600 }}>Primary</button>
                     <button onClick={() => set('brand_dark', color)} style={{ fontSize: 8, padding: '1px 4px', borderRadius: 3, border: '1px solid var(--color-border)', background: dark === color ? '#FCE205' : 'var(--color-mist)', color: dark === color ? '#111010' : 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600 }}>Dark</button>
@@ -1195,47 +967,33 @@ function BrandingTab() {
                 </div>
               ))}
             </div>
-            <p style={{ fontSize: 10, color: 'var(--color-muted)', marginTop: 8 }}>Click Primary / Dark / Accent under each color to assign it to that role.</p>
           </div>
         )}
       </div>
 
-      {/* Step 2 — Color roles */}
       <div className="forge-card" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(252,226,5,0.15)', border: '1px solid rgba(252,226,5,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#8A7600', flexShrink: 0 }}>2</div>
           <p style={{ fontSize: 14, fontWeight: 700 }}>Set Your Brand Colors</p>
         </div>
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-          Click any color box to open a color picker. Each role controls a different part of your documents.
-        </p>
-
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
           {[
-            { key: 'brand_primary', label: 'Primary',  value: primary, sub: 'Letterhead border, total line, buttons, footer strip' },
-            { key: 'brand_dark',    label: 'Dark',     value: dark,    sub: 'Company name, totals, signature lines, headings' },
-            { key: 'brand_accent',  label: 'Accent',   value: accent,  sub: 'Allowance tags, disclaimer boxes, links' },
+            { key: 'brand_primary', label: 'Primary', value: primary, sub: 'Letterhead border, total line, buttons, footer strip' },
+            { key: 'brand_dark',    label: 'Dark',    value: dark,    sub: 'Company name, totals, signature lines, headings'      },
+            { key: 'brand_accent',  label: 'Accent',  value: accent,  sub: 'Allowance tags, disclaimer boxes, links'              },
           ].map(c => (
             <div key={c.key} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '14px 16px', borderRadius: 10, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
-              {/* Big clickable color swatch */}
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div style={{ width: 56, height: 56, borderRadius: 12, background: c.value, boxShadow: '0 3px 12px rgba(0,0,0,0.15)', border: '3px solid var(--color-panel)' }} />
-                <input
-                  type="color"
-                  value={c.value}
-                  onChange={e => set(c.key, e.target.value)}
-                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', borderRadius: 12 }}
-                />
+                <input type="color" value={c.value} onChange={e => set(c.key, e.target.value)} style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', borderRadius: 12 }} />
                 <div style={{ position: 'absolute', bottom: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'var(--color-panel)', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                   <Palette size={9} color="var(--color-muted)" />
                 </div>
               </div>
-
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 3 }}>{c.label} Color</p>
                 <p style={{ fontSize: 11, color: 'var(--color-muted)', lineHeight: 1.5 }}>{c.sub}</p>
               </div>
-
               <div style={{ flexShrink: 0, textAlign: 'right' }}>
                 <p style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--color-muted)', textTransform: 'uppercase' }}>{c.value}</p>
                 <p style={{ fontSize: 10, color: 'var(--color-muted)', marginTop: 2 }}>Click swatch to change</p>
@@ -1243,24 +1001,12 @@ function BrandingTab() {
             </div>
           ))}
         </div>
-
-        {/* Generic presets */}
         <div style={{ marginBottom: 24 }}>
           <label style={lbl}>Start from a preset</label>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {PRESETS.map(preset => (
-              <button
-                key={preset.name}
-                onClick={() => {
-                  set('brand_primary', preset.primary);
-                  set('brand_dark',    preset.dark);
-                  set('brand_accent',  preset.accent);
-                }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-panel)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 11, fontWeight: 500, color: 'var(--color-text)', transition: 'all 0.12s' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#FCE205'; e.currentTarget.style.background = 'rgba(252,226,5,0.06)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.background = 'var(--color-panel)'; }}
-              >
-                <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+              <button key={preset.name} onClick={() => { set('brand_primary', preset.primary); set('brand_dark', preset.dark); set('brand_accent', preset.accent); }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--color-border)', background: 'var(--color-panel)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--color-text)' }} onMouseEnter={e => { e.currentTarget.style.borderColor = '#FCE205'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; }}>
+                <div style={{ display: 'flex', gap: 3 }}>
                   <div style={{ width: 14, height: 14, borderRadius: 4, background: preset.primary, border: '1px solid rgba(0,0,0,0.1)' }} />
                   <div style={{ width: 14, height: 14, borderRadius: 4, background: preset.dark,    border: '1px solid rgba(0,0,0,0.1)' }} />
                   <div style={{ width: 14, height: 14, borderRadius: 4, background: preset.accent,  border: '1px solid rgba(0,0,0,0.1)' }} />
@@ -1270,24 +1016,18 @@ function BrandingTab() {
             ))}
           </div>
         </div>
-
-        <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 24px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#FCE205', border: 'none', color: saved ? '#FFFFFF' : '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
+        <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 24px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#FCE205', border: 'none', color: saved ? '#FFFFFF' : '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
           {saved ? <><Check size={14} /> Brand Saved!</> : saving ? 'Saving...' : 'Save Brand Colors'}
         </button>
       </div>
 
-      {/* Step 3 — Live preview */}
       <div className="forge-card" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(252,226,5,0.15)', border: '1px solid rgba(252,226,5,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: '#8A7600', flexShrink: 0 }}>3</div>
           <p style={{ fontSize: 14, fontWeight: 700 }}>Live Document Preview</p>
         </div>
-        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16 }}>Updates instantly as you change colors above.</p>
-
         <div style={{ background: '#F0EDE8', borderRadius: 10, padding: 16 }}>
           <div style={{ background: '#FFFFFF', borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.10)' }}>
-
-            {/* Letterhead */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '20px 24px 16px', borderBottom: `3px solid ${primary}` }}>
               <div>
                 {settings.logo_url ? (
@@ -1307,8 +1047,6 @@ function BrandingTab() {
                 <p style={{ fontSize: 11, color: '#8C8680', marginTop: 6 }}>{new Date().toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
               </div>
             </div>
-
-            {/* Sample lines */}
             <div style={{ padding: '16px 24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #F0EDE8' }}>
                 <span style={{ fontSize: 12, color: '#111010' }}>Kitchen Renovation — Labour</span>
@@ -1318,29 +1056,262 @@ function BrandingTab() {
                 <span style={{ fontSize: 12, color: '#111010' }}>Materials Allowance</span>
                 <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>$8,000.00</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #F0EDE8' }}>
-                <span style={{ fontSize: 12, color: '#111010' }}>HST (13%)</span>
-                <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'monospace' }}>$2,665.00</span>
-              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 12, marginTop: 4, borderTop: `2px solid ${primary}` }}>
                 <span style={{ fontSize: 14, fontWeight: 900, color: dark }}>Total Due</span>
                 <span style={{ fontSize: 14, fontWeight: 900, fontFamily: 'monospace', color: dark }}>$23,165.00</span>
               </div>
             </div>
-
-            {/* Accent example */}
             <div style={{ margin: '0 24px 16px', padding: '10px 14px', borderRadius: 8, background: `${accent}10`, border: `1px solid ${accent}25` }}>
-              <p style={{ fontSize: 10, color: accent, fontStyle: 'italic' }}>
-                <strong>Note:</strong> Allowance items are estimates. Final costs adjusted on actuals.
-              </p>
+              <p style={{ fontSize: 10, color: accent, fontStyle: 'italic' }}><strong>Note:</strong> Allowance items are estimates. Final costs adjusted on actuals.</p>
             </div>
-
-            {/* Footer */}
             <div style={{ padding: '10px 24px', background: primary, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: dark }}>{settings.name || 'Your Company'}</p>
               <p style={{ fontSize: 10, color: dark, opacity: 0.75 }}>Thank you for your business</p>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── WARRANTY SETTINGS TAB ── */
+function WarrantySettingsTab() {
+  const [settings, setSettings] = useState<any>({});
+  const [saving, setSaving]     = useState(false);
+  const [saved, setSaved]       = useState(false);
+
+  useEffect(() => { load(); }, []);
+  async function load() {
+    const { data } = await supabase.from('company_settings').select('settings').eq('company_id', COMPANY_ID).single();
+    if (data?.settings) setSettings(data.settings);
+  }
+  async function save() {
+    setSaving(true);
+    await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
+    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
+  }
+  function set(key: string, val: any) { setSettings((p: any) => ({ ...p, [key]: val })); }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="forge-card" style={{ padding: '24px' }}>
+        <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 20 }}>Tarion Builder Profile</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          {[
+            { key: 'tarion_builder_id',  label: 'Tarion Builder ID',     placeholder: 'B35002'               },
+            { key: 'hcra_number',        label: 'HCRA Registration #',   placeholder: 'HR-00123'             },
+            { key: 'builder_legal_name', label: 'Legal Builder Name',    placeholder: 'Claridge Homes Ltd.'  },
+            { key: 'warranty_contact',   label: 'Warranty Contact Name', placeholder: 'Jane Smith'           },
+            { key: 'warranty_email',     label: 'Warranty Contact Email',placeholder: 'warranty@builder.ca'  },
+            { key: 'warranty_phone',     label: 'Warranty Contact Phone',placeholder: '613-555-0100'         },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={lbl}>{f.label}</label>
+              <input style={inp} placeholder={f.placeholder} value={settings[f.key] ?? ''} onChange={e => set(f.key, e.target.value)} onFocus={focus} onBlur={blur} />
+            </div>
+          ))}
+        </div>
+        <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#FCE205', border: 'none', color: saved ? '#FFFFFF' : '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          {saved ? <><Check size={14} /> Saved!</> : saving ? 'Saving...' : 'Save Warranty Settings'}
+        </button>
+      </div>
+
+      <div className="forge-card" style={{ padding: '24px' }}>
+        <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>BuilderLink Sync</p>
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 20, lineHeight: 1.6 }}>Configure automatic syncing of warranty lists from BuilderLink via the Tarion VBI API.</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+          <div>
+            <label style={lbl}>Auto-Sync Schedule</label>
+            <select style={inp} value={settings.sync_schedule ?? 'daily_6am'} onChange={e => set('sync_schedule', e.target.value)} onFocus={focus} onBlur={blur}>
+              <option value="manual">Manual Only</option>
+              <option value="daily_6am">Daily at 6:00 AM</option>
+              <option value="daily_8am">Daily at 8:00 AM</option>
+              <option value="twice_daily">Twice Daily (6am + 6pm)</option>
+            </select>
+          </div>
+          <div>
+            <label style={lbl}>BRP Alert — Warn At</label>
+            <select style={inp} value={settings.brp_warn_days ?? 14} onChange={e => set('brp_warn_days', Number(e.target.value))} onFocus={focus} onBlur={blur}>
+              <option value={30}>30 days before expiry</option>
+              <option value={21}>21 days before expiry</option>
+              <option value={14}>14 days before expiry</option>
+              <option value={7}>7 days before expiry</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ padding: '12px 16px', borderRadius: 9, background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#16A34A', boxShadow: '0 0 6px rgba(22,163,74,0.7)' }} />
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 600, color: '#16A34A' }}>Last synced: Today 6:00 AM</p>
+              <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>3 new forms pulled · 0 unmatched</p>
+            </div>
+          </div>
+          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 11, fontWeight: 700, background: 'rgba(22,163,74,0.10)', border: '1px solid rgba(22,163,74,0.25)', color: '#16A34A', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+            <RefreshCw size={11} /> Sync Now
+          </button>
+        </div>
+      </div>
+
+      <div className="forge-card" style={{ padding: '24px' }}>
+        <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 16 }}>Notification Preferences</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[
+            { key: 'notify_new_list',     label: 'New warranty list received from Tarion',  sub: 'Immediate notification when homeowner submits a form'             },
+            { key: 'notify_brp_expiry',   label: 'BRP expiry warnings',                     sub: 'Alert coordinator when BRP is within your warning window'        },
+            { key: 'notify_car_issued',   label: 'CAR report issued',                       sub: 'Alert when Tarion issues a Conciliation Assessment Report'       },
+            { key: 'notify_msd_deadline', label: 'MSD agreement deadline approaching',      sub: 'Alert 3 days before 10-day MSD agreement window closes'         },
+            { key: 'notify_low_evidence', label: 'Low evidence score alert',                sub: 'Flag cases where evidence health drops below 60%'               },
+            { key: 'notify_po_submitted', label: 'Tech submits PO request',                 sub: 'Alert manager immediately when a tech submits a trade PO'       },
+          ].map(f => {
+            const enabled = settings[f.key] ?? true;
+            return (
+              <div key={f.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderRadius: 9, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 2 }}>{f.label}</p>
+                  <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>{f.sub}</p>
+                </div>
+                <button onClick={() => set(f.key, !enabled)} style={{ width: 44, height: 24, borderRadius: 100, background: enabled ? '#FCE205' : 'var(--color-border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', flexShrink: 0 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#FFFFFF', position: 'absolute', top: 3, left: enabled ? 23 : 3, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        <button onClick={save} disabled={saving} style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#FCE205', border: 'none', color: saved ? '#FFFFFF' : '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          {saved ? <><Check size={14} /> Saved!</> : saving ? 'Saving...' : 'Save Preferences'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── EMAIL CONNECTIONS TAB ── */
+function EmailConnectionsTab() {
+  const [connections, setConnections] = useState<any[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [testing, setTesting]         = useState<string | null>(null);
+
+  useEffect(() => { loadConnections(); }, []);
+  async function loadConnections() {
+    const { data } = await supabase.from('email_connections').select('*').eq('company_id', COMPANY_ID).order('created_at', { ascending: false });
+    if (data) setConnections(data);
+    setLoading(false);
+  }
+  async function disconnect(id: string) {
+    await supabase.from('email_connections').update({ is_active: false }).eq('id', id);
+    loadConnections();
+  }
+
+  const PROVIDERS = [
+    {
+      id: 'outlook', label: 'Microsoft Outlook / 365', sub: 'Connect via Microsoft OAuth — emails log automatically to cases',
+      color: '#0078D4', icon: '⊞',
+      steps: ['Admin registers Combryx as an Azure AD app', 'Grant Mail.Read + Mail.Send permissions', 'Each user connects their own Outlook account', 'Emails with lot/case references auto-log to interactions'],
+    },
+    {
+      id: 'gmail', label: 'Google Gmail / Workspace', sub: 'Connect via Google OAuth — emails log automatically to cases',
+      color: '#EA4335', icon: 'G',
+      steps: ['Admin enables Gmail API in Google Cloud Console', 'Each user connects their own Gmail account', 'Install Combryx Gmail Add-on from Google Workspace Marketplace', 'Use "Log to Case" button directly inside Gmail'],
+    },
+  ];
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)', fontSize: 13 }}>Loading...</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ padding: '16px 18px', borderRadius: 10, background: 'rgba(30,95,164,0.05)', border: '1px solid rgba(30,95,164,0.2)' }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: '#1E5FA4', marginBottom: 8 }}>How Email Integration Works</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          {[
+            { step: '1', label: 'Connect Email',    desc: 'Each coordinator connects their Outlook or Gmail account via OAuth'                        },
+            { step: '2', label: 'Email Arrives',    desc: 'Homeowner or trade sends an email to your warranty address'                               },
+            { step: '3', label: 'Auto-Log to Case', desc: 'System matches enrollment number or lot number and logs to the case timeline'             },
+          ].map(s => (
+            <div key={s.step} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(30,95,164,0.15)', border: '1px solid rgba(30,95,164,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 900, color: '#1E5FA4', flexShrink: 0 }}>{s.step}</div>
+              <div>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--color-text)', marginBottom: 2 }}>{s.label}</p>
+                <p style={{ fontSize: 10, color: 'var(--color-muted)', lineHeight: 1.5 }}>{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {connections.filter(c => c.is_active).length > 0 && (
+        <div className="forge-card" style={{ padding: '20px' }}>
+          <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>Connected Accounts</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {connections.filter(c => c.is_active).map(conn => (
+              <div key={conn.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 9, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 9, background: conn.provider === 'gmail' ? 'rgba(234,67,53,0.10)' : 'rgba(0,120,212,0.10)', border: `1px solid ${conn.provider === 'gmail' ? 'rgba(234,67,53,0.2)' : 'rgba(0,120,212,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: conn.provider === 'gmail' ? '#EA4335' : '#0078D4', flexShrink: 0 }}>
+                  {conn.provider === 'gmail' ? 'G' : '⊞'}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700 }}>{conn.display_name ?? conn.email_address}</p>
+                  <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>{conn.email_address} · {conn.provider === 'gmail' ? 'Gmail' : 'Outlook'}</p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#16A34A' }} />
+                  <span style={{ fontSize: 10, color: '#16A34A', fontWeight: 600 }}>Connected</span>
+                </div>
+                <button onClick={() => setTesting(conn.id)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: 'var(--color-panel)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  {testing === conn.id ? 'Testing...' : 'Test'}
+                </button>
+                <button onClick={() => disconnect(conn.id)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', color: '#DC2626', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Disconnect</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {PROVIDERS.map(p => (
+          <div key={p.id} className="forge-card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: `${p.color}12`, border: `1px solid ${p.color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, color: p.color }}>{p.icon}</div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 700 }}>{p.label}</p>
+                <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>{p.sub}</p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+              {p.steps.map((step, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <div style={{ width: 16, height: 16, borderRadius: '50%', background: `${p.color}12`, border: `1px solid ${p.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: p.color, flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
+                  <p style={{ fontSize: 10, color: 'var(--color-muted)', lineHeight: 1.5 }}>{step}</p>
+                </div>
+              ))}
+            </div>
+            <button style={{ width: '100%', padding: '10px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: `${p.color}10`, border: `1px solid ${p.color}30`, color: p.color, cursor: 'pointer', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }} onMouseEnter={e => e.currentTarget.style.background = `${p.color}18`} onMouseLeave={e => e.currentTarget.style.background = `${p.color}10`} onClick={() => alert(`OAuth flow for ${p.label} — configure your Azure AD or Google Cloud app credentials first in the Supabase secrets.`)}>
+              <Mail size={13} /> Connect {p.id === 'gmail' ? 'Gmail' : 'Outlook'}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="forge-card" style={{ padding: '20px' }}>
+        <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>BuilderLink VBI API Credentials</p>
+        <p style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+          Create a user with role <code style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>EXTERNAL_VB_API_ONLY</code> in BuilderLink and enter the credentials below.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
+          {[
+            { key: 'vbi_builder_id', label: 'Builder ID',   placeholder: 'B35002'          },
+            { key: 'vbi_api_user',   label: 'API Username', placeholder: 'api_user@builder' },
+            { key: 'vbi_api_key',    label: 'API Key',      placeholder: '••••••••••••'    },
+          ].map(f => (
+            <div key={f.key}>
+              <label style={lbl}>{f.label}</label>
+              <input style={{ ...inp, fontFamily: f.key === 'vbi_api_key' ? 'var(--font-mono)' : 'var(--font-body)' }} type={f.key === 'vbi_api_key' ? 'password' : 'text'} placeholder={f.placeholder} onFocus={focus} onBlur={blur} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button style={{ padding: '8px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(22,163,74,0.10)', border: '1px solid rgba(22,163,74,0.25)', color: '#16A34A', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Test Connection</button>
+          <button style={{ padding: '8px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: '#FCE205', border: 'none', color: '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Save Credentials</button>
         </div>
       </div>
     </div>
