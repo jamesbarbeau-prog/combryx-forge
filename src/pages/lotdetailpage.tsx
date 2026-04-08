@@ -294,6 +294,12 @@ setCases(casesData ?? []);
           <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>{lot.warranty_communities?.name}</p>
         </div>
       </div>
+      <button
+  onClick={() => navigate(`/warranty/lots/${id}/import-form`)}
+  className="forge-button forge-button--primary"
+>
+  ↑ Import Tarion Form
+</button>
 
       {/* Two-column layout */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>

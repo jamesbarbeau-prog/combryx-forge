@@ -16,6 +16,7 @@ import WorkOrdersPage      from '@/pages/workorderspage';
 import PORequestsPage      from '@/pages/porequestspage';
 import SettlementsPage     from '@/pages/settlementspage';
 import WarrantyReportsPage from '@/pages/warrantyreportspage';
+import TarionImportPage from '@/pages/tarianimportpage';
 
 function Placeholder({ name }: { name: string }) {
   return <div style={{ padding: 40 }}><h2>{name}</h2></div>;
@@ -59,6 +60,7 @@ export const router = createBrowserRouter([
           { path: 'mail',        element: <MailPage />                   },
           { path: 'settings',    element: <SettingsPage />               },
           { path: 'mfa-setup',   element: <MFASetupPage />               },
+          { path: 'lots/:lotId/import-form', element: <TarionImportPage /> }
         ],
       },
     ],
