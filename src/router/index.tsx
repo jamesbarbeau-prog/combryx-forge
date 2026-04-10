@@ -13,7 +13,7 @@ import LotDetailPage       from '@/pages/lotdetailpage';
 import CasesPage           from '@/pages/casespage';
 import CaseDetailPage      from '@/pages/casedetailpage';
 import WorkOrdersPage      from '@/pages/workorderspage';
-import PORequestsPage      from '@/pages/porequestspage';
+import PORequestsPage from '@/pages/poapprovalspage';
 import SettlementsPage     from '@/pages/settlementspage';
 import WarrantyReportsPage from '@/pages/warrantyreportspage';
 import TarionImportPage from '@/pages/tarianimportpage';
@@ -61,6 +61,7 @@ export const router = createBrowserRouter([
           { path: 'settings',    element: <SettingsPage />               },
           { path: 'mfa-setup',   element: <MFASetupPage />               },
           { path: 'lots/:lotId/import-form', element: <TarionImportPage /> }
+          
         ],
       },
     ],

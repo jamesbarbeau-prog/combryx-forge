@@ -10,12 +10,13 @@ const today = new Date().toLocaleDateString('en-CA', {
 });
 
 const NAV = [
-  { id: 'today', label: 'Today', path: '/warranty/today' },
-  { id: 'communities', label: 'Portfolio', path: '/warranty/communities' },
-  { id: 'po-requests', label: 'PO Approvals', path: '/warranty/po-requests' },
-  { id: 'reports', label: 'Reports', path: '/warranty/reports' },
-  { id: 'settings', label: 'Settings', path: '/warranty/settings' },
-];
+    { id: 'today',       label: 'Today',        path: '/warranty/today'       },
+    { id: 'communities', label: 'Portfolio',     path: '/warranty/communities' },
+    { id: 'work-orders', label: 'Work Orders',   path: '/warranty/work-orders' },
+    { id: 'po-requests', label: 'PO Approvals',  path: '/warranty/po-requests' },
+    { id: 'reports',     label: 'Reports',       path: '/warranty/reports'     },
+    { id: 'settings',    label: 'Settings',      path: '/warranty/settings'    },
+  ];
 
 export default function WarrantyLayout() {
   const navigate = useNavigate();
