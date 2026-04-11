@@ -12,6 +12,7 @@ const today = new Date().toLocaleDateString('en-CA', {
 const NAV = [
     { id: 'today',       label: 'Today',        path: '/warranty/today'       },
     { id: 'communities', label: 'Portfolio',     path: '/warranty/communities' },
+    { id: 'cases',       label: 'Cases',         path: '/warranty/cases'       },
     { id: 'work-orders', label: 'Work Orders',   path: '/warranty/work-orders' },
     { id: 'po-requests', label: 'PO Approvals',  path: '/warranty/po-requests' },
     { id: 'reports',     label: 'Reports',       path: '/warranty/reports'     },
@@ -118,9 +119,10 @@ export default function WarrantyLayout() {
             const active =
               location.pathname === n.path ||
               (n.id === 'communities' &&
-                (location.pathname.startsWith('/warranty/communities') ||
-                  location.pathname.startsWith('/warranty/lots') ||
-                  location.pathname.startsWith('/warranty/cases'))) ||
+  (location.pathname.startsWith('/warranty/communities') ||
+    location.pathname.startsWith('/warranty/lots'))) ||
+(n.id === 'cases' &&
+  location.pathname.startsWith('/warranty/cases')) ||
               (n.id !== 'today' &&
                 n.id !== 'communities' &&
                 location.pathname.startsWith(n.path));
