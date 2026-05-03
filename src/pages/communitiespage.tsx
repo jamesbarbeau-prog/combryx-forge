@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Building2, ChevronRight, RefreshCw, AlertTriangle, Home, Shield } from 'lucide-react';
-
-const COMPANY_ID = 'c8bd8b99-090d-4379-86cd-95c3844c09f9';
+import { useAuth } from '../auth'; // From main branch
+import { fetchUserProfile } from '../api'; // From main branch
 
 const PROJECT_COLORS: Record<string, string> = {
   '75fa72fe-332f-4dca-afbb-c2968c9d5594': '#4A9EFF',
@@ -27,50 +27,75 @@ interface Community {
 
 export default function CommunitiesPage() {
   const navigate = useNavigate();
+  const { user } = useAuth(); // Dynamic auth
   const [communities, setCommunities] = useState<Community[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
-  useEffect(() => { load(); }, []);
+  // 1. Fetch Company ID first
+  useEffect(() => {
+    const getUserCompanyId = async () => {
+      if (user?.id) {
+        try {
+          const profile = await fetchUserProfile(user.id);
+          setCompanyId(profile.company_id || null);
+        } catch (e) {
+          setError('Failed to load user profile');
+          setLoading(false);
+        }
+      }
+    };
+    getUserCompanyId();
+  }, [user]);
+
+  // 2. Load data once companyId is available
+  useEffect(() => {
+    if (companyId) {
+      load();
+    } else if (!loading && !companyId) {
+       // Optional: handle case where user has no company_id
+    }
+  }, [companyId]);
 
   async function load() {
+    if (!companyId) return;
+    
     setLoading(true);
     setError('');
     try {
       const { data: comms, error: commErr } = await supabase
         .from('warranty_communities')
         .select('id, name')
-        .eq('company_id', COMPANY_ID)
+        .eq('company_id', companyId) // Using dynamic ID
         .order('name');
-  
+
       if (commErr) throw new Error(commErr.message);
       if (!comms || comms.length === 0) {
         setCommunities([]);
-        setLoading(false);
         return;
       }
-  
+
       const commIds = comms.map(c => c.id);
-  
-      const { data: lotCounts } = await supabase
-        .rpc('get_community_lot_counts', { community_ids: commIds });
-  
-        const { data: caseCounts } = await supabase
-        .rpc('get_community_case_counts', { community_ids: commIds });
-      
+
+      const [{ data: lotCounts }, { data: caseCounts }] = await Promise.all([
+        supabase.rpc('get_community_lot_counts', { community_ids: commIds }),
+        supabase.rpc('get_community_case_counts', { community_ids: commIds })
+      ]);
+
       const openCases: Record<string, number> = {};
       (caseCounts ?? []).forEach((r: { community_id: string; open_case_count: number }) => {
         openCases[r.community_id] = Number(r.open_case_count);
       });
-  
+
       setCommunities(comms.map(c => {
         const counts = (lotCounts ?? []).find((r: any) => r.community_id === c.id);
         return {
-          id:             c.id,
-          name:           c.name,
-          lot_count:      Number(counts?.lot_count      ?? 0),
+          id: c.id,
+          name: c.name,
+          lot_count: Number(counts?.lot_count ?? 0),
           assigned_count: Number(counts?.assigned_count ?? 0),
-          open_cases:     openCases[c.id] ?? 0,
+          open_cases: openCases[c.id] ?? 0,
         };
       }));
     } catch (e: any) {
@@ -80,8 +105,8 @@ export default function CommunitiesPage() {
     }
   }
 
-  const totalLots  = communities.reduce((s, c) => s + c.lot_count,      0);
-  const totalCases = communities.reduce((s, c) => s + c.open_cases,     0);
+  const totalLots = communities.reduce((s, c) => s + c.lot_count, 0);
+  const totalCases = communities.reduce((s, c) => s + c.open_cases, 0);
   const totalOwned = communities.reduce((s, c) => s + c.assigned_count, 0);
 
   if (loading) return (
@@ -108,7 +133,6 @@ export default function CommunitiesPage() {
 
   return (
     <div style={{ padding: '32px 36px', maxWidth: 1200 }}>
-
       {/* Header */}
       <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div>
@@ -131,8 +155,8 @@ export default function CommunitiesPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 28 }}>
         {[
           { label: 'Communities', value: communities.length, icon: Building2, color: '#8A7600' },
-          { label: 'Total Lots',  value: totalLots,          icon: Home,      color: '#4A9EFF' },
-          { label: 'Open Cases',  value: totalCases,         icon: Shield,    color: totalCases > 0 ? '#E8A040' : '#5CCFA0' },
+          { label: 'Total Lots', value: totalLots, icon: Home, color: '#4A9EFF' },
+          { label: 'Open Cases', value: totalCases, icon: Shield, color: totalCases > 0 ? '#E8A040' : '#5CCFA0' },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} style={{ background: 'var(--color-panel)', border: '1px solid var(--color-border)', borderRadius: 10, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -171,9 +195,7 @@ export default function CommunitiesPage() {
                 onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = color + '60'; el.style.transform = 'translateY(-1px)'; }}
                 onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'var(--color-border)'; el.style.transform = 'none'; }}
               >
-                {/* Accent bar */}
                 <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color, borderRadius: '12px 12px 0 0' }} />
-
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
@@ -184,7 +206,6 @@ export default function CommunitiesPage() {
                         {community.name}
                       </p>
                     </div>
-
                     <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                       <div>
                         <p style={{ fontSize: 20, fontWeight: 800, color: 'var(--color-text)', lineHeight: 1 }}>{community.lot_count}</p>
@@ -209,7 +230,6 @@ export default function CommunitiesPage() {
           })}
         </div>
       )}
-
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
