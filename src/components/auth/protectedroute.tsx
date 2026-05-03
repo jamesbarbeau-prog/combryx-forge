@@ -1,24 +1,32 @@
+import { useState, useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useauth';
+import { supabase } from '@/lib/supabase';
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
   const location = useLocation();
+  const [checking, setChecking] = useState(true);
+  const [authed,   setAuthed]   = useState(false);
 
-  if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh', display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-        background: 'var(--color-canvas)',
-        color: 'var(--color-muted)', fontSize: 13,
-      }}>
-        Loading...
-      </div>
-    );
+  useEffect(() => {
+    // Check current session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthed(!!session);
+      setChecking(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (checking) return null;
+
+  if (!authed) {
+    return <Navigate to="/warranty/login" state={{ from: location.pathname }} replace />;
   }
-
-  if (!user) return <Navigate to="/warranty/login" state={{ from: location.pathname }} replace />;
 
   return <>{children}</>;
 }

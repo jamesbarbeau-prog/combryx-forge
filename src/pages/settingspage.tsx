@@ -224,6 +224,7 @@ export default function SettingsPage() {
     { id: 'features',    label: 'Features',    icon: Zap,        locked: false },
     { id: 'warranty',    label: 'Warranty',    icon: Shield,     locked: false },
     { id: 'email',       label: 'Email & API', icon: Mail,       locked: true  },
+    { id: 'warranty_team', label: 'Warranty Team', icon: Shield, locked: false },
   ];
 
   return (
@@ -254,7 +255,9 @@ export default function SettingsPage() {
           {activeTab === 'team'        && <PinGate section="team"><TeamTab /></PinGate>}
           {activeTab === 'bookkeeping' && <PinGate section="bookkeeping"><BookkeepingTab /></PinGate>}
           {activeTab === 'features'    && <FeaturesTab />}
-          {activeTab === 'warranty'    && <WarrantySettingsTab />}
+          {activeTab === 'warranty'    && <WarrantySettingsTab />}  
+          {activeTab === 'warranty_team' && <WarrantyTeamTab />}
+    
           {activeTab === 'email'       && <PinGate section="team"><EmailConnectionsTab /></PinGate>}
         </div>
       </div>
@@ -1314,6 +1317,315 @@ function EmailConnectionsTab() {
           <button style={{ padding: '8px 18px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: '#FCE205', border: 'none', color: '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Save Credentials</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+const WARRANTY_COMPANY_ID = 'c8bd8b99-090d-4379-86cd-95c3844c09f9';
+
+interface WUser {
+  id: string; first_name: string; last_name: string;
+  email: string; phone: string | null; access_level: string; is_active: boolean;
+}
+interface WTechProfile {
+  id: string; user_id: string; tech_type: string;
+  supervisor_id: string | null; team: string | null;
+  can_do_interior: boolean; can_do_exterior: boolean;
+  can_do_pdi: boolean; can_do_emergency: boolean; notes: string | null;
+}
+interface WUserCommunity {
+  id: string; user_id: string; community_id: string; is_primary: boolean;
+}
+interface WCommunity { id: string; name: string; }
+
+export function WarrantyTeamTab() {
+  const [users,          setUsers]          = useState<WUser[]>([]);
+  const [techProfiles,   setTechProfiles]   = useState<Record<string, WTechProfile>>({});
+  const [userCommunities,setUserCommunities]= useState<Record<string, WUserCommunity[]>>({});
+  const [communities,    setCommunities]    = useState<WCommunity[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [saving,         setSaving]         = useState<string | null>(null);
+  const [expandedUser,   setExpandedUser]   = useState<string | null>(null);
+  const [activeView,     setActiveView]     = useState<'team'|'sites'>('team');
+  const [toast,          setToast]          = useState('');
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    const [uRes, cRes, tRes, ucRes] = await Promise.all([
+      supabase.from('users').select('id,first_name,last_name,email,phone,access_level,is_active').eq('company_id', WARRANTY_COMPANY_ID).eq('is_active', true).order('first_name'),
+      supabase.from('warranty_communities').select('id,name').eq('company_id', WARRANTY_COMPANY_ID).order('name'),
+      supabase.from('tech_profiles').select('*').eq('company_id', WARRANTY_COMPANY_ID),
+      supabase.from('user_communities').select('*'),
+    ]);
+    if (uRes.data)  setUsers(uRes.data as WUser[]);
+    if (cRes.data)  setCommunities(cRes.data as WCommunity[]);
+    if (tRes.data)  { const m: Record<string,WTechProfile> = {}; (tRes.data as WTechProfile[]).forEach(t => m[t.user_id]=t); setTechProfiles(m); }
+    if (ucRes.data) { const m: Record<string,WUserCommunity[]> = {}; (ucRes.data as WUserCommunity[]).forEach(uc => { if (!m[uc.user_id]) m[uc.user_id]=[]; m[uc.user_id].push(uc); }); setUserCommunities(m); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2200); }
+
+  async function saveRole(userId: string, level: string) {
+    setSaving(userId+'_role');
+    await supabase.from('users').update({ access_level: level }).eq('id', userId);
+    await fetchAll(); setSaving(null); showToast('Role saved');
+  }
+
+  async function saveTech(userId: string, updates: Partial<WTechProfile>) {
+    setSaving(userId+'_tech');
+    const existing = techProfiles[userId];
+    if (existing) await supabase.from('tech_profiles').update({ ...updates, updated_at: new Date().toISOString() }).eq('user_id', userId);
+    else await supabase.from('tech_profiles').insert({ user_id: userId, company_id: WARRANTY_COMPANY_ID, tech_type: 'regular', ...updates });
+    await fetchAll(); setSaving(null); showToast('Saved');
+  }
+
+  async function toggleSite(userId: string, communityId: string) {
+    setSaving(userId+'_site_'+communityId);
+    const existing = (userCommunities[userId]??[]).find(uc => uc.community_id===communityId);
+    if (existing) await supabase.from('user_communities').delete().eq('id', existing.id);
+    else { const sites = userCommunities[userId]??[]; await supabase.from('user_communities').insert({ user_id: userId, community_id: communityId, is_primary: sites.length===0 }); }
+    await fetchAll(); setSaving(null);
+  }
+
+  async function setPrimary(userId: string, communityId: string) {
+    const sites = userCommunities[userId]??[];
+    for (const uc of sites) await supabase.from('user_communities').update({ is_primary: uc.community_id===communityId }).eq('id', uc.id);
+    await fetchAll(); showToast('Primary site set');
+  }
+
+  const supervisors = users.filter(u => ['supervisor','manager','sr_manager','director'].includes(u.access_level));
+
+  const ROLE_OPTIONS = [
+    { value: 'coordinator', label: '📋 Coordinator' },
+    { value: 'supervisor',  label: '🔍 Supervisor'  },
+    { value: 'tech',        label: '🔧 Tech'        },
+    { value: 'manager',     label: '👔 Manager'     },
+    { value: 'staff',       label: '👤 Staff'       },
+  ];
+
+  const CAPS = [
+    { key: 'can_do_interior',  label: 'Interior repairs' },
+    { key: 'can_do_exterior',  label: 'Exterior'         },
+    { key: 'can_do_pdi',       label: 'PDI'              },
+    { key: 'can_do_emergency', label: 'Emergency'        },
+  ];
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--color-muted)', fontSize: 13 }}>Loading warranty team…</div>;
+
+  return (
+    <div style={{ position: 'relative' }}>
+
+      {toast && (
+        <div style={{ position: 'fixed', top: 20, right: 24, padding: '10px 18px', borderRadius: 8, background: '#16A34A', color: '#fff', fontSize: 12, fontWeight: 700, zIndex: 1000, display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+          ✓ {toast}
+        </div>
+      )}
+
+      {/* Sub-nav */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+        {(['team','sites'] as const).map(v => (
+          <button key={v} onClick={() => setActiveView(v)}
+            style={{ padding: '7px 16px', borderRadius: 7, border: `1px solid ${activeView===v ? 'rgba(252,226,5,0.3)' : 'var(--color-border)'}`, background: activeView===v ? 'rgba(252,226,5,0.08)' : 'transparent', color: activeView===v ? '#8A7600' : 'var(--color-muted)', fontSize: 12, fontWeight: activeView===v ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-body)', textTransform: 'capitalize' as const }}>
+            {v === 'team' ? `Team (${users.length})` : `Sites (${communities.length})`}
+          </button>
+        ))}
+        <button onClick={fetchAll} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 7, background: 'transparent', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-muted)', fontSize: 11, fontFamily: 'var(--font-body)' }}>
+          ↺ Refresh
+        </button>
+      </div>
+
+      {/* ── TEAM VIEW ── */}
+      {activeView === 'team' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {users.map(user => {
+            const tech  = techProfiles[user.id];
+            const sites = userCommunities[user.id] ?? [];
+            const isExp = expandedUser === user.id;
+
+            return (
+              <div key={user.id} style={{ borderRadius: 10, overflow: 'hidden', background: 'var(--color-panel)', border: `1px solid ${isExp ? 'rgba(252,226,5,0.3)' : 'var(--color-border)'}`, transition: 'all 0.15s' }}>
+
+                {/* Row */}
+                <div onClick={() => setExpandedUser(isExp ? null : user.id)} style={{ padding: '13px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(252,226,5,0.12)', border: '1px solid rgba(252,226,5,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13, fontWeight: 800, color: '#8A7600' }}>
+                    {user.first_name[0]}{user.last_name[0]}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>{user.first_name} {user.last_name}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: 'rgba(252,226,5,0.12)', border: '1px solid rgba(252,226,5,0.25)', color: '#8A7600' }}>{user.access_level}</span>
+                      {tech?.tech_type && (
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: tech.tech_type==='foreman' ? 'rgba(220,38,38,0.10)' : 'rgba(217,119,6,0.10)', color: tech.tech_type==='foreman' ? '#DC2626' : '#D97706', border: `1px solid ${tech.tech_type==='foreman' ? 'rgba(220,38,38,0.2)' : 'rgba(217,119,6,0.2)'}` }}>
+                          {tech.tech_type==='foreman' ? 'Foreman' : 'Regular tech'}
+                        </span>
+                      )}
+                      {tech?.team && (
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: 'rgba(22,163,74,0.10)', color: '#16A34A', border: '1px solid rgba(22,163,74,0.2)' }}>
+                          {tech.team === 'warranty' ? 'Warranty' : 'Construction'}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>{user.email}</span>
+                      {sites.length > 0 && (
+                        <span style={{ fontSize: 10, color: '#1E5FA4', fontWeight: 600 }}>
+                          {sites.length} site{sites.length!==1?'s':''}{(() => { const primary = sites.find(s=>s.is_primary); if (!primary) return ''; const comm = communities.find(c=>c.id===primary.community_id); return comm ? ` · ★ ${comm.name}` : ''; })()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 12, color: 'var(--color-muted)', transform: isExp ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>▾</span>
+                </div>
+
+                {/* Expanded */}
+                {isExp && (
+                  <div style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-mist)', padding: 18 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
+
+                      {/* Role */}
+                      <div>
+                        <label style={lbl}>Role</label>
+                        <select defaultValue={user.access_level} onBlur={async e => { if (e.target.value !== user.access_level) await saveRole(user.id, e.target.value); }} style={inp} onFocus={focus}>
+                          {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                        </select>
+                      </div>
+
+                      {/* Tech type */}
+                      <div>
+                        <label style={lbl}>Tech type</label>
+                        <select defaultValue={tech?.tech_type ?? ''} onChange={async e => saveTech(user.id, { tech_type: e.target.value })} style={inp} onFocus={focus} onBlur={blur}>
+                          <option value="">— Not a tech —</option>
+                          <option value="regular">Regular tech — interior repairs</option>
+                          <option value="foreman">Foreman — PDI, QA, emergency, exterior</option>
+                        </select>
+                        {tech?.tech_type === 'foreman' && <p style={{ fontSize: 10, color: '#DC2626', marginTop: 4 }}>Foreman is never scheduled for interior repairs</p>}
+                      </div>
+
+                      {/* Team */}
+                      <div>
+                        <label style={lbl}>Team</label>
+                        <select defaultValue={tech?.team ?? ''} onChange={async e => saveTech(user.id, { team: e.target.value || null })} style={inp} onFocus={focus} onBlur={blur}>
+                          <option value="">— Not assigned —</option>
+                          <option value="warranty">Warranty</option>
+                          <option value="construction">Construction</option>
+                        </select>
+                      </div>
+
+                      {/* Supervisor */}
+                      <div>
+                        <label style={lbl}>Reports to</label>
+                        <select defaultValue={tech?.supervisor_id ?? ''} onChange={async e => saveTech(user.id, { supervisor_id: e.target.value || null })} style={inp} onFocus={focus} onBlur={blur}>
+                          <option value="">— No supervisor —</option>
+                          {supervisors.filter(s => s.id !== user.id).map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name}</option>)}
+                        </select>
+                      </div>
+
+                      {/* Capabilities */}
+                      {tech && (
+                        <div style={{ gridColumn: '2 / 4' }}>
+                          <label style={lbl}>Capabilities</label>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            {CAPS.map(cap => {
+                              const val = (tech as any)[cap.key] ?? false;
+                              return (
+                                <button key={cap.key} onClick={() => saveTech(user.id, { [cap.key]: !val })}
+                                  style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: val ? 'rgba(22,163,74,0.10)' : 'var(--color-panel)', border: `1px solid ${val ? 'rgba(22,163,74,0.3)' : 'var(--color-border)'}`, color: val ? '#16A34A' : 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                                  {val ? '✓ ' : ''}{cap.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Site assignments */}
+                    <div style={{ paddingTop: 14, borderTop: '1px solid var(--color-border)' }}>
+                      <label style={lbl}>Site assignments</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
+                        {communities.map(comm => {
+                          const assigned  = sites.find(s => s.community_id === comm.id);
+                          const isPrimary = assigned?.is_primary ?? false;
+                          const isSaving  = saving === user.id+'_site_'+comm.id;
+                          return (
+                            <div key={comm.id} style={{ display: 'flex', alignItems: 'center', gap: 0, borderRadius: 8, overflow: 'hidden', border: `1px solid ${assigned ? 'rgba(252,226,5,0.4)' : 'var(--color-border)'}` }}>
+                              <button onClick={() => toggleSite(user.id, comm.id)} disabled={!!isSaving}
+                                style={{ padding: '6px 12px', background: assigned ? 'rgba(252,226,5,0.10)' : 'var(--color-panel)', border: 'none', color: assigned ? '#8A7600' : 'var(--color-muted)', fontSize: 11, fontWeight: assigned ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                                {isSaving ? '…' : (assigned ? '✓ ' : '')}{comm.name}
+                              </button>
+                              {assigned && (
+                                <button onClick={() => setPrimary(user.id, comm.id)} title="Set as primary"
+                                  style={{ padding: '6px 8px', background: isPrimary ? '#FCE205' : 'rgba(252,226,5,0.05)', border: 'none', borderLeft: '1px solid rgba(252,226,5,0.25)', color: isPrimary ? '#111010' : '#8A7600', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                                  {isPrimary ? '★' : '☆'}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>Click to assign/unassign · ★ sets primary site</p>
+                    </div>
+
+                    {/* Notes */}
+                    <div style={{ marginTop: 14 }}>
+                      <label style={lbl}>Notes</label>
+                      <textarea defaultValue={tech?.notes ?? ''} onBlur={async e => saveTech(user.id, { notes: e.target.value.trim() || null })} placeholder="Certifications, notes…" rows={2}
+                        style={{ ...inp, height: 'auto', padding: '8px 10px', resize: 'none' }} onFocus={focus} onBlur={blur} />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── SITES VIEW ── */}
+      {activeView === 'sites' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          {communities.map(comm => {
+            const assigned    = users.filter(u => (userCommunities[u.id]??[]).some(uc => uc.community_id===comm.id));
+            const coordinator = assigned.find(u => u.access_level==='coordinator');
+            const supervisor  = assigned.find(u => u.access_level==='supervisor');
+            const techs       = assigned.filter(u => techProfiles[u.id]);
+            return (
+              <div key={comm.id} style={{ padding: '16px 18px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--color-text)', marginBottom: 12 }}>{comm.name}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { label: 'Coordinator', person: coordinator, color: '#1E5FA4' },
+                    { label: 'Supervisor',  person: supervisor,  color: '#7C3AED' },
+                  ].map(r => (
+                    <div key={r.label}>
+                      <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 3 }}>{r.label}</p>
+                      {r.person
+                        ? <p style={{ fontSize: 12, fontWeight: 600, color: r.color }}>{r.person.first_name} {r.person.last_name}</p>
+                        : <p style={{ fontSize: 11, color: 'var(--color-muted)', fontStyle: 'italic' }}>Not assigned</p>
+                      }
+                    </div>
+                  ))}
+                  <div>
+                    <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 3 }}>Techs ({techs.length})</p>
+                    {techs.length > 0
+                      ? techs.map(t => (
+                        <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontSize: 11, color: 'var(--color-text)' }}>{t.first_name} {t.last_name}</span>
+                          {techProfiles[t.id]?.tech_type==='foreman' && <span style={{ fontSize: 8, fontWeight: 700, padding: '1px 5px', borderRadius: 3, background: 'rgba(220,38,38,0.10)', color: '#DC2626' }}>Foreman</span>}
+                        </div>
+                      ))
+                      : <p style={{ fontSize: 11, color: 'var(--color-muted)', fontStyle: 'italic' }}>No techs assigned</p>
+                    }
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

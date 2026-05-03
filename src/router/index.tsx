@@ -17,6 +17,13 @@ import PORequestsPage from '@/pages/poapprovalspage';
 import SettlementsPage     from '@/pages/settlementspage';
 import WarrantyReportsPage from '@/pages/warrantyreportspage';
 import TarionImportPage from '@/pages/tarianimportpage';
+import QDefImportPage from '@/pages/qdefimportpage';
+import DeficiencyImportPage from '@/pages/deficiencyimportpage';
+import TradesImportPage from '@/pages/tradesimportpage';
+
+
+
+
 
 function Placeholder({ name }: { name: string }) {
   return <div style={{ padding: 40 }}><h2>{name}</h2></div>;
@@ -49,6 +56,7 @@ export const router = createBrowserRouter([
           { index: true,         element: <Navigate to="today" replace /> },
           { path: 'today',       element: <WarrantyTodayPage />           },
           { path: 'communities', element: <CommunitiesPage />             },
+          { path: 'communities/:projectId', element: <LotsPage /> },
           { path: 'lots',        element: <LotsPage />                   },
           { path: 'lots/:id',    element: <LotDetailPage />              },
           { path: 'cases',       element: <CasesPage />                  },
@@ -60,7 +68,16 @@ export const router = createBrowserRouter([
           { path: 'mail',        element: <MailPage />                   },
           { path: 'settings',    element: <SettingsPage />               },
           { path: 'mfa-setup',   element: <MFASetupPage />               },
-          { path: 'lots/:lotId/import-form', element: <TarionImportPage /> }
+          { path: 'lots/:lotId/import-form', element: <TarionImportPage /> },
+          { path: 'qdef-import', element: <QDefImportPage /> },
+          { path: 'deficiency-import', element: <DeficiencyImportPage /> },
+          { path: 'trades-import', element: <TradesImportPage /> }
+          
+
+
+
+
+
           
         ],
       },

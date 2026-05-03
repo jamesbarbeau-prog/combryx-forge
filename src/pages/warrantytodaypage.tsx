@@ -1,137 +1,94 @@
+/**
+ * COMBRYX — Warranty Today / Command Centre
+ * All data from Supabase — no mock data, no QDef
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Shield, Calendar, Clock, FileWarning, AlertTriangle,
   RefreshCw, CheckCircle2, ChevronDown, ChevronRight,
+  Home, DollarSign, Wrench,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { differenceInDays, isToday, isTomorrow, format } from 'date-fns';
 
-// ─── Helpers ──────────────────────────────────────────────────
-
-const today = new Date();
-
-function daysUntil(dateStr: string) {
-  return Math.ceil((new Date(dateStr).getTime() - today.getTime()) / 86400000);
-}
-
-function riskColor(days: number) {
-  if (days <= 3)  return { text: '#FF3B3B', bg: 'rgba(255,59,59,0.10)',  border: 'rgba(255,59,59,0.25)'  };
-  if (days <= 7)  return { text: '#FF8C00', bg: 'rgba(255,140,0,0.10)',  border: 'rgba(255,140,0,0.25)'  };
-  if (days <= 14) return { text: '#D97706', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.20)'  };
-  return           { text: '#16A34A', bg: 'rgba(22,163,74,0.08)',  border: 'rgba(22,163,74,0.18)'  };
-}
-
-function brpBar(brpStart: string, brpEnd: string) {
-  const start = new Date(brpStart).getTime();
-  const end   = new Date(brpEnd).getTime();
-  const now   = today.getTime();
-  const pct   = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
-  const days  = daysUntil(brpEnd);
-  const color = pct > 90 ? '#FF3B3B' : pct > 75 ? '#FF8C00' : '#16A34A';
-  return { pct, days, color };
-}
-
-const PERIOD_LABELS: Record<string, string> = {
-  initial: 'Initial', mid_year: 'Mid-Year', year_end: 'Year-End',
-  second_year: '2nd Year', msd: 'MSD',
-};
-const STATUS_LABELS: Record<string, string> = {
-  in_brp: 'In BRP', rfc_eligible: 'RFC Eligible', car_issued: 'CAR Issued',
-  open: 'Open', resolved: 'Resolved',
-};
-const TYPE_COLORS: Record<string, string> = { brp: '#1E5FA4', car: '#7C3AED', rfc: '#D97706' };
+const COMPANY_ID = 'c8bd8b99-090d-4379-86cd-95c3844c09f9';
 
 // ─── Types ────────────────────────────────────────────────────
 
-interface UserProfile {
-  id: string;
-  company_id: string;
-  community_id: string | null;
-  access_level: string;
-  first_name: string;
-  last_name: string;
+interface DashboardStats {
+  total_cases:    number;
+  open_cases:     number;
+  in_progress:    number;
+  brp_expiring:   number; // within 14 days
+  conciliations:  number;
 }
 
-interface Community {
-  id: string;
-  name: string;
-  city: string;
+interface UpcomingDeadline {
+  id:          string;
+  case_number: string;
+  address:     string;
+  brp_end:     string | null;
+  days_left:   number;
+  status:      string;
+  community:   string;
+}
+
+interface PendingPO {
+  id:           string;
+  po_number:    string;
+  amount:       number;
+  description:  string | null;
+  requested_by: string | null;
+  lot_address:  string | null;
+  created_at:   string;
 }
 
 interface ActiveConciliation {
-  id: string;
-  case_id: string;
-  stage: string;
-  inspection_deadline: string | null;
-  inspection_date: string | null;
-  inspection_time_slot: string | null;
-  inspection_confirmed: boolean;
+  id:                            string;
+  case_id:                       string;
+  stage:                         string;
+  inspection_deadline:           string | null;
+  inspection_date:               string | null;
+  inspection_time_slot:          string | null;
+  inspection_confirmed:          boolean;
   warranted_resolution_deadline: string | null;
-  builder_directory_hit: boolean;
-  case_number: string;
-  lot_address: string;
-  community_id: string;
-  community_name: string;
-  community_city: string;
-  homeowner_name: string | null;
-  warranted_count: number;
+  builder_directory_hit:         boolean;
+  case_number:                   string;
+  lot_address:                   string;
+  homeowner_name:                string | null;
+  community_id:                  string;
+  community_name:                string;
+  warranted_count:               number;
 }
 
 interface CommunityConcilSummary {
-  community: Community;
-  rfc: number;
+  id:         string;
+  name:       string;
+  rfc:        number;
   inspection: number;
-  warranted: number;
-  claim: number;
-  total: number;
-  items: ActiveConciliation[];
+  warranted:  number;
+  claim:      number;
+  total:      number;
+  items:      ActiveConciliation[];
 }
 
-// ─── Stage config ─────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────
+
+function riskColor(days: number) {
+  if (days < 0)   return { text: '#DC2626', bg: 'rgba(220,38,38,0.10)', border: 'rgba(220,38,38,0.25)' };
+  if (days <= 7)  return { text: '#DC2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.20)' };
+  if (days <= 14) return { text: '#D97706', bg: 'rgba(217,119,6,0.08)', border: 'rgba(217,119,6,0.20)' };
+  return           { text: '#16A34A', bg: 'rgba(22,163,74,0.08)',   border: 'rgba(22,163,74,0.18)'  };
+}
 
 const STAGE_CONFIG = {
-  rfc:       { label: 'RFC',        color: '#D97706', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)',  icon: FileWarning   },
-  inspection:{ label: 'Inspection', color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.25)',  icon: Calendar      },
-  warranted: { label: 'Warranted',  color: '#7C3AED', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.25)', icon: Shield        },
-  claim:     { label: 'Claim',      color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.35)',  icon: AlertTriangle },
+  rfc:        { label: 'RFC',        color: '#D97706', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)',  icon: FileWarning   },
+  inspection: { label: 'Inspection', color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.25)',  icon: Calendar      },
+  warranted:  { label: 'Warranted',  color: '#7C3AED', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.25)', icon: Shield        },
+  claim:      { label: 'Claim',      color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.35)',  icon: AlertTriangle },
 };
-
-// ─── Mock data ────────────────────────────────────────────────
-
-const EVEREST_ID = 'a9a40e39-6131-43be-9e19-96420a84653d';
-const OTHER_ID   = 'other-community-id';
-
-const MOCK_CASES = [
-  { id:'1', lot:'Lot 45',    address:'123 Rideau Crest Dr',      community:'Everest',            community_id_mock: EVEREST_ID, homeowner:'Marcus & Diana Chen',  enrollment:'H1892341', period_type:'year_end',    status:'in_brp',      brp_start:'2026-01-15', brp_end:'2026-05-15', items_total:12, items_done:7, items_outstanding:5, risk:'critical', tech:'Mike R.',  evidence_score:42, next_action:'Access log missing on 2 items' },
-  { id:'2', lot:'Lot 12',    address:'88 Stonehaven Ave',        community:'Everest',            community_id_mock: EVEREST_ID, homeowner:'Priya Sharma',         enrollment:'H1890012', period_type:'initial',     status:'in_brp',      brp_start:'2026-02-10', brp_end:'2026-06-10', items_total:6,  items_done:6, items_outstanding:0, risk:'good',     tech:'Sarah L.', evidence_score:95, next_action:'All items complete — ready to close' },
-  { id:'3', lot:'Lot 78',    address:'204 Maple Leaf Way',       community:'Westpark Manors',    community_id_mock: OTHER_ID,   homeowner:'Robert & Anne Patel',  enrollment:'H1901234', period_type:'second_year', status:'rfc_eligible', brp_start:'2025-09-01', brp_end:'2026-01-01', items_total:9,  items_done:4, items_outstanding:5, risk:'critical', tech:null,       evidence_score:28, next_action:'BRP expired — RFC eligible' },
-  { id:'4', lot:'Unit 302',  address:'45 Waterfront Blvd #302', community:'Harbour Gate Condos',community_id_mock: OTHER_ID,   homeowner:'Jean-Pierre Leclair',  enrollment:'H1885567', period_type:'msd',         status:'car_issued',  brp_start:'2025-06-01', brp_end:'2025-09-01', items_total:3,  items_done:0, items_outstanding:3, risk:'critical', tech:'Dave K.',  evidence_score:55, next_action:'CAR issued — deadline Apr 12' },
-  { id:'5', lot:'Lot 23',    address:'67 Crimson Oak Blvd',     community:'Westpark Manors',    community_id_mock: OTHER_ID,   homeowner:'Sandra Thompson',      enrollment:'H1897723', period_type:'year_end',    status:'in_brp',      brp_start:'2026-02-28', brp_end:'2026-06-28', items_total:4,  items_done:1, items_outstanding:3, risk:'warning',  tech:'Mike R.',  evidence_score:67, next_action:'Schedule inspection — windows' },
-];
-
-const MOCK_PO_APPROVALS = [
-  { id:'po1', tech:'Mike R.',  lot:'Lot 45',   trade:'Drywall Pro Inc.',     scope:'Patch & paint master bedroom', amount:1240, submitted:'2h ago', urgent:true,  community_id_mock: EVEREST_ID },
-  { id:'po2', tech:'Dave K.',  lot:'Unit 302', trade:'Structural Plus Ltd.', scope:'Beam assessment & report',     amount:3800, submitted:'4h ago', urgent:true,  community_id_mock: OTHER_ID   },
-  { id:'po3', tech:'Sarah L.', lot:'Lot 67',   trade:'GlassTech Windows',    scope:'Replace bedroom window seal',  amount:680,  submitted:'1d ago', urgent:false, community_id_mock: EVEREST_ID },
-];
-
-const MOCK_DEADLINES = [
-  { label:'Unit 302 — Post-CAR Due', date:'2026-04-12', type:'car', community_id_mock: OTHER_ID   },
-  { label:'Lot 78 — RFC Window',     date:'2026-04-20', type:'rfc', community_id_mock: OTHER_ID   },
-  { label:'Lot 45 — BRP Expires',    date:'2026-05-15', type:'brp', community_id_mock: EVEREST_ID },
-  { label:'Lot 12 — BRP Expires',    date:'2026-06-10', type:'brp', community_id_mock: EVEREST_ID },
-  { label:'Lot 23 — BRP Expires',    date:'2026-06-28', type:'brp', community_id_mock: OTHER_ID   },
-];
-
-// ─── Conciliation helpers ─────────────────────────────────────
-
-function getConcilDeadline(c: ActiveConciliation) {
-  if (c.stage === 'rfc')        return { days: c.inspection_deadline ? differenceInDays(new Date(c.inspection_deadline), new Date()) : null, date: c.inspection_deadline, label: '14-day deadline' };
-  if (c.stage === 'inspection') return { days: c.inspection_date ? differenceInDays(new Date(c.inspection_date), new Date()) : null, date: c.inspection_date, label: 'Inspection' };
-  if (c.stage === 'warranted')  return { days: c.warranted_resolution_deadline ? differenceInDays(new Date(c.warranted_resolution_deadline), new Date()) : null, date: c.warranted_resolution_deadline, label: '30-day deadline' };
-  return { days: 0, date: null, label: 'Claim active' };
-}
 
 function deadlineDayLabel(days: number | null, date: string | null): string {
   if (!date) return '—';
@@ -141,6 +98,13 @@ function deadlineDayLabel(days: number | null, date: string | null): string {
   if (days === 1) return 'Tomorrow';
   if (days <= 7)  return `${days}d`;
   return format(new Date(date), 'MMM d');
+}
+
+function getConcilDeadline(c: ActiveConciliation) {
+  if (c.stage === 'rfc')        return { days: c.inspection_deadline ? differenceInDays(new Date(c.inspection_deadline), new Date()) : null, date: c.inspection_deadline, label: '14-day deadline' };
+  if (c.stage === 'inspection') return { days: c.inspection_date ? differenceInDays(new Date(c.inspection_date), new Date()) : null, date: c.inspection_date, label: 'Inspection' };
+  if (c.stage === 'warranted')  return { days: c.warranted_resolution_deadline ? differenceInDays(new Date(c.warranted_resolution_deadline), new Date()) : null, date: c.warranted_resolution_deadline, label: '30-day deadline' };
+  return { days: 0, date: null, label: 'Claim active' };
 }
 
 // ─── Conciliation card ────────────────────────────────────────
@@ -160,18 +124,15 @@ function ConcilCard({ c, onClick }: { c: ActiveConciliation; onClick: () => void
       onMouseLeave={e => e.currentTarget.style.borderColor = isCritical ? '#DC2626' : cfg.border}
     >
       {isCritical && <div style={{ position: 'absolute', top: 9, right: 9, width: 7, height: 7, borderRadius: '50%', background: '#DC2626', boxShadow: '0 0 0 3px rgba(220,38,38,0.2)' }} />}
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
         <Icon size={10} color={cfg.color} strokeWidth={2} />
         <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: cfg.color }}>{cfg.label}</span>
       </div>
-
       <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)', marginBottom: 1 }}>{c.lot_address}</p>
       <p style={{ fontSize: 10, color: 'var(--color-muted)', marginBottom: 6 }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9 }}>#{c.case_number}</span>
         {c.homeowner_name && ` · ${c.homeowner_name}`}
       </p>
-
       {c.inspection_date && slot && (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 5, background: 'rgba(255,255,255,0.5)', border: '1px solid rgba(0,0,0,0.08)', marginBottom: 6 }}>
           <Clock size={9} color="#1E5FA4" />
@@ -179,21 +140,18 @@ function ConcilCard({ c, onClick }: { c: ActiveConciliation; onClick: () => void
           {c.inspection_confirmed && <CheckCircle2 size={9} color="#16A34A" />}
         </div>
       )}
-
       {c.stage === 'warranted' && c.warranted_count > 0 && (
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 5, background: 'rgba(124,58,237,0.10)', marginBottom: 6 }}>
           <Shield size={9} color="#7C3AED" />
           <span style={{ fontSize: 9, fontWeight: 700, color: '#7C3AED' }}>{c.warranted_count} warranted</span>
         </div>
       )}
-
       {c.builder_directory_hit && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 5, background: 'rgba(220,38,38,0.10)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 6 }}>
           <AlertTriangle size={9} color="#DC2626" />
           <span style={{ fontSize: 9, fontWeight: 700, color: '#DC2626' }}>Directory Hit</span>
         </div>
       )}
-
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 9, color: 'var(--color-muted)' }}>{dl.label}</span>
         <span style={{ fontSize: 10, fontWeight: 800, color: dlColor, fontFamily: 'var(--font-mono)' }}>{deadlineDayLabel(dl.days, dl.date)}</span>
@@ -202,7 +160,7 @@ function ConcilCard({ c, onClick }: { c: ActiveConciliation; onClick: () => void
   );
 }
 
-// ─── Community conciliation row ───────────────────────────────
+// ─── Community row ────────────────────────────────────────────
 
 function CommunityConcilRow({ summary, isExpanded, onToggle, onCaseClick }: {
   summary: CommunityConcilSummary;
@@ -210,7 +168,7 @@ function CommunityConcilRow({ summary, isExpanded, onToggle, onCaseClick }: {
   onToggle: () => void;
   onCaseClick: (caseId: string) => void;
 }) {
-  const { community, rfc, inspection, warranted, claim, total, items } = summary;
+  const { rfc, inspection, warranted, claim, total, items } = summary;
   const hasItems = total > 0;
   const sorted = [...items].sort((a, b) => {
     const da = a.inspection_date ? new Date(a.inspection_date).getTime() : Infinity;
@@ -229,17 +187,13 @@ function CommunityConcilRow({ summary, isExpanded, onToggle, onCaseClick }: {
 
   return (
     <div style={{ borderRadius: 10, background: hasItems ? 'var(--color-panel)' : 'var(--color-mist)', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
-      <div onClick={hasItems ? onToggle : undefined}
-        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: hasItems ? 'pointer' : 'default' }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 700, color: hasItems ? 'var(--color-text)' : 'var(--color-muted)', width: 140, flexShrink: 0 }}>
-          {community.name}
-        </span>
+      <div onClick={hasItems ? onToggle : undefined} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: hasItems ? 'pointer' : 'default' }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: hasItems ? 'var(--color-text)' : 'var(--color-muted)', width: 160, flexShrink: 0 }}>{summary.name}</span>
         <div style={{ display: 'flex', gap: 6, flex: 1, flexWrap: 'wrap' }}>
           {rfc > 0        && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(217,119,6,0.10)',  color: '#D97706', border: '1px solid rgba(217,119,6,0.25)'  }}>{rfc} RFC</span>}
           {inspection > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(220,38,38,0.10)',  color: '#DC2626', border: '1px solid rgba(220,38,38,0.25)'  }}>{inspection} Inspection</span>}
           {warranted > 0  && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(124,58,237,0.10)', color: '#7C3AED', border: '1px solid rgba(124,58,237,0.25)' }}>{warranted} Warranted</span>}
-          {claim > 0      && <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(220,38,38,0.15)',  color: '#DC2626', border: '1px solid rgba(220,38,38,0.35)'  }}>⚠ {claim} Claim</span>}
+          {claim > 0      && <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(220,38,38,0.15)',  color: '#DC2626', border: '1px solid rgba(220,38,38,0.35)'  }}>{claim} Claim</span>}
           {!hasItems      && <span style={{ fontSize: 10, color: 'var(--color-muted)' }}>No active conciliations</span>}
         </div>
         {hasItems && (
@@ -249,13 +203,12 @@ function CommunityConcilRow({ summary, isExpanded, onToggle, onCaseClick }: {
           </div>
         )}
       </div>
-
       {isExpanded && hasItems && (
         <div style={{ padding: '14px 16px 16px', borderTop: '1px solid var(--color-border)' }}>
-          {renderGroup('Today',           '#DC2626',              sorted.filter(c => c.inspection_date && isToday(new Date(c.inspection_date))))}
-          {renderGroup('Tomorrow',        '#D97706',              sorted.filter(c => c.inspection_date && isTomorrow(new Date(c.inspection_date))))}
-          {renderGroup('Upcoming',        'var(--color-muted)',   sorted.filter(c => c.inspection_date && !isToday(new Date(c.inspection_date)) && !isTomorrow(new Date(c.inspection_date))))}
-          {renderGroup('Awaiting Date',   'var(--color-muted)',   sorted.filter(c => !c.inspection_date))}
+          {renderGroup('Today',        '#DC2626',            sorted.filter(c => c.inspection_date && isToday(new Date(c.inspection_date))))}
+          {renderGroup('Tomorrow',     '#D97706',            sorted.filter(c => c.inspection_date && isTomorrow(new Date(c.inspection_date))))}
+          {renderGroup('Upcoming',     'var(--color-muted)', sorted.filter(c => c.inspection_date && !isToday(new Date(c.inspection_date)) && !isTomorrow(new Date(c.inspection_date))))}
+          {renderGroup('Awaiting date','var(--color-muted)', sorted.filter(c => !c.inspection_date))}
         </div>
       )}
     </div>
@@ -266,222 +219,220 @@ function CommunityConcilRow({ summary, isExpanded, onToggle, onCaseClick }: {
 
 export default function WarrantyTodayPage() {
   const navigate = useNavigate();
-  const [caseFilter, setCaseFilter] = useState<'all' | 'critical' | 'warning' | 'good'>('all');
-  const [profile, setProfile]             = useState<UserProfile | null>(null);
-  const [allCommunities, setAllCommunities] = useState<Community[]>([]);
-  const [conciliations, setConciliations]   = useState<ActiveConciliation[]>([]);
-  const [concilLoading, setConcilLoading]   = useState(true);
-  const [expandedRows, setExpandedRows]     = useState<Set<string>>(new Set());
+  const dateStr  = new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
-  const dateStr = today.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const [stats,        setStats]        = useState<DashboardStats | null>(null);
+  const [deadlines,    setDeadlines]    = useState<UpcomingDeadline[]>([]);
+  const [pendingPOs,   setPendingPOs]   = useState<PendingPO[]>([]);
+  const [conciliations,setConciliations]= useState<ActiveConciliation[]>([]);
+  const [communities,  setCommunities]  = useState<{ id: string; name: string }[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  // ── Fetch user profile ───────────────────────────────────
-
-  const fetchProfile = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from('users')
-      .select('id, company_id, community_id, access_level, first_name, last_name')
-      .eq('id', user.id)
-      .single();
-    if (data) setProfile(data as UserProfile);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchStats(), fetchDeadlines(), fetchPendingPOs(), fetchConciliations()]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // ── Fetch communities ────────────────────────────────────
+  useEffect(() => { load(); }, [load]);
 
-  const fetchCommunities = useCallback(async () => {
-    if (!profile) return;
-    const { data } = await supabase
-      .from('warranty_communities')
-      .select('id, name, city')
-      .eq('company_id', profile.company_id)
-      .order('name', { ascending: true });
-    if (data) setAllCommunities(data as Community[]);
-  }, [profile]);
+  // ── Stats ────────────────────────────────────────────────
 
-  // ── Fetch conciliations ──────────────────────────────────
+  async function fetchStats() {
+    const { data: cases } = await supabase
+      .from('cases')
+      .select('status, has_conciliation, brp_end_date')
+      .eq('company_id', COMPANY_ID)
+      .is('deleted_at', null);
 
-  const fetchConciliations = useCallback(async () => {
-  if (!profile) return;
-  setConcilLoading(true);
-
-  // Step 1 — get subcases
-  const { data: subcases, error } = await supabase
-    .from('conciliation_subcases')
-    .select('id, case_id, stage, inspection_deadline, inspection_date, inspection_time_slot, inspection_confirmed, warranted_resolution_deadline, builder_directory_hit')
-    .not('stage', 'eq', 'cancelled')
-    .is('outcome', null)
-    .order('inspection_date', { ascending: true, nullsFirst: false });
-
-  if (error || !subcases) { console.error(error); setConcilLoading(false); return; }
-
-  // Step 2 — get case numbers and lot_ids
-  const caseIds = subcases.map(s => s.case_id);
-  const { data: cases } = await supabase
-    .from('cases')
-    .select('id, case_number, lot_id')
-    .in('id', caseIds);
-
-  // Step 3 — get lot addresses and community_ids
-  const lotIds = (cases ?? []).map(c => c.lot_id).filter(Boolean);
-  const { data: lots } = await supabase
-    .from('warranty_lots')
-    .select('id, address, homeowner_name, community_id')
-    .in('id', lotIds);
-
-  // Step 4 — get community names and cities
-  const communityIds = (lots ?? []).map(l => l.community_id).filter(Boolean);
-  const { data: communities } = await supabase
-    .from('warranty_communities')
-    .select('id, name, city')
-    .in('id', communityIds);
-
-  // Step 5 — get warranted item counts
-  const subcaseIds = subcases.map(s => s.id);
-  const { data: itemCounts } = await supabase
-    .from('conciliation_items')
-    .select('subcase_id, tarion_determination')
-    .in('subcase_id', subcaseIds);
-
-  // Build lookup maps
-  const caseMap = Object.fromEntries((cases ?? []).map(c => [c.id, c]));
-  const lotMap  = Object.fromEntries((lots ?? []).map(l => [l.id, l]));
-  const commMap = Object.fromEntries((communities ?? []).map(c => [c.id, c]));
-  const countMap: Record<string, number> = {};
-  for (const item of (itemCounts ?? []) as { subcase_id: string; tarion_determination: string }[]) {
-    if (item.tarion_determination === 'warranted') {
-      countMap[item.subcase_id] = (countMap[item.subcase_id] ?? 0) + 1;
-    }
-  }
-
-  // Assemble
-  const mapped: ActiveConciliation[] = subcases.map(s => {
-    const c    = caseMap[s.case_id] ?? {};
-    const lot  = lotMap[c.lot_id]   ?? {};
-    const comm = commMap[lot.community_id] ?? {};
-    return {
-      id:                            s.id,
-      case_id:                       s.case_id,
-      stage:                         s.stage,
-      inspection_deadline:           s.inspection_deadline,
-      inspection_date:               s.inspection_date,
-      inspection_time_slot:          s.inspection_time_slot,
-      inspection_confirmed:          s.inspection_confirmed,
-      warranted_resolution_deadline: s.warranted_resolution_deadline,
-      builder_directory_hit:         s.builder_directory_hit,
-      case_number:                   c.case_number ?? '—',
-      lot_address:                   lot.address   ?? '—',
-      homeowner_name:                lot.homeowner_name ?? null,
-      community_id:                  comm.id       ?? '',
-      community_name:                comm.name     ?? '—',
-      community_city:                comm.city     ?? '—',
-      warranted_count:               countMap[s.id] ?? 0,
-    };
-  });
-
-  setConciliations(mapped);
-  setConcilLoading(false);
-}, [profile]);
-
-  useEffect(() => { fetchProfile(); }, [fetchProfile]);
-  useEffect(() => { if (profile) { fetchCommunities(); fetchConciliations(); } }, [profile, fetchCommunities, fetchConciliations]);
-
-  // ── Access level scoping ─────────────────────────────────
-
-  const userCommunity = allCommunities.find(c => c.id === profile?.community_id);
-  const userCity      = userCommunity?.city ?? null;
-
-  // Which communities show up in the conciliation section:
-  // community & city users → all communities in their city
-  // company users → all communities
-  const visibleCommunities = allCommunities.filter(c => {
-    if (profile?.access_level === 'company') return true;
-    return c.city === userCity;
-  });
-
-  // Community conciliation summary rows
-  const communitySummaries: CommunityConcilSummary[] = visibleCommunities.map(community => {
-    const items = conciliations.filter(c => c.community_id === community.id);
-    return {
-      community,
-      rfc:        items.filter(c => c.stage === 'rfc').length,
-      inspection: items.filter(c => c.stage === 'inspection').length,
-      warranted:  items.filter(c => c.stage === 'warranted').length,
-      claim:      items.filter(c => c.stage === 'claim').length,
-      total:      items.length,
-      items,
-    };
-  }).sort((a, b) => b.total - a.total);
-
-  const totalConcil = communitySummaries.reduce((sum, s) => sum + s.total, 0);
-
-  function toggleRow(communityId: string) {
-    setExpandedRows(prev => {
-      const next = new Set(prev);
-      if (next.has(communityId)) next.delete(communityId); else next.add(communityId);
-      return next;
+    if (!cases) return;
+    const now = new Date();
+    setStats({
+      total_cases:   cases.length,
+      open_cases:    cases.filter(c => c.status === 'open').length,
+      in_progress:   cases.filter(c => c.status === 'in_progress').length,
+      brp_expiring:  cases.filter(c => {
+        if (!c.brp_end_date) return false;
+        const d = differenceInDays(new Date(c.brp_end_date), now);
+        return d >= 0 && d <= 14;
+      }).length,
+      conciliations: cases.filter(c => c.has_conciliation).length,
     });
   }
 
-  // ── Scoped mock data ─────────────────────────────────────
+  // ── Deadlines ────────────────────────────────────────────
 
-  const scopedCases = MOCK_CASES.filter(c => {
-    if (!profile || profile.access_level === 'company') return true;
-    if (profile.access_level === 'city') return true; // in real data: filter by city
-    return c.community_id_mock === profile.community_id;
-  });
+  async function fetchDeadlines() {
+    const { data: cases } = await supabase
+      .from('cases')
+      .select('id, case_number, brp_end_date, status, display_name, lot_id')
+      .eq('company_id', COMPANY_ID)
+      .is('deleted_at', null)
+      .not('brp_end_date', 'is', null)
+      .not('status', 'in', '("closed","voided","resolved")')
+      .order('brp_end_date', { ascending: true })
+      .limit(10);
 
-  const scopedPOs = MOCK_PO_APPROVALS.filter(p => {
-    if (!profile || profile.access_level !== 'community') return true;
-    return p.community_id_mock === profile.community_id;
-  });
+    if (!cases || cases.length === 0) return;
 
-  const scopedDeadlines = MOCK_DEADLINES.filter(d => {
-    if (!profile || profile.access_level !== 'community') return true;
-    return d.community_id_mock === profile.community_id;
-  });
+    const lotIds = cases.map(c => c.lot_id).filter(Boolean);
+    const { data: lots } = lotIds.length ? await supabase
+      .from('warranty_lots')
+      .select('id, address, community_id, warranty_communities(name)')
+      .in('id', lotIds) : { data: [] };
 
-  const critical    = scopedCases.filter(c => c.risk === 'critical').length;
-  const warning     = scopedCases.filter(c => c.risk === 'warning').length;
-  const rfcCount    = scopedCases.filter(c => c.status === 'rfc_eligible').length;
-  const lowEvidence = scopedCases.filter(c => c.evidence_score < 60).length;
-  const filtered    = scopedCases.filter(c => caseFilter === 'all' || c.risk === caseFilter);
+    const lotMap: Record<string, { address: string | null; community: string }> = {};
+    for (const l of (lots ?? []) as any[]) {
+      lotMap[l.id] = { address: l.address, community: l.warranty_communities?.name ?? '—' };
+    }
+
+    const now = new Date();
+    setDeadlines(cases.map(c => ({
+      id:          c.id,
+      case_number: c.case_number,
+      address:     c.lot_id ? (lotMap[c.lot_id]?.address ?? c.display_name ?? '—') : (c.display_name ?? '—'),
+      brp_end:     c.brp_end_date,
+      days_left:   c.brp_end_date ? differenceInDays(new Date(c.brp_end_date), now) : 999,
+      status:      c.status,
+      community:   c.lot_id ? (lotMap[c.lot_id]?.community ?? '—') : '—',
+    })));
+  }
+
+  // ── Pending POs ──────────────────────────────────────────
+
+  async function fetchPendingPOs() {
+    const { data } = await supabase
+      .from('purchase_orders')
+      .select('id, po_number, amount, description, requested_by, lot_id, created_at')
+      .eq('company_id', COMPANY_ID)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(6);
+
+    if (!data || data.length === 0) return;
+
+    const lotIds = data.map((p: any) => p.lot_id).filter(Boolean);
+    const { data: lots } = lotIds.length ? await supabase
+      .from('warranty_lots')
+      .select('id, address')
+      .in('id', lotIds) : { data: [] };
+
+    const lotMap: Record<string, string> = {};
+    for (const l of (lots ?? []) as any[]) lotMap[l.id] = l.address;
+
+    setPendingPOs(data.map((p: any) => ({
+      id:           p.id,
+      po_number:    p.po_number,
+      amount:       p.amount,
+      description:  p.description,
+      requested_by: p.requested_by,
+      lot_address:  p.lot_id ? (lotMap[p.lot_id] ?? null) : null,
+      created_at:   p.created_at,
+    })));
+  }
+
+  // ── Conciliations ─────────────────────────────────────────
+
+  async function fetchConciliations() {
+    const { data: comms } = await supabase
+      .from('warranty_communities')
+      .select('id, name')
+      .eq('company_id', COMPANY_ID)
+      .order('name');
+    if (comms) setCommunities(comms);
+
+    const { data: subcases } = await supabase
+      .from('conciliation_subcases')
+      .select('id, case_id, stage, inspection_deadline, inspection_date, inspection_time_slot, inspection_confirmed, warranted_resolution_deadline, builder_directory_hit')
+      .not('stage', 'eq', 'cancelled')
+      .is('outcome', null)
+      .order('inspection_date', { ascending: true, nullsFirst: false });
+
+    if (!subcases || subcases.length === 0) return;
+
+    const caseIds = subcases.map(s => s.case_id);
+    const { data: cases } = await supabase.from('cases').select('id, case_number, lot_id').in('id', caseIds);
+    const lotIds = (cases ?? []).map((c: any) => c.lot_id).filter(Boolean);
+    const { data: lots } = await supabase.from('warranty_lots').select('id, address, homeowner_name, community_id').in('id', lotIds);
+    const communityIds = (lots ?? []).map((l: any) => l.community_id).filter(Boolean);
+    const { data: communities_data } = await supabase.from('warranty_communities').select('id, name').in('id', communityIds);
+    const subcaseIds = subcases.map(s => s.id);
+    const { data: itemCounts } = await supabase.from('conciliation_items').select('subcase_id, tarion_determination').in('subcase_id', subcaseIds);
+
+    const caseMap  = Object.fromEntries((cases ?? []).map((c: any) => [c.id, c]));
+    const lotMap   = Object.fromEntries((lots ?? []).map((l: any) => [l.id, l]));
+    const commMap  = Object.fromEntries((communities_data ?? []).map((c: any) => [c.id, c]));
+    const countMap: Record<string, number> = {};
+    for (const item of (itemCounts ?? []) as any[]) {
+      if (item.tarion_determination === 'warranted') countMap[item.subcase_id] = (countMap[item.subcase_id] ?? 0) + 1;
+    }
+
+    setConciliations(subcases.map(s => {
+      const c    = caseMap[s.case_id] ?? {};
+      const lot  = lotMap[c.lot_id]   ?? {};
+      const comm = commMap[lot.community_id] ?? {};
+      return {
+        id: s.id, case_id: s.case_id, stage: s.stage,
+        inspection_deadline: s.inspection_deadline, inspection_date: s.inspection_date,
+        inspection_time_slot: s.inspection_time_slot, inspection_confirmed: s.inspection_confirmed,
+        warranted_resolution_deadline: s.warranted_resolution_deadline,
+        builder_directory_hit: s.builder_directory_hit,
+        case_number: c.case_number ?? '—',
+        lot_address: lot.address   ?? '—',
+        homeowner_name: lot.homeowner_name ?? null,
+        community_id: comm.id   ?? '',
+        community_name: comm.name ?? '—',
+        warranted_count: countMap[s.id] ?? 0,
+      };
+    }));
+  }
+
+  // ── Community summaries ───────────────────────────────────
+
+  const communitySummaries: CommunityConcilSummary[] = communities.map(c => {
+    const items = conciliations.filter(x => x.community_id === c.id);
+    return {
+      id: c.id, name: c.name,
+      rfc:        items.filter(x => x.stage === 'rfc').length,
+      inspection: items.filter(x => x.stage === 'inspection').length,
+      warranted:  items.filter(x => x.stage === 'warranted').length,
+      claim:      items.filter(x => x.stage === 'claim').length,
+      total: items.length, items,
+    };
+  }).sort((a, b) => b.total - a.total);
+
+  const totalConcil = communitySummaries.reduce((s, c) => s + c.total, 0);
+
+  function toggleRow(id: string) {
+    setExpandedRows(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  }
 
   return (
     <div style={{ padding: '20px 28px', maxWidth: 1440, margin: '0 auto', color: 'var(--color-text)', fontFamily: 'var(--font-body)' }}>
 
-      {/* ── HEADER ── */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-text)', marginBottom: 2 }}>Command Centre</h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>{dateStr}</p>
-            {userCommunity && (
-              <>
-                <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>·</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text)' }}>{userCommunity.name}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 7px', borderRadius: 100, background: 'var(--color-mist)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                  {profile?.access_level}
-                </span>
-              </>
-            )}
-          </div>
+          <h1 style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', marginBottom: 2 }}>Command Centre</h1>
+          <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>{dateStr}</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 7, background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.18)' }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#16A34A', boxShadow: '0 0 6px rgba(22,163,74,0.8)' }} />
-          <span style={{ fontSize: 11, color: '#16A34A', fontWeight: 600 }}>Synced today 6:00 AM</span>
-        </div>
+        <button onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 600, background: 'var(--color-panel)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          <RefreshCw size={12} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} /> Refresh
+        </button>
       </div>
 
-      {/* ── STAT ROW ── */}
+      {/* Stats row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Active Cases',  value: scopedCases.length, color: 'var(--color-text)', sub: profile?.access_level === 'community' ? (userCommunity?.name ?? 'your community') : 'across communities', click: () => navigate('/warranty/communities') },
-          { label: 'Critical Risk', value: critical,           color: '#FF3B3B',           sub: 'action required today', click: () => setCaseFilter('critical') },
-          { label: 'Warning',       value: warning,            color: '#FF8C00',           sub: 'due within 14 days',    click: () => setCaseFilter('warning')  },
-          { label: 'RFC Eligible',  value: rfcCount,           color: '#D97706',           sub: 'conciliation risk',     click: () => setCaseFilter('all')      },
-          { label: 'Low Evidence',  value: lowEvidence,        color: '#7C3AED',           sub: 'chargeability risk',    click: () => setCaseFilter('all')      },
+          { label: 'Total Cases',    value: stats?.total_cases   ?? '—', color: 'var(--color-text)', click: () => navigate('/warranty/cases') },
+          { label: 'Open',           value: stats?.open_cases    ?? '—', color: '#1E5FA4',            click: () => navigate('/warranty/cases') },
+          { label: 'In Progress',    value: stats?.in_progress   ?? '—', color: '#D97706',            click: () => navigate('/warranty/cases') },
+          { label: 'BRP ≤ 14 Days',  value: stats?.brp_expiring  ?? '—', color: '#DC2626',            click: () => navigate('/warranty/cases') },
+          { label: 'Conciliations',  value: stats?.conciliations ?? '—', color: '#7C3AED',            click: () => navigate('/warranty/cases') },
         ].map(s => (
           <div key={s.label} onClick={s.click}
             style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)', cursor: 'pointer', transition: 'all 0.12s' }}
@@ -489,242 +440,141 @@ export default function WarrantyTodayPage() {
             onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
           >
             <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: 'var(--color-muted)', marginBottom: 6 }}>{s.label}</p>
-            <p style={{ fontSize: 28, fontWeight: 900, color: s.color, fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em', lineHeight: 1 }}>{s.value}</p>
-            <p style={{ fontSize: 10, color: 'var(--color-muted)', marginTop: 4 }}>{s.sub}</p>
+            <p style={{ fontSize: 28, fontWeight: 900, color: s.color, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{s.value}</p>
           </div>
         ))}
       </div>
 
-      {/* ══════════════════════════════════════════
-          CONCILIATION — CITY-WIDE, COMMUNITY ROWS
-      ══════════════════════════════════════════ */}
-      <div style={{ marginBottom: 24, padding: '18px 20px', borderRadius: 12, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Shield size={14} color="#DC2626" strokeWidth={2} />
-            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-text)' }}>
-              {userCity ? `${userCity} Conciliations` : 'Conciliations'}
-            </span>
-            {totalConcil > 0 && (
-              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(220,38,38,0.10)', color: '#DC2626', border: '1px solid rgba(220,38,38,0.2)' }}>
-                {totalConcil} active
-              </span>
+      {/* Two-column layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16 }}>
+
+        {/* LEFT */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Conciliations */}
+          <div style={{ padding: '18px 20px', borderRadius: 12, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <Shield size={14} color="#DC2626" strokeWidth={2} />
+              <span style={{ fontSize: 13, fontWeight: 800 }}>Conciliations</span>
+              {totalConcil > 0 && (
+                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(220,38,38,0.10)', color: '#DC2626', border: '1px solid rgba(220,38,38,0.2)' }}>
+                  {totalConcil} active
+                </span>
+              )}
+            </div>
+            {communities.length === 0 ? (
+              <p style={{ fontSize: 12, color: 'var(--color-muted)', textAlign: 'center', padding: '20px 0' }}>No communities loaded yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {communitySummaries.map(s => (
+                  <CommunityConcilRow key={s.id} summary={s} isExpanded={expandedRows.has(s.id)} onToggle={() => toggleRow(s.id)} onCaseClick={id => navigate(`/warranty/cases/${id}`)} />
+                ))}
+              </div>
             )}
           </div>
-          <button onClick={fetchConciliations}
-            style={{ padding: '4px 8px', borderRadius: 6, background: 'none', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-muted)', fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 10 }}>
-            <RefreshCw size={9} />
-          </button>
-        </div>
 
-        {concilLoading ? (
-          <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '16px 0', textAlign: 'center' }}>Loading conciliations…</p>
-        ) : visibleCommunities.length === 0 ? (
-          <p style={{ fontSize: 12, color: 'var(--color-muted)', padding: '16px 0', textAlign: 'center' }}>No communities set up yet.</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {communitySummaries.map(summary => (
-              <CommunityConcilRow
-                key={summary.community.id}
-                summary={summary}
-                isExpanded={expandedRows.has(summary.community.id)}
-                onToggle={() => toggleRow(summary.community.id)}
-                onCaseClick={caseId => navigate(`/warranty/cases/${caseId}`)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── PO APPROVALS ── */}
-      {scopedPOs.length > 0 && (
-        <div style={{ marginBottom: 20, padding: '14px 18px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#FF3B3B', boxShadow: '0 0 8px rgba(255,59,59,0.7)' }} />
-              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>PO Approvals Pending</p>
-              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(255,59,59,0.10)', color: '#FF3B3B', border: '1px solid rgba(255,59,59,0.2)' }}>{scopedPOs.length} waiting</span>
-            </div>
-            <button onClick={() => navigate('/warranty/po-requests')}
-              style={{ padding: '6px 14px', borderRadius: 7, fontSize: 11, fontWeight: 700, background: 'rgba(252,226,5,0.10)', border: '1px solid rgba(252,226,5,0.25)', color: '#8A7600', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-              Review All →
-            </button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-            {scopedPOs.map(po => (
-              <div key={po.id}
-                style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--color-mist)', border: `1px solid ${po.urgent ? 'rgba(255,59,59,0.2)' : 'var(--color-border)'}`, cursor: 'pointer' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(252,226,5,0.3)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = po.urgent ? 'rgba(255,59,59,0.2)' : 'var(--color-border)'}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>{po.lot}</span>
-                  <span style={{ fontSize: 11, fontWeight: 800, color: '#16A34A', fontFamily: 'var(--font-mono)' }}>${po.amount.toLocaleString()}</span>
+          {/* Pending POs */}
+          {pendingPOs.length > 0 && (
+            <div style={{ padding: '16px 18px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <DollarSign size={13} color="#D97706" />
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>PO Approvals Pending</span>
+                  <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 100, background: 'rgba(217,119,6,0.10)', color: '#D97706', border: '1px solid rgba(217,119,6,0.25)' }}>{pendingPOs.length}</span>
                 </div>
-                <p style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>{po.trade}</p>
-                <p style={{ fontSize: 10, color: 'var(--color-muted)', marginBottom: 8 }}>{po.scope}</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 9, color: 'var(--color-muted)' }}>By {po.tech} · {po.submitted}</span>
-                  <div style={{ display: 'flex', gap: 5 }}>
-                    <button style={{ padding: '3px 10px', borderRadius: 5, fontSize: 10, fontWeight: 700, background: 'rgba(22,163,74,0.12)', border: '1px solid rgba(22,163,74,0.25)', color: '#16A34A', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>✓ Approve</button>
-                    <button style={{ padding: '3px 10px', borderRadius: 5, fontSize: 10, fontWeight: 600, background: 'var(--color-mist)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>✕</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── MAIN TWO COLUMNS ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16 }}>
-
-        {/* LEFT — CASES */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {([
-                { id: 'all',      label: 'All Cases',  count: scopedCases.length },
-                { id: 'critical', label: '🔴 Critical', count: critical },
-                { id: 'warning',  label: '🟡 Warning',  count: warning  },
-                { id: 'good',     label: '🟢 On Track', count: scopedCases.filter(c => c.risk === 'good').length },
-              ] as const).map(f => (
-                <button key={f.id} onClick={() => setCaseFilter(f.id)}
-                  style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: caseFilter === f.id ? 700 : 400, background: caseFilter === f.id ? 'rgba(252,226,5,0.10)' : 'transparent', border: caseFilter === f.id ? '1px solid rgba(252,226,5,0.25)' : '1px solid var(--color-border)', color: caseFilter === f.id ? '#8A7600' : 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                  {f.label} <span style={{ opacity: 0.6, marginLeft: 4 }}>{f.count}</span>
+                <button onClick={() => navigate('/warranty/po-requests')} style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(252,226,5,0.10)', border: '1px solid rgba(252,226,5,0.25)', color: '#8A7600', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  Review all
                 </button>
-              ))}
-            </div>
-            <button onClick={() => navigate('/warranty/communities')}
-              style={{ padding: '5px 12px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: 'var(--color-mist)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-              View Portfolio →
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {filtered.map(c => {
-              const brp         = brpBar(c.brp_start, c.brp_end);
-              const risk        = riskColor(brp.days);
-              const periodLabel = PERIOD_LABELS[c.period_type] ?? c.period_type;
-              const statusLabel = STATUS_LABELS[c.status]      ?? c.status;
-              const evScore     = c.evidence_score;
-              const evColor     = evScore >= 80 ? '#16A34A' : evScore >= 60 ? '#D97706' : '#FF3B3B';
-
-              return (
-                <div key={c.id} onClick={() => navigate(`/warranty/cases/${c.id}`)}
-                  style={{ padding: '16px 18px', borderRadius: 12, background: 'var(--color-panel)', border: `1px solid ${c.risk === 'critical' ? 'rgba(255,59,59,0.18)' : c.risk === 'warning' ? 'rgba(255,140,0,0.12)' : 'var(--color-border)'}`, cursor: 'pointer', transition: 'all 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--color-panel-raised)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--color-panel)'}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-text)' }}>{c.lot}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: 'var(--color-mist)', color: 'var(--color-muted)', border: '1px solid var(--color-border)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{periodLabel}</span>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: risk.bg, color: risk.text, border: `1px solid ${risk.border}`, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{statusLabel}</span>
-                      </div>
-                      <p style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 1 }}>{c.address} · {c.community}</p>
-                      <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>{c.homeowner} · <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>{c.enrollment}</span></p>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 16 }}>
-                      <p style={{ fontSize: 24, fontWeight: 900, color: risk.text, fontFamily: 'var(--font-mono)', lineHeight: 1, letterSpacing: '-0.03em' }}>{brp.days > 0 ? brp.days : 0}</p>
-                      <p style={{ fontSize: 9, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{brp.days > 0 ? 'days left' : 'EXPIRED'}</p>
-                      <p style={{ fontSize: 9, color: 'var(--color-muted)', marginTop: 1 }}>BRP</p>
-                    </div>
-                  </div>
-
-                  <div style={{ marginBottom: 10 }}>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 10 }}>
+                {pendingPOs.map(po => (
+                  <div key={po.id} onClick={() => navigate('/warranty/po-requests')}
+                    style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--color-mist)', border: '1px solid var(--color-border)', cursor: 'pointer' }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(252,226,5,0.3)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 9, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Builder Repair Period</span>
-                      <span style={{ fontSize: 9, color: 'var(--color-muted)', fontFamily: 'var(--font-mono)' }}>
-                        {new Date(c.brp_start).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })} → {new Date(c.brp_end).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-muted)' }}>{po.po_number}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#16A34A' }}>${po.amount?.toLocaleString() ?? '—'}</span>
                     </div>
-                    <div style={{ height: 4, borderRadius: 100, background: 'var(--color-mist)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${brp.pct}%`, borderRadius: 100, background: brp.color, boxShadow: `0 0 6px ${brp.color}50` }} />
-                    </div>
+                    {po.lot_address && <p style={{ fontSize: 11, color: 'var(--color-text)', marginBottom: 2 }}>{po.lot_address}</p>}
+                    {po.description && <p style={{ fontSize: 10, color: 'var(--color-muted)', marginBottom: 6 }}>{po.description}</p>}
+                    <p style={{ fontSize: 9, color: 'var(--color-muted)' }}>
+                      {po.requested_by && `By ${po.requested_by} · `}
+                      {new Date(po.created_at).toLocaleDateString()}
+                    </p>
                   </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <div style={{ display: 'flex', gap: 2 }}>
-                        {Array.from({ length: c.items_total }).map((_, i) => (
-                          <div key={i} style={{ width: 6, height: 6, borderRadius: 1, background: i < c.items_done ? '#16A34A' : 'var(--color-mist)', border: '1px solid var(--color-border)' }} />
-                        ))}
-                      </div>
-                      <span style={{ fontSize: 10, color: 'var(--color-muted)', fontFamily: 'var(--font-mono)' }}>{c.items_done}/{c.items_total}</span>
-                      {c.items_outstanding > 0 && <span style={{ fontSize: 10, color: risk.text, fontWeight: 700 }}>{c.items_outstanding} outstanding</span>}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <div style={{ width: 36, height: 4, borderRadius: 100, background: 'var(--color-mist)', overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${evScore}%`, background: evColor, borderRadius: 100 }} />
-                      </div>
-                      <span style={{ fontSize: 9, color: evColor, fontWeight: 700 }}>{evScore}% evidence</span>
-                    </div>
-                    {c.tech && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <div style={{ width: 16, height: 16, borderRadius: '50%', background: 'rgba(252,226,5,0.12)', border: '1px solid rgba(252,226,5,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 800, color: '#8A7600' }}>
-                          {c.tech.charAt(0)}
-                        </div>
-                        <span style={{ fontSize: 10, color: 'var(--color-muted)' }}>{c.tech}</span>
-                      </div>
-                    )}
-                    <div style={{ flex: 1 }} />
-                    <div style={{ padding: '3px 10px', borderRadius: 5, background: risk.bg, border: `1px solid ${risk.border}`, fontSize: 10, color: risk.text, fontWeight: 600 }}>{c.next_action}</div>
-                    <div style={{ padding: '4px 10px', borderRadius: 5, background: 'rgba(252,226,5,0.08)', border: '1px solid rgba(252,226,5,0.2)', fontSize: 10, color: '#8A7600', fontWeight: 700 }}>Open Case →</div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* RIGHT — DEADLINES + EVIDENCE */}
+        {/* RIGHT — Deadlines */}
         <div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Tarion Deadlines</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
-            {scopedDeadlines.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(d => {
-              const days = daysUntil(d.date);
-              const r    = riskColor(days);
-              return (
-                <div key={d.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--color-panel)', border: `1px solid ${days <= 7 ? r.border : 'var(--color-border)'}` }}>
-                  <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: `${TYPE_COLORS[d.type]}12`, color: TYPE_COLORS[d.type], border: `1px solid ${TYPE_COLORS[d.type]}25`, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0 }}>{d.type.toUpperCase()}</span>
-                  <span style={{ fontSize: 11, color: 'var(--color-muted)', flex: 1 }}>{d.label}</span>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <p style={{ fontSize: 14, fontWeight: 900, color: r.text, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>{days}d</p>
-                    <p style={{ fontSize: 9, color: 'var(--color-muted)' }}>{new Date(d.date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}</p>
-                  </div>
-                </div>
-              );
-            })}
+          <div style={{ padding: '16px 18px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)', marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <Calendar size={13} color="#1E5FA4" />
+              <span style={{ fontSize: 13, fontWeight: 700 }}>BRP Deadlines</span>
+            </div>
+            {deadlines.length === 0 ? (
+              <p style={{ fontSize: 12, color: 'var(--color-muted)', textAlign: 'center', padding: '16px 0' }}>No upcoming BRP deadlines.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {deadlines.map(d => {
+                  const r = riskColor(d.days_left);
+                  return (
+                    <div key={d.id} onClick={() => navigate(`/warranty/cases/${d.id}`)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--color-mist)', border: `1px solid ${d.days_left <= 14 ? r.border : 'var(--color-border)'}`, cursor: 'pointer' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--color-panel)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'var(--color-mist)'}
+                    >
+                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.address}</p>
+                        <p style={{ fontSize: 9, color: 'var(--color-muted)' }}>{d.community} · #{d.case_number}</p>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <p style={{ fontSize: 16, fontWeight: 900, color: r.text, fontFamily: 'var(--font-mono)', lineHeight: 1 }}>
+                          {d.days_left < 0 ? 'EXP' : `${d.days_left}d`}
+                        </p>
+                        <p style={{ fontSize: 9, color: 'var(--color-muted)' }}>
+                          {d.brp_end ? new Date(d.brp_end).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' }) : '—'}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 12 }}>Evidence Health</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {scopedCases.filter(c => c.evidence_score < 80).sort((a, b) => a.evidence_score - b.evidence_score).map(c => {
-              const evColor = c.evidence_score >= 60 ? '#D97706' : '#FF3B3B';
-              return (
-                <div key={c.id} onClick={() => navigate(`/warranty/cases/${c.id}`)}
-                  style={{ padding: '10px 12px', borderRadius: 8, background: 'var(--color-panel)', border: '1px solid var(--color-border)', cursor: 'pointer' }}
+          {/* Quick links */}
+          <div style={{ padding: '14px 16px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 10 }}>Quick actions</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {[
+                { label: 'View all cases',      icon: Shield,    path: '/warranty/cases'       },
+                { label: 'Work orders',         icon: Wrench,    path: '/warranty/work-orders'  },
+                { label: 'Communities',         icon: Home,      path: '/warranty/communities'  },
+                { label: 'PO approvals',        icon: DollarSign,path: '/warranty/po-requests'  },
+                { label: 'Reports',             icon: Calendar,  path: '/warranty/reports'      },
+              ].map(({ label, icon: Icon, path }) => (
+                <button key={path} onClick={() => navigate(path)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 7, background: 'var(--color-mist)', border: '1px solid var(--color-border)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'var(--color-text)', textAlign: 'left' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(252,226,5,0.3)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--color-border)'}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>{c.lot}</span>
-                    <span style={{ fontSize: 12, fontWeight: 900, color: evColor, fontFamily: 'var(--font-mono)' }}>{c.evidence_score}%</span>
-                  </div>
-                  <div style={{ height: 3, borderRadius: 100, background: 'var(--color-mist)', overflow: 'hidden', marginBottom: 5 }}>
-                    <div style={{ height: '100%', width: `${c.evidence_score}%`, background: evColor, borderRadius: 100 }} />
-                  </div>
-                  <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>
-                    {c.evidence_score < 60 ? '⚠️ High chargeability risk — add evidence before conciliation' : 'Add access logs and photos'}
-                  </p>
-                </div>
-              );
-            })}
+                  <Icon size={13} color="var(--color-muted)" />
+                  {label}
+                  <ChevronRight size={11} color="var(--color-muted)" style={{ marginLeft: 'auto' }} />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
