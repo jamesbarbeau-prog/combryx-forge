@@ -5,7 +5,7 @@ import { useFeatureStore } from '@/store/featurestore';
 import {
   LayoutDashboard, Users, Briefcase, FileText, FolderOpen,
   Hammer, ShoppingCart, Receipt, BarChart2, Settings,
-  ChevronRight, Zap, Radio, Bell, LogOut, Shield,
+  ChevronRight, Zap, Radio, Bell, LogOut, Shield, Mail, Sparkles, Wallet, Building2, Home, Wrench, MapPin, Banknote,
 } from 'lucide-react';
 
 function UserMenu({ user, signOut }: { user: any; signOut: () => void }) {
@@ -133,43 +133,42 @@ export default function Sidebar() {
 
   const NAV = [
     {
-      section: 'Command',
+      section: 'Overview',
       items: [
-        { label: 'Dashboard', path: '/forge/dashboard', icon: LayoutDashboard },
-        ...(features.dispatch ? [{ label: 'Dispatch', path: '/forge/dispatch', icon: Radio }] : []),
+        { label: 'Today',        path: '/warranty/today',       icon: LayoutDashboard },
       ],
     },
     {
-      section: 'CRM',
+      section: 'Portfolio',
       items: [
-        { label: 'Clients', path: '/forge/clients', icon: Users },
-        ...(features.opportunities ? [{ label: 'Opportunities', path: '/forge/opportunities', icon: Briefcase }] : []),
-        ...(features.quotes        ? [{ label: 'Quotes',        path: '/forge/quotes',        icon: FileText  }] : []),
+        { label: 'Communities',  path: '/warranty/communities',  icon: Building2      },
+        { label: 'Lots',         path: '/warranty/lots',         icon: Home           },
+        { label: 'Cases',        path: '/warranty/cases',        icon: FileText       },
       ],
     },
     {
-      section: 'Projects',
+      section: 'Operations',
       items: [
-        { label: 'All Projects', path: '/forge/projects', icon: FolderOpen },
-        ...(features.dispatch ? [{ label: 'Work Orders', path: '/forge/workorders', icon: Hammer }] : []),
+        { label: 'Work Orders',  path: '/warranty/work-orders',  icon: Wrench         },
+        { label: 'PO Requests',  path: '/warranty/po-requests',  icon: ShoppingCart   },
+        { label: 'Settlements',  path: '/warranty/settlements',  icon: Banknote     },
+        { label: 'Dispatch',     path: '/warranty/dispatch',     icon: MapPin         },
       ],
     },
     {
-      section: 'Financial',
+      section: 'Documents',
       items: [
-        ...(features.procurement ? [{ label: 'Procurement', path: '/forge/procurement', icon: ShoppingCart }] : []),
-        { label: 'Invoices', path: '/forge/invoices', icon: Receipt },
-        ...(features.reports ? [{ label: 'Reports', path: '/forge/reports', icon: BarChart2 }] : []),
+        { label: 'Mail',         path: '/warranty/mail',         icon: Mail           },
+        { label: 'Reports',      path: '/warranty/reports',      icon: BarChart2      },
       ],
     },
     {
       section: 'System',
       items: [
-        ...(features.automations ? [{ label: 'Automations', path: '/forge/automations', icon: Zap }] : []),
-        { label: 'Settings', path: '/forge/settings', icon: Settings },
+        { label: 'Settings',     path: '/warranty/settings',     icon: Settings       },
       ],
     },
-  ].filter(group => group.items.length > 0);
+  ];
 
   return (
     <aside style={{
@@ -202,10 +201,27 @@ export default function Sidebar() {
             Combryx
           </p>
           <p style={{ fontSize: 9, fontWeight: 700, color: '#FCE205', letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2 }}>
-            Forge
+            Warranty
           </p>
         </div>
-      </div>
+        </div>
+
+{/* Forge Assistant button */}
+<button
+  onClick={() => {}}
+  style={{
+    margin: '8px 10px 0',
+    padding: '8px 12px', borderRadius: 8,
+    background: 'rgba(30,95,164,0.15)',
+    border: '1px solid rgba(30,95,164,0.3)',
+    display: 'flex', alignItems: 'center', gap: 8,
+    cursor: 'pointer', width: 'calc(100% - 20px)',
+    fontFamily: 'var(--font-body)', transition: 'all 0.12s',
+  }}
+>
+  <Sparkles size={13} color="#6BA3D6" strokeWidth={1.5} />
+  <span style={{ fontSize: 12, fontWeight: 600, color: '#6BA3D6' }}>Forge Assistant</span>
+</button>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>

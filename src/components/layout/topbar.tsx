@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { Bell, Plus, Search, ChevronRight, HardHat } from 'lucide-react';
+import { Bell, Plus, Search, ChevronRight, HardHat, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import AskTheCodeSidebar from '@/components/askthecodesidebar';
+import ForgeAssistant from '@/components/forgeassistant';
+import QuickCreate from '@/components/quickcreate';
 
 const BREADCRUMBS: Record<string, string[]> = {
   '/forge/dashboard':     ['Command Center', 'Dashboard'],
@@ -16,6 +18,7 @@ const BREADCRUMBS: Record<string, string[]> = {
   '/forge/reports':       ['System', 'Reports'],
   '/forge/automations':   ['System', 'Automations'],
   '/forge/settings':      ['System', 'Settings'],
+  '/forge/mail':          ['Communications', 'Forge Mail'],
 };
 
 interface TopBarProps {
@@ -25,11 +28,15 @@ interface TopBarProps {
 export function TopBar({ title }: TopBarProps) {
   const location  = useLocation();
   const crumbs    = BREADCRUMBS[location.pathname] ?? ['Forge', title];
-  const [askOpen, setAskOpen] = useState(false);
+  const [askOpen, setAskOpen]                   = useState(false);
+  const [assistantOpen, setAssistantOpen]       = useState(false);
+  const [quickCreateOpen, setQuickCreateOpen]   = useState(false);
 
   return (
     <>
       <AskTheCodeSidebar open={askOpen} onClose={() => setAskOpen(false)} />
+      <ForgeAssistant open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+      <QuickCreate open={quickCreateOpen} onClose={() => setQuickCreateOpen(false)} />
 
       <header style={{
         height: 56, background: '#FFFFFF',
@@ -72,6 +79,25 @@ export function TopBar({ title }: TopBarProps) {
           />
         </div>
 
+        {/* Forge Assistant button */}
+        <button
+          onClick={() => setAssistantOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 12px', borderRadius: 8,
+            background: 'rgba(30,95,164,0.08)',
+            border: '1px solid rgba(30,95,164,0.2)',
+            color: '#1E5FA4', fontSize: 12, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'var(--font-body)',
+            transition: 'all 0.12s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(30,95,164,0.14)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(30,95,164,0.08)'; }}
+        >
+          <Sparkles size={13} strokeWidth={1.5} />
+          Forge AI
+        </button>
+
         {/* Ask The Code button */}
         <button
           onClick={() => setAskOpen(true)}
@@ -108,7 +134,11 @@ export function TopBar({ title }: TopBarProps) {
         </div>
 
         {/* Quick Create */}
-        <button className="forge-button forge-button--primary" style={{ gap: 6 }}>
+        <button
+          className="forge-button forge-button--primary"
+          style={{ gap: 6 }}
+          onClick={() => setQuickCreateOpen(true)}
+        >
           <Plus size={13} strokeWidth={2.5} /> Quick Create
         </button>
       </header>

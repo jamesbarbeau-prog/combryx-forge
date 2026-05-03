@@ -1,56 +1,84 @@
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/layouts/applayout';
+import WarrantyLayout from '@/layouts/warrantylayout';
 import ProtectedRoute from '@/components/auth/protectedroute';
-import LoginPage from '@/pages/loginpage';
-import DashboardPage from '@/pages/dashboardpage';
-import ClientsPage from '@/pages/clientspage';
-import ClientDetailPage from '@/pages/clientdetailpage';
-import OpportunitiesPage from '@/pages/opportunitiespage';
-import ProjectsPage from '@/pages/projectspage';
-import ProjectDetailPage from '@/pages/projectdetailpage';
-import DispatchPage from '@/pages/dispatchpage';
-import MFASetupPage from '@/pages/mfasetuppage';
-import InvoicesPage from '@/pages/invoicespage';
-import SettingsPage from '@/pages/settingspage';
+import LoginPage           from '@/pages/loginpage';
+import MFASetupPage        from '@/pages/mfasetuppage';
+import SettingsPage        from '@/pages/settingspage';
+import MailPage            from '@/pages/mailpage';
+import WarrantyTodayPage   from '@/pages/warrantytodaypage';
+import CommunitiesPage     from '@/pages/communitiespage';
+import LotsPage            from '@/pages/lotspage';
+import LotDetailPage       from '@/pages/lotdetailpage';
+import CasesPage           from '@/pages/casespage';
+import CaseDetailPage      from '@/pages/casedetailpage';
+import WorkOrdersPage      from '@/pages/workorderspage';
+import PORequestsPage from '@/pages/poapprovalspage';
+import SettlementsPage     from '@/pages/settlementspage';
+import WarrantyReportsPage from '@/pages/warrantyreportspage';
+import TarionImportPage from '@/pages/tarianimportpage';
+import QDefImportPage from '@/pages/qdefimportpage';
+import DeficiencyImportPage from '@/pages/deficiencyimportpage';
+import TradesImportPage from '@/pages/tradesimportpage';
+
+
+
+
 
 function Placeholder({ name }: { name: string }) {
-  return (
-    <div style={{ padding: 40 }}>
-      <h2>{name}</h2>
-      <p>Page coming next.</p>
-    </div>
-  );
+  return <div style={{ padding: 40 }}><h2>{name}</h2></div>;
 }
 
+
 export const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/forge/dashboard" replace /> },
+  { path: '/', element: <Navigate to="/warranty/today" replace /> },
   {
-    path: '/forge',
+    path: '/warranty',
     children: [
       { path: 'login', element: <LoginPage /> },
       {
+        path: 'mail-window',
         element: (
           <ProtectedRoute>
-            <AppLayout />
+            <div style={{ minHeight: '100vh', background: 'var(--color-canvas)' }}>
+              <MailPage />
+            </div>
+          </ProtectedRoute>
+        ),
+      },
+      {
+        element: (
+          <ProtectedRoute>
+            <WarrantyLayout />
           </ProtectedRoute>
         ),
         children: [
-          { index: true, element: <Navigate to="dashboard" replace /> },
-          { path: 'dashboard',          element: <DashboardPage />      },
-          { path: 'dispatch',           element: <DispatchPage />        },
-          { path: 'clients',            element: <ClientsPage />         },
-          { path: 'clients/:id',        element: <ClientDetailPage />    },
-          { path: 'opportunities',      element: <OpportunitiesPage />   },
-          { path: 'projects',           element: <ProjectsPage />        },
-          { path: 'projects/:id',       element: <ProjectDetailPage />   },
-          { path: 'quotes',             element: <Placeholder name="Quotes" />        },
-          { path: 'workorders',         element: <Placeholder name="Work Orders" />   },
-          { path: 'procurement',        element: <Placeholder name="Procurement" />   },
-          { path: 'invoices', element: <InvoicesPage /> },
-          { path: 'reports',            element: <Placeholder name="Reports" />       },
-          { path: 'automations',        element: <Placeholder name="Automations" />   },
-          { path: 'settings', element: <SettingsPage /> },
-          { path: 'mfa-setup', element: <MFASetupPage /> },
+          { index: true,         element: <Navigate to="today" replace /> },
+          { path: 'today',       element: <WarrantyTodayPage />           },
+          { path: 'communities', element: <CommunitiesPage />             },
+          { path: 'communities/:projectId', element: <LotsPage /> },
+          { path: 'lots',        element: <LotsPage />                   },
+          { path: 'lots/:id',    element: <LotDetailPage />              },
+          { path: 'cases',       element: <CasesPage />                  },
+          { path: 'cases/:id',   element: <CaseDetailPage />             },
+          { path: 'work-orders', element: <WorkOrdersPage />             },
+          { path: 'po-requests', element: <PORequestsPage />             },
+          { path: 'settlements', element: <SettlementsPage />            },
+          { path: 'reports',     element: <WarrantyReportsPage />        },
+          { path: 'mail',        element: <MailPage />                   },
+          { path: 'settings',    element: <SettingsPage />               },
+          { path: 'mfa-setup',   element: <MFASetupPage />               },
+          { path: 'lots/:lotId/import-form', element: <TarionImportPage /> },
+          { path: 'qdef-import', element: <QDefImportPage /> },
+          { path: 'deficiency-import', element: <DeficiencyImportPage /> },
+          { path: 'trades-import', element: <TradesImportPage /> }
+          
+
+
+
+
+
+          
         ],
       },
     ],
