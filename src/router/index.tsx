@@ -1,5 +1,4 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { AppLayout } from '@/layouts/applayout';
 import WarrantyLayout from '@/layouts/warrantylayout';
 import ProtectedRoute from '@/components/auth/protectedroute';
 import LoginPage           from '@/pages/loginpage';
@@ -24,10 +23,6 @@ import TradesImportPage from '@/pages/tradesimportpage';
 
 
 
-
-function Placeholder({ name }: { name: string }) {
-  return <div style={{ padding: 40 }}><h2>{name}</h2></div>;
-}
 
 
 export const router = createBrowserRouter([

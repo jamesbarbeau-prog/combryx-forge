@@ -36,5 +36,5 @@ export function toIsoDate(value?: string | Date | null) {
 }
 
 export function sum(values: Array<number | null | undefined>) {
-  return values.reduce((acc, value) => acc + (value ?? 0), 0);
+  return values.reduce<number>((acc, value) => acc + (value ?? 0), 0);
 }

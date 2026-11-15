@@ -11,7 +11,7 @@ import {
 
 const COMPANY_ID = '00000000-0000-0000-0000-000000000001';
 
-type Tab = 'company' | 'branding' | 'tax' | 'trades' | 'team' | 'bookkeeping' | 'features' | 'warranty' | 'email';
+type Tab = 'company' | 'branding' | 'tax' | 'trades' | 'team' | 'bookkeeping' | 'features' | 'warranty' | 'warranty_team' | 'email';
 
 const TRADE_TAGS = [
   { tag: 'Lead Carpenter',  gifi: '7620' },
@@ -1573,8 +1573,8 @@ export function WarrantyTeamTab() {
                     {/* Notes */}
                     <div style={{ marginTop: 14 }}>
                       <label style={lbl}>Notes</label>
-                      <textarea defaultValue={tech?.notes ?? ''} onBlur={async e => saveTech(user.id, { notes: e.target.value.trim() || null })} placeholder="Certifications, notes…" rows={2}
-                        style={{ ...inp, height: 'auto', padding: '8px 10px', resize: 'none' }} onFocus={focus} onBlur={blur} />
+                      <textarea defaultValue={tech?.notes ?? ''} onBlur={async e => { blur(e); await saveTech(user.id, { notes: e.target.value.trim() || null }); }} placeholder="Certifications, notes…" rows={2}
+                        style={{ ...inp, height: 'auto', padding: '8px 10px', resize: 'none' }} onFocus={focus} />
                     </div>
                   </div>
                 )}

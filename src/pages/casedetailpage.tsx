@@ -5,6 +5,7 @@ import {
   MessageSquare, StickyNote, History, Download, Home, ExternalLink,
   RefreshCw, ChevronDown, ChevronUp, Send, Lock, Layers, Shield,
   AlertTriangle, Calendar, Clock, CheckCircle2, MoreHorizontal, Plus, X,
+  type LucideIcon,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
@@ -77,7 +78,7 @@ interface CaseDocument {
 interface Note { id: string; body: string; is_internal: boolean; created_by_name: string; created_at: string; }
 interface AuditEntry { id: string; action: string; field_name: string | null; old_value: string | null; new_value: string | null; user_name: string | null; source_app: string | null; created_at: string; metadata: Record<string, unknown> | null; }
 interface UserProfile { id: string; company_id: string; first_name: string; last_name: string; access_level: string; is_owner: boolean; }
-type IconType = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+type IconType = LucideIcon;
 type ItemFilter = 'ready' | 'nw' | 'all';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -290,13 +291,13 @@ export default function CaseDetailPage() {
   const fetchInteractions = useCallback(async () => {
     if (!caseId) return;
     const { data } = await supabase.from('case_interactions').select('id,channel,direction,subject,body,from_email,from_name,to_emails,occurred_at,created_by_name,email_log:email_log_id(provider,has_attachments,attachment_count,logged_by_name,logged_at),documents:case_documents(id,file_name,mime_type)').eq('case_id', caseId).is('deleted_at', null).order('occurred_at', { ascending: false });
-    if (data) setInteractions(data as Interaction[]);
+    if (data) setInteractions(data as unknown as Interaction[]);
   }, [caseId]);
 
   const fetchDocuments = useCallback(async () => {
     if (!caseId) return;
     const { data } = await supabase.from('case_documents').select('id,document_type,file_name,file_size_bytes,mime_type,storage_path,uploaded_by_id,uploaded_at,interaction_id,case_interactions:interaction_id(subject,occurred_at)').eq('case_id', caseId).is('deleted_at', null).order('uploaded_at', { ascending: false });
-    if (data) setDocuments(data as CaseDocument[]);
+    if (data) setDocuments(data as unknown as CaseDocument[]);
   }, [caseId]);
 
   const fetchNotes = useCallback(async () => {

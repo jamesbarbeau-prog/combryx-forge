@@ -168,7 +168,7 @@ export default function CasesPage() {
       community_name: string | null;
     }> = {};
 
-    for (const l of (lotsData ?? []) as {
+    for (const l of (lotsData ?? []) as unknown as {
       id: string;
       address: string | null;
       lot_number: string | null;

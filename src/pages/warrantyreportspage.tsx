@@ -4,6 +4,7 @@ import {
   ArrowLeft, Download, RefreshCw, TrendingUp, TrendingDown,
   DollarSign, AlertTriangle, Clock, CheckCircle2, FileText,
   ChevronDown, ChevronUp, Calendar,
+  type LucideIcon,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format, subMonths } from 'date-fns';
@@ -179,7 +180,7 @@ function StatTile({
   sub?: string;
   color?: string;
   trend?: number;
-  icon?: React.FC<{ size?: number; color?: string; strokeWidth?: number }>;
+  icon?: LucideIcon;
 }) {
   return (
     <div style={{ padding: '16px 18px', borderRadius: 10, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>

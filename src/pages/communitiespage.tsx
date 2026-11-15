@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Building2, ChevronRight, RefreshCw, AlertTriangle, Home, Shield } from 'lucide-react';
-import { useAuth } from '../auth'; // From main branch
-import { fetchUserProfile } from '../api'; // From main branch
 
 const PROJECT_COLORS: Record<string, string> = {
   '75fa72fe-332f-4dca-afbb-c2968c9d5594': '#4A9EFF',
@@ -27,34 +25,27 @@ interface Community {
 
 export default function CommunitiesPage() {
   const navigate = useNavigate();
-  const { user } = useAuth(); // Dynamic auth
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [companyId, setCompanyId] = useState<string | null>(null);
 
-  // 1. Fetch Company ID first
+  // 1. Resolve the signed-in user's company
   useEffect(() => {
-    const getUserCompanyId = async () => {
-      if (user?.id) {
-        try {
-          const profile = await fetchUserProfile(user.id);
-          setCompanyId(profile.company_id || null);
-        } catch (e) {
-          setError('Failed to load user profile');
-          setLoading(false);
-        }
-      }
-    };
-    getUserCompanyId();
-  }, [user]);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { setLoading(false); return; }
+      supabase.from('users').select('company_id').eq('id', user.id).single()
+        .then(({ data, error: err }) => {
+          if (data?.company_id) setCompanyId(data.company_id);
+          else { setError(err?.message || 'No company found for this user'); setLoading(false); }
+        });
+    });
+  }, []);
 
   // 2. Load data once companyId is available
   useEffect(() => {
     if (companyId) {
       load();
-    } else if (!loading && !companyId) {
-       // Optional: handle case where user has no company_id
     }
   }, [companyId]);
 
