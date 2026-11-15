@@ -10,6 +10,7 @@ const NAV = [
   { id: 'today',       label: 'Today',       path: '/warranty/today'       },
   { id: 'communities', label: 'Portfolio',    path: '/warranty/communities' },
   { id: 'cases',       label: 'Cases',        path: '/warranty/cases'       },
+  { id: 'conciliation', label: 'Conciliation', path: '/warranty/conciliation' },
   { id: 'work-orders', label: 'Work Orders',  path: '/warranty/work-orders' },
   { id: 'po-requests', label: 'PO Approvals', path: '/warranty/po-requests' },
   { id: 'reports',     label: 'Reports',      path: '/warranty/reports'     },

@@ -13,7 +13,8 @@ import CasesPage           from '@/pages/casespage';
 import CaseDetailPage      from '@/pages/casedetailpage';
 import WorkOrdersPage      from '@/pages/workorderspage';
 import PORequestsPage from '@/pages/poapprovalspage';
-import SettlementsPage     from '@/pages/settlementspage';
+import ConciliationPage     from '@/pages/conciliationpage';
+import ConciliationCasePage from '@/pages/conciliationcasepage';
 import WarrantyReportsPage from '@/pages/warrantyreportspage';
 import TarionImportPage from '@/pages/tarianimportpage';
 import QDefImportPage from '@/pages/qdefimportpage';
@@ -58,7 +59,9 @@ export const router = createBrowserRouter([
           { path: 'cases/:id',   element: <CaseDetailPage />             },
           { path: 'work-orders', element: <WorkOrdersPage />             },
           { path: 'po-requests', element: <PORequestsPage />             },
-          { path: 'settlements', element: <SettlementsPage />            },
+          { path: 'conciliation',     element: <ConciliationPage />     },
+          { path: 'conciliation/:id', element: <ConciliationCasePage /> },
+          { path: 'settlements', element: <Navigate to="/warranty/conciliation" replace /> },
           { path: 'reports',     element: <WarrantyReportsPage />        },
           { path: 'mail',        element: <MailPage />                   },
           { path: 'settings',    element: <SettingsPage />               },
