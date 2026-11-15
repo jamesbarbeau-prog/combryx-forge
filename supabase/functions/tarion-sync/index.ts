@@ -144,6 +144,9 @@ Deno.serve(async req => {
         const docIds = [...new Set(links.map(l => l.ContentDocumentId))];
         let docs: Rec[] = docIds.length ? await soqlIn(s, 'SELECT Id, Title, Description, FileExtension, CreatedDate FROM ContentVersion WHERE IsLatest = true AND ContentDocumentId IN ', docIds) : [];
         docs = docs.filter(v => [v.Title, v.Description].some(t => t && NP_MATCH.test(String(t)))).sort((a, b) => String(b.CreatedDate).localeCompare(String(a.CreatedDate)));
+        // newest letter already processed for this case? skip the download entirely
+        const { data: known } = await db.from('cm_cases').select('np_version').eq('company_id', companyId).eq('case_number', String(c.CaseNumber)).maybeSingle();
+        if (docs[0] && known?.np_version === docs[0].Id) { results.unchanged = (results.unchanged ?? 0) + 1; continue; }
         let info = { caseNumber: '', enrolment: '', address: '', homeowner: '', date: '', time: '' }, items: { n: number; text: string }[] = [], npUrl = '';
         for (const d of docs) {   // newest first; older letters are searched only for an item list (the Reinspection NP has none)
           const res = await fetch(`${s.instance}/services/data/v${API}/sobjects/ContentVersion/${d.Id}/VersionData`, { headers: { Authorization: 'Bearer ' + s.sessionId } });
@@ -161,7 +164,7 @@ Deno.serve(async req => {
         const start = byCase[cid].start ? new Date(byCase[cid].start) : null;
         const { data, error } = await db.rpc('cm_ingest_np', { p_company: companyId, p: {
           source: 'tarion_api', caseNumber: String(c.CaseNumber), enrolment: info.enrolment, homeowner: info.homeowner, address: info.address,
-          formType: c.RecordType?.Name ?? c.Subject ?? '', inspector: byCase[cid].wo.Owner?.Name ?? '', woStatus: byCase[cid].wo.Status,
+          npVersionId: docs[0]?.Id ?? '', formType: c.RecordType?.Name ?? c.Subject ?? '', inspector: byCase[cid].wo.Owner?.Name ?? '', woStatus: byCase[cid].wo.Status,
           inspectionDate: info.date || (start ? start.toLocaleDateString('en-CA', { timeZone: 'America/Toronto' }) : ''), inspectionTime: info.time, npUrl, items } });
         if (error) throw new Error(error.message);
         results[data.action] = (results[data.action] ?? 0) + 1;

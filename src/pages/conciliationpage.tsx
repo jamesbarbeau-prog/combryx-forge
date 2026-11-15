@@ -1,13 +1,13 @@
-// Conciliation Manager — dashboard, Tarion intake queue and data import. Managers only (enforced by RLS).
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// Conciliation Manager — dashboard, Tarion intake queue and team. Managers only (enforced by RLS).
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as api from '@/cm/api';
 import type { CmCase, CmCycle, CmIntake } from '@/cm/api';
-import { readWorkbook, importSheet, type SheetData, type SheetPreview } from '@/cm/sheetimport';
+import { GuardianSignatureIcon } from '@/components/icons/GuardianSignatureIcons';
 import '@/cm/cm.css';
 
 const stagePill = (s: string) => s === 'Scheduled' ? 'b' : s === 'Awaiting CAR' ? 'a' : s === 'CAR Received' ? 'p' : 'g';
-type Tab = 'dashboard' | 'intake' | 'import';
+type Tab = 'dashboard' | 'intake' | 'team';
 
 export default function ConciliationPage() {
   const nav = useNavigate();
@@ -25,8 +25,9 @@ export default function ConciliationPage() {
   const [busy, setBusy] = useState('');
   const [newOpen, setNewOpen] = useState(false);
   const [nc, setNc] = useState({ case_number: '', homeowner: '', address: '', enrolment: '', form_type: '', insp: '' });
-  const [sheet, setSheet] = useState<{ data: SheetData; preview: SheetPreview } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [team, setTeam] = useState<{ user_id: string; email: string; role: string }[]>([]);
+  const [invite, setInvite] = useState({ email: '', role: 'coordinator' });
+  const [wsName, setWsName] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -73,16 +74,25 @@ export default function ConciliationPage() {
 
   if (member === undefined) return <div className="cm">Loading…</div>;
   if (member === null) return (
-    <div className="cm"><h1>Conciliation Manager</h1>
+    <div className="cm"><div className="row"><GuardianSignatureIcon name="resolution" size={40} /><h1>Conciliation Manager</h1></div>
       <div className="card" style={{ marginTop: 14, maxWidth: 640 }}>
-        <h2>Not enabled for this account</h2>
-        <p className="sub">The Conciliation Manager is a manager-only add-on. Your sign-in has not been added to a company's Conciliation Manager team yet, or the database migration has not been applied.</p>
+        <h2>Set up your workspace</h2>
+        <p className="sub">Your company's cases, inspections, items and cash settlements live in a private workspace that only your team can see. You become its first manager and can add teammates afterwards.</p>
+        {err && <div className="err">{err}</div>}
+        <div className="row" style={{ marginTop: 12 }}>
+          <input placeholder="Company name" value={wsName} onChange={e => setWsName(e.target.value)} />
+          <button className="pri" disabled={!wsName.trim() || !!busy} onClick={async () => {
+            setBusy('ws'); setErr('');
+            try { await api.createWorkspace(wsName.trim()); const m = await api.myMembership(); setMember(m); if (m) await load(); } catch (e) { setErr((e as Error).message); }
+            setBusy('');
+          }}>Create workspace</button>
+        </div>
       </div></div>);
 
   return (
     <div className="cm">
       <div className="row">
-        <div><h1>Conciliation Manager</h1><div className="sub">Tarion conciliations — inspections, CAR clocks, cash settlements</div></div>
+        <GuardianSignatureIcon name="resolution" size={44} /><div><h1>Conciliation Manager</h1><div className="sub">Tarion conciliations — inspections, CAR clocks, cash settlements</div></div>
         <div className="sp" />
         <div className="seg">
           <button className={prop === 'freehold' ? 'on' : ''} onClick={() => setProp('freehold')}>Freehold</button>
@@ -109,14 +119,14 @@ export default function ConciliationPage() {
               const { insp, ...f } = nc; const id = await api.createCase(member.company_id, { ...f, case_number: f.case_number.trim(), property_type: prop }, insp || undefined);
               await api.linkWarrantyData(member.company_id).catch(() => null); nav(`/warranty/conciliation/${id}`);
             })}>Create case</button>
-            <span className="sub">Owner, lot and community fill in automatically when the enrolment # matches a home already imported.</span>
+            <span className="sub">Owner, lot and community fill in automatically when the enrolment # matches a home in the Warranty module.</span>
           </div>
         </div>)}
 
       <div className="tabs">
         <button className={tab === 'dashboard' ? 'on' : ''} onClick={() => setTab('dashboard')}>Dashboard</button>
         <button className={tab === 'intake' ? 'on' : ''} onClick={() => setTab('intake')}>Tarion intake{pendingIntake.length ? ` (${pendingIntake.length})` : ''}</button>
-        <button className={tab === 'import' ? 'on' : ''} onClick={() => setTab('import')}>Import &amp; merge data</button>
+        <button className={tab === 'team' ? 'on' : ''} onClick={() => { setTab('team'); api.listMembers(member.company_id).then(setTeam).catch(e => setErr(e.message)); }}>Team</button>
       </div>
 
       {tab === 'dashboard' && <>
@@ -186,41 +196,19 @@ export default function ConciliationPage() {
           </table></div>
         </div>)}
 
-      {tab === 'import' && (
-        <div className="grid two" style={{ alignItems: 'start' }}>
-          <div className="card">
-            <h2>1 · Bring over the Google Sheet</h2>
-            <p className="sub">In the Conciliation Manager spreadsheet choose File → Download → Microsoft Excel (.xlsx), then pick that file here. Cases already in the system are skipped, so it is safe to run again.</p>
-            <input ref={fileRef} type="file" accept=".xlsx" style={{ display: 'none' }} onChange={async e => {
-              const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
-              try { setSheet(readWorkbook(await f.arrayBuffer())); setErr(''); } catch (x) { setErr('Could not read that file: ' + (x as Error).message); }
-            }} />
-            <button onClick={() => fileRef.current?.click()}>Choose .xlsx file</button>
-            {sheet && <div style={{ marginTop: 12 }}>
-              {sheet.preview.missing.length > 0
-                ? <div className="err">This file has no {sheet.preview.missing.join(' / ')} tab — is it the Conciliation Manager sheet?</div>
-                : <>
-                  <div className="note">{sheet.preview.cases} cases · {sheet.preview.cycles} cycles · {sheet.preview.items} items · {sheet.preview.comms} log entries · {sheet.preview.batches} settlement batches</div>
-                  <button className="pri" style={{ marginTop: 10 }} disabled={!!busy} onClick={() => run('sheet', async () => {
-                    const r = await importSheet(member.company_id, sheet.data, setBusy);
-                    await api.linkWarrantyData(member.company_id).catch(() => null); setSheet(null);
-                    return `Imported ${r.cases} case(s), ${r.cycles} cycle(s), ${r.items} item(s), ${r.comms} log entries; ${r.skipped} already present.` + (r.errors.length ? ` ${r.errors.length} problem(s): ${r.errors.slice(0, 3).join(' | ')}` : '');
-                  })}>{busy ? busy : 'Import into the database'}</button></>}
-            </div>}
-          </div>
-          <div className="card">
-            <h2>2 · Merge with homes, owners and trades already loaded</h2>
-            <p className="sub">Matches each conciliation case to the home from your QDEF owner import by enrolment number, and fills in owner name, email, phone, lot, community and possession date where they are blank. Nothing you typed is overwritten.</p>
-            <button className="pri" disabled={!!busy} onClick={() => run('link', async () => {
-              const r = await api.linkWarrantyData(member.company_id);
-              return r.skipped ? `Skipped: ${r.skipped}` : `${r.linked} case(s) linked to a home.` + (r.unmatched?.length ? ` No matching enrolment for: ${r.unmatched.slice(0, 15).join(', ')}${r.unmatched.length > 15 ? '…' : ''}` : '');
-            })}>{busy === 'link' ? 'Matching…' : 'Match cases to homes'}</button>
-            <p className="sub" style={{ marginTop: 14 }}>Keep the home list current with the existing importers — they update in place, so re-running them picks up new enrolments and owners:</p>
-            <div className="row">
-              <button onClick={() => nav('/warranty/qdef-import')}>Owners &amp; enrolments</button>
-              <button onClick={() => nav('/warranty/trades-import')}>Trades</button>
-              <button onClick={() => nav('/warranty/deficiency-import')}>Deficiencies</button>
-            </div>
+      {tab === 'team' && (
+        <div className="card" style={{ maxWidth: 640 }}>
+          <h2>Team</h2>
+          <p className="sub">Managers can change anything. Coordinators and viewers can read every case. People must sign up first, then you add them here by email.</p>
+          <table><thead><tr><th>Email</th><th>Role</th></tr></thead>
+            <tbody>{team.map(m => <tr key={m.user_id}><td>{m.email}</td><td>{m.role}</td></tr>)}</tbody></table>
+          <div className="row" style={{ marginTop: 12 }}>
+            <input placeholder="teammate@company.com" value={invite.email} onChange={e => setInvite({ ...invite, email: e.target.value })} />
+            <select value={invite.role} onChange={e => setInvite({ ...invite, role: e.target.value })}><option>coordinator</option><option>viewer</option><option>manager</option></select>
+            <button className="pri" disabled={!invite.email.trim() || !!busy} onClick={() => run('team', async () => {
+              await api.addMember(member.company_id, invite.email.trim(), invite.role); setInvite({ ...invite, email: '' }); setTeam(await api.listMembers(member.company_id));
+              return 'Teammate added.';
+            })}>Add</button>
           </div>
         </div>)}
     </div>);

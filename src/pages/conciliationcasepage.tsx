@@ -67,6 +67,7 @@ export default function ConciliationCasePage() {
         <span className={`pill ${c.property_type === 'freehold' ? 'b' : 'p'}`}>{c.property_type === 'freehold' ? 'Freehold' : 'Common elements'}</span>
         {c.is_closed ? <span className="pill g">Closed{c.closure_reason ? ` — ${c.closure_reason}` : ''}</span>
           : <button className="danger" disabled={busy} onClick={() => { const r = window.prompt('Closure reason'); if (r) run(() => api.closeCase(c.id, r)); }}>Close case</button>}
+        {c.is_closed && <button disabled={busy} onClick={() => { const r = window.prompt('Reason for re-opening'); if (r) run(() => api.reopenCase(c.id, r)); }}>Re-open</button>}
       </div>
       {err && <div className="err">{err}</div>}
       <div className="tabs">
@@ -87,7 +88,7 @@ export default function ConciliationCasePage() {
             : 'Not linked to an imported home yet — add the enrolment # and use Import & merge data → Match cases to homes.'}
             {c.lot_id && <> <a href={`/warranty/lots/${c.lot_id}`} style={{ fontWeight: 700 }}>Open home</a></>}
             {c.box_link && <> · <a href={c.box_link} target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>Box folder</a></>}
-            {c.np_url && <> · <a href={c.np_url} target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>Tarion NP letter</a></>}</div>
+            {c.np_url && <> · <a href="#np" style={{ fontWeight: 700 }} onClick={async e => { e.preventDefault(); try { window.open(await api.signedDocUrl(c.np_url), '_blank', 'noopener'); } catch (x) { setErr((x as Error).message); } }}>Tarion NP letter</a></>}</div>
         </div>
         <div className="card"><h2>Team &amp; notes</h2>
           <div className="grid fields">{field('Supervisor', 'supervisor')}{field('Supervisor email', 'supervisor_email')}{field('Coordinator email', 'coordinator_email')}{field('Tarion inspector', 'inspector')}</div>

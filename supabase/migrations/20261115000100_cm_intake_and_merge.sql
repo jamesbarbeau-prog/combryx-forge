@@ -12,6 +12,7 @@ alter table cm_cases    add column if not exists community_id uuid;
 alter table cm_cases    add column if not exists enrolment_norm text generated always as (upper(regexp_replace(enrolment, '[^A-Za-z0-9]', '', 'g'))) stored;
 alter table cm_cases    add column if not exists np_url text not null default '';
 alter table cm_cases    add column if not exists inspector text not null default '';
+alter table cm_cases    add column if not exists np_version text not null default '';
 create index if not exists cm_cases_enrol_idx on cm_cases(company_id, enrolment_norm);
 alter table cm_settings add column if not exists include_common_elements boolean not null default true;
 alter table cm_settings add column if not exists last_sync_at timestamptz;
@@ -67,7 +68,7 @@ create or replace function cm_link_warranty_data(p_company uuid) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare linked int := 0; unmatched jsonb;
 begin
-  if auth.uid() is not null and not cm_has_role(p_company, array['manager']) then raise exception 'Managers only.'; end if;
+  if coalesce(auth.jwt() ->> 'role','') <> 'service_role' and not cm_has_role(p_company, array['manager']) then raise exception 'Managers only.'; end if;
   if to_regclass('public.warranty_lots') is null then return jsonb_build_object('skipped', 'warranty_lots table not found'); end if;
   execute $q$
     with m as (
@@ -127,8 +128,9 @@ language plpgsql as $$
 declare
   v_case cm_cases; v_num text := nullif(btrim(p->>'caseNumber'),''); v_enrol text := coalesce(p->>'enrolment','');
   v_form text := coalesce(p->>'formType',''); v_date date := nullif(p->>'inspectionDate','')::date; v_time text := coalesce(p->>'inspectionTime','');
-  v_items jsonb := coalesce(p->'items','[]'::jsonb); n_new int := jsonb_array_length(coalesce(p->'items','[]'::jsonb)); n_old int;
-  v_settings cm_settings; v_ce boolean; v_id uuid; v_action text; v_reason text := ''; v_status text := 'pending'; v_auto boolean := false;
+  v_ver text := coalesce(p->>'npVersionId',''); v_items jsonb := coalesce(p->'items','[]'::jsonb);
+  n_new int := jsonb_array_length(coalesce(p->'items','[]'::jsonb)); n_old int; v_settings cm_settings; v_ce boolean; v_id uuid;
+  v_action text; v_reason text := ''; v_status text := 'pending'; v_auto boolean := false; v_added boolean := false;
   it jsonb; gov cm_cycle_view; mismatch int;
 begin
   if v_num is null then raise exception 'caseNumber is required'; end if;
@@ -136,13 +138,18 @@ begin
   v_ce := v_form ~* '(common element|cedef|condo)';
   select * into v_case from cm_cases where company_id = p_company and case_number = v_num;
 
+  -- the same Tarion letter version was already processed: nothing to do, nothing to log
+  if v_case.id is not null and v_ver <> '' and v_case.np_version = v_ver then
+    return jsonb_build_object('action','unchanged','status','applied','caseId',v_case.id);
+  end if;
+
   if v_case.id is null then
     if v_ce and not coalesce(v_settings.include_common_elements, true) then
-      v_action := 'skip_common_elements'; v_status := 'skipped'; v_reason := 'Common-elements conciliation; company setting excludes them.';
+      v_action := 'skip_common_elements'; v_status := 'skipped'; v_reason := 'Common-elements conciliation; this workspace excludes them.';
     elsif coalesce(p->>'address','') <> '' and n_new > 0 then
-      insert into cm_cases(company_id, case_number, homeowner, address, lot, enrolment, form_type, property_type, inspector, np_url)
+      insert into cm_cases(company_id, case_number, homeowner, address, lot, enrolment, form_type, property_type, inspector, np_url, np_version)
         values (p_company, v_num, coalesce(p->>'homeowner',''), coalesce(p->>'address',''), coalesce(p->>'lot',''), v_enrol, v_form,
-                case when v_ce then 'common_elements' else 'freehold' end, coalesce(p->>'inspector',''), coalesce(p->>'npUrl',''))
+                case when v_ce then 'common_elements' else 'freehold' end, coalesce(p->>'inspector',''), coalesce(p->>'npUrl',''), v_ver)
         returning * into v_case;
       for it in select * from jsonb_array_elements(v_items) loop
         insert into cm_items(company_id, case_id, item_number, description) values (p_company, v_case.id, (it->>'n')::int, coalesce(it->>'text',''))
@@ -162,9 +169,8 @@ begin
         on conflict (case_id, item_number) do nothing;
       end loop;
       perform cm_log(v_case.id, 'Internal Note', 'system', n_new || ' item(s) imported from Tarion intake.');
-      v_action := 'add_items'; v_status := 'applied'; v_auto := true;
+      v_added := true;   -- keep going: the same letter may also carry a new inspection date
     elsif n_new > 0 then
-      -- compare overlapping item numbers on the first 40 characters (a CAR may have replaced descriptions)
       select count(*) into mismatch from jsonb_array_elements(v_items) j
         join cm_items i on i.case_id = v_case.id and i.item_number = (j->>'n')::int
         where left(lower(i.description),40) <> left(lower(coalesce(j->>'text','')),40)
@@ -178,17 +184,29 @@ begin
       if v_date is not null and gov.id is not null then
         if gov.stage = 'Scheduled' and gov.inspection_date is distinct from v_date then
           update cm_cycles set inspection_date = v_date, inspection_time = v_time where id = gov.id;
-          v_action := 'reschedule'; v_status := 'applied'; v_auto := true;
-          v_reason := 'Inspection moved ' || coalesce(gov.inspection_date::text,'not set') || ' -> ' || v_date;
-        elsif gov.stage <> 'Scheduled' and (gov.inspection_date is distinct from v_date) and v_date > cm_today(p_company) then
+          v_action := 'reschedule'; v_reason := 'Inspection ' || coalesce(gov.inspection_date::text,'not set') || ' -> ' || v_date;
+        elsif gov.stage <> 'Scheduled' and gov.inspection_date is distinct from v_date and v_date > cm_today(p_company) then
           v_action := 'review'; v_reason := 'A new inspection date (' || v_date || ') arrived after the CAR — likely a re-inspection. Confirm and pick the items.';
         end if;
       end if;
-      if v_action is null then v_action := 'duplicate'; v_status := 'applied'; v_auto := true; v_reason := 'Nothing new — same case, same items, same date.'; end if;
+      if v_added then v_action := 'add_items'; v_reason := trim(both ' ' from v_reason || ' ' || n_new || ' item(s) added.'); end if;
+      if v_action is null then v_action := 'duplicate'; v_reason := 'Nothing new — same case, same items, same date.'; end if;
+      if v_action <> 'review' then v_status := 'applied'; v_auto := true; end if;
     end if;
-    if coalesce(p->>'npUrl','') <> '' then update cm_cases set np_url = p->>'npUrl' where id = v_case.id; end if;
-    if coalesce(p->>'inspector','') <> '' then update cm_cases set inspector = p->>'inspector' where id = v_case.id; end if;
+    if v_action <> 'review' then
+      update cm_cases set np_version = case when v_ver <> '' then v_ver else np_version end,
+        np_url = case when coalesce(p->>'npUrl','') <> '' then p->>'npUrl' else np_url end,
+        inspector = case when coalesce(p->>'inspector','') <> '' then p->>'inspector' else inspector end where id = v_case.id;
+    end if;
   end if;
+
+  -- an unresolved review for the same case and reason is not queued twice
+  if v_action = 'review' then
+    select id into v_id from cm_intake_queue where company_id = p_company and case_number = v_num and status = 'pending' and proposed_action = 'review' and reason = v_reason limit 1;
+    if v_id is not null then return jsonb_build_object('action','review','status','pending','intakeId',v_id,'caseId',v_case.id,'reason',v_reason); end if;
+  end if;
+  -- repeats with nothing new are counted by the sync run, not logged one row per run
+  if v_action = 'duplicate' then return jsonb_build_object('action','duplicate','status','applied','caseId',v_case.id,'reason',v_reason); end if;
 
   insert into cm_intake_queue(company_id, source, case_number, enrolment, payload, proposed_action, reason, status, auto_applied, case_id, resolved_at)
     values (p_company, coalesce(p->>'source','tarion_api'), v_num, v_enrol, p, v_action, v_reason, v_status, v_auto, v_case.id,

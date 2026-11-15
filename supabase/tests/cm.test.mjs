@@ -4,8 +4,9 @@ const dir=new URL('../migrations/', import.meta.url).pathname;
 const db=new PGlite();
 const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m); if(!c) process.exitCode=1;};
 await db.exec(`create schema auth; create table auth.users(id uuid primary key, email text);
+create function auth.jwt() returns jsonb language sql stable as $$ select jsonb_build_object('email', current_setting('request.jwt.email', true)) $$;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub',true),'')::uuid $$;
-create role authenticated nologin; grant usage on schema public, auth to authenticated; grant select on auth.users to authenticated;
+create role authenticated nologin; grant usage on schema public, auth to authenticated;
 create schema storage; create table storage.buckets(id text primary key, name text, public boolean); create table storage.objects(id uuid, bucket_id text, name text); alter table storage.objects enable row level security; create function storage.foldername(text) returns text[] language sql immutable as $$ select string_to_array($1,'/') $$;
 create table warranty_communities(id uuid primary key default gen_random_uuid(), name text);
 create table warranty_lots(id uuid primary key default gen_random_uuid(), company_id uuid, community_id uuid, lot_number text, homeowner_name text, homeowner_email text, phone_primary text, address text, enrollment_number text, closing_date date);`);
@@ -71,3 +72,67 @@ e=null; try{await db.query(`select cm_link_warranty_data($1)`,[B]);}catch(x){e=x
 ok(e&&/Managers only/.test(e),'definer merge function refuses non-members');
 await db.query(`select cm_close_case($1,'Test close')`,[cid]);
 ok((await q(`select count(*)::int n from cm_cycles where case_id=$1 and closed_on is null`,[cid]))[0].n===0,'closing a case closes all its cycles');
+
+// ---------- review fixes + blank workspace (run as a brand-new user, no access to auth.users)
+const U3='cccccccc-cccc-cccc-cccc-cccccccccccc', U4='dddddddd-dddd-dddd-dddd-dddddddddddd';
+await db.exec(`reset role; insert into auth.users values ('${U3}','new@buyer.com'),('${U4}','team@buyer.com'); select set_config('request.jwt.email','new@buyer.com',false);`);
+await as(U3);
+const tryx=async(s,p)=>{try{await db.query(s,p);return null}catch(e){return e.message}};
+const W=(await q(`select cm_create_workspace('Buyer Homes') as id`))[0].id;
+ok(!!W&&(await q(`select role from cm_members where company_id=$1`,[W]))[0].role==='manager','new user creates a blank workspace and becomes manager');
+ok((await q(`select count(*)::int n from cm_cases where company_id=$1`,[W]))[0].n===0,'workspace starts with no cases (blank app)');
+ok((await tryx(`select cm_create_workspace('Again')`))!==null,'a user cannot create a second workspace');
+ok((await q(`select count(*)::int n from cm_lists where company_id=$1`,[W]))[0].n>0,'default lists are seeded');
+await q(`select cm_add_member($1,'team@buyer.com','coordinator')`,[W]);
+ok((await q(`select count(*)::int n from cm_list_members($1)`,[W]))[0].n===2,'manager adds a teammate by email and lists members');
+ok((await tryx(`select cm_add_member($1,'nobody@x.com','viewer')`,[W]))!==null,'unknown email is rejected');
+await as(U4);
+ok((await tryx(`select cm_add_member($1,'new@buyer.com','manager')`,[W]))!==null,'a coordinator cannot add members');
+await as(U3);
+// anon-style caller (no membership) cannot run the merge for someone else's company
+await db.exec(`reset role; select set_config('request.jwt.sub','${U4}',false); set role authenticated;`);
+ok((await tryx(`select cm_link_warranty_data($1)`,[A]))!==null,'non-member cannot run merge for another company');
+await as(U3);
+// case, items, cycle
+const mk=async(n,desc)=>{const c=(await q(`insert into cm_cases(company_id,case_number,enrolment) values ($1,$2,'H'||$2) returning id`,[W,n]))[0].id;
+  for(const i of [1,2]) await q(`insert into cm_items(company_id,case_id,item_number,description) values ($1,$2,$3,'d')`,[W,c,i]);
+  return {c, cy:(await q(`select id from cm_cycles where case_id=$1`,[c]))[0].id};};
+let k=await mk('T1');
+ok((await q(`select cm_close_case($1,'done') as r`,[k.c])).length===1,'closing a case works without reading auth.users');
+await q(`select cm_reopen_case($1,'new evidence')`,[k.c]);
+ok((await q(`select manager_status from cm_cases where id=$1`,[k.c]))[0].manager_status==='ACTIVE','case can be re-opened with a reason');
+ok((await tryx(`select cm_reopen_case($1,'')`,[k.c]))!==null,'re-open needs a reason');
+// direct cash-status writes blocked
+const its=await q(`select id from cm_items where case_id=$1 order by item_number`,[k.c]);
+ok((await tryx(`update cm_items set resolution_status='Settled' where id=$1`,[its[0].id]))!==null,'cash status cannot be set by a direct table write');
+// audit log append-only
+await q(`select cm_audit_log($1,'X','y')`,[k.c]).catch(()=>{});
+ok((await q(`with d as (delete from cm_audit where case_id=$1 returning 1) select count(*)::int n from d`,[k.c]))[0].n===0,'audit rows cannot be deleted');
+ok((await q(`with d as (delete from cm_comms where case_id=$1 returning 1) select count(*)::int n from d`,[k.c]))[0].n===0,'activity log rows cannot be deleted');
+// claim booking with a settled warranted item
+await q(`select cm_apply_car($1,$2,current_date,'f',$3)`,[k.c,k.cy,JSON.stringify([{num:1,outcome:'Warranted'},{num:2,outcome:'Warranted'}])]);
+const bb=(await q(`select cm_create_settlement_batch($1,$2::uuid[],100,null,current_date,'','') as id`,[k.c,[its[0].id]]))[0].id;
+await q(`select cm_decide_settlement_batch($1,'ACCEPTED','ref')`,[bb]);
+ok((await tryx(`select cm_book_claim($1,'2099-01-01')`,[k.c]))===null,'claim inspection can be booked when another item is already cash-settled');
+ok((await q(`select resolution_status from cm_items where id=$1`,[its[0].id]))[0].resolution_status==='Settled','the settled item stays settled and is not moved');
+// full & final after an earlier partial
+await q(`update cm_items set offer_amount=50 where id=$1`,[its[1].id]);
+await q(`select cm_generate_full_release($1,null,current_date,'',false)`,[k.c]);
+ok((await tryx(`select cm_generate_full_release($1,null,current_date,'',false)`,[k.c]))!==null,'a second open Full & Final offer is refused');
+ok((await tryx(`select cm_resolve_case_cash($1,'accepted','')`,[k.c]))!==null,'accepting a full release needs a signed reference');
+ok((await tryx(`select cm_resolve_case_cash($1,'accepted','DOC-1')`,[k.c]))===null,'Full & Final accepted after an earlier partial settlement');
+ok((await q(`select is_closed from cm_case_view where id=$1`,[k.c]))[0].is_closed===true,'accepting Full & Final closes the case');
+// intake: repeated sync noise + same-letter date+items
+const np2={caseNumber:'T2',address:'1 A St, Ottawa ON K1A 0A1',inspectionDate:'2099-01-10',npVersionId:'V1',items:[{n:1,text:'INTERIOR - a thing'}]};
+await q(`select cm_ingest_np($1,$2)`,[W,np2]);
+for(let i=0;i<3;i++) await q(`select cm_ingest_np($1,$2)`,[W,np2]);
+ok((await q(`select count(*)::int n from cm_intake_queue where company_id=$1 and case_number='T2'`,[W]))[0].n===1,'same letter version re-synced = one log row, not one per run');
+const diff2={...np2,npVersionId:'V2',items:[{n:1,text:'EXTERIOR - something else entirely'}]};
+for(let i=0;i<3;i++) await q(`select cm_ingest_np($1,$2)`,[W,diff2]);
+ok((await q(`select count(*)::int n from cm_intake_queue where company_id=$1 and case_number='T2' and status='pending'`,[W]))[0].n===1,'an unresolved review is queued once, not every sync');
+await q(`insert into cm_cases(company_id,case_number) values ($1,'T3')`,[W]);
+await q(`select cm_ingest_np($1,$2)`,[W,{caseNumber:'T3',inspectionDate:'2099-05-05',items:[{n:1,text:'INTERIOR - x'}]}]);
+ok((await q(`select cy.inspection_date::text d from cm_cycles cy join cm_cases c on c.id=cy.case_id where c.case_number='T3'`))[0].d==='2099-05-05','items and a new date in one letter are both applied');
+// tenant isolation for the new workspace
+await as(U1);
+ok((await q(`select count(*)::int n from cm_cases where company_id=$1`,[W]))[0].n===0,'another company cannot see the new workspace');

@@ -49,6 +49,16 @@ export async function myMembership(): Promise<{ company_id: string; role: string
   return data ?? null;
 }
 
+export const createWorkspace = (name: string) => rpc('cm_create_workspace', { p_name: name }) as Promise<string>;
+export const listMembers = (companyId: string) => rpc('cm_list_members', { p_company: companyId }) as Promise<{ user_id: string; email: string; role: string }[]>;
+export const addMember = (companyId: string, email: string, role: string) => rpc('cm_add_member', { p_company: companyId, p_email: email, p_role: role });
+export const reopenCase = (id: string, reason: string) => rpc('cm_reopen_case', { p_case: id, p_reason: reason });
+export async function signedDocUrl(path: string) {
+  const { data, error } = await supabase.storage.from('cm-documents').createSignedUrl(path, 300);
+  if (error) throw new Error(error.message);
+  return data.signedUrl;
+}
+
 export async function loadDashboard() {
   const [cases, cycles] = await Promise.all([
     supabase.from('cm_case_view').select('*').order('case_number'),

@@ -22,6 +22,7 @@ create table if not exists cm_members (
 
 create table if not exists cm_settings (
   company_id          uuid primary key,
+  name                text not null default 'My company',
   timezone            text    not null default 'America/Toronto',
   car_response_days   int     not null default 30,
   repair_period_days  int     not null default 120,
@@ -203,15 +204,6 @@ create table if not exists cm_settlement_batches (
 );
 create index if not exists cm_batches_case_idx on cm_settlement_batches(case_id);
 
--- Tie the tenant root to the app's companies table when it exists.
-do $$ begin
-  if to_regclass('public.companies') is not null then
-    begin
-      alter table cm_members add constraint cm_members_company_fk foreign key (company_id) references public.companies(id) on delete cascade;
-    exception when duplicate_object then null; end;
-  end if;
-end $$;
-
 -- ------------------------------------------------------------------ helpers
 create or replace function cm_has_role(p_company uuid, p_roles text[]) returns boolean
 language sql stable security definer set search_path = public as $$
@@ -252,7 +244,7 @@ begin
 end $$;
 
 create or replace function cm_actor() returns text language sql stable as $$
-  select coalesce((select email from auth.users where id = auth.uid()), 'system');
+  select coalesce(nullif(auth.jwt() ->> 'email',''), 'system');
 $$;
 
 -- RPCs set this so locked rows can be transitioned by the sanctioned paths only.
@@ -306,6 +298,10 @@ begin
   if coalesce(current_setting('cm.bypass', true),'') = '1' then return new; end if;
   if old.resolution_status = 'Settled' then
     raise exception 'Item #% is cash-settled and locked.', old.item_number using errcode = 'P0001';
+  end if;
+  if new.resolution_status is distinct from old.resolution_status or new.resolution_method is distinct from old.resolution_method
+     or (new.status is distinct from old.status and new.status in ('Settled','Cash Offer Made')) then
+    raise exception 'Cash status is changed only by the offer, accept and decline actions.' using errcode = 'P0001';
   end if;
   if old.resolution_status = 'Pending' and (new.offer_amount is distinct from old.offer_amount or new.internal_estimate is distinct from old.internal_estimate) then
     raise exception 'Item #% has a cash offer awaiting signature and cannot be re-priced.', old.item_number using errcode = 'P0001';
@@ -570,6 +566,9 @@ declare v_company uuid; r cm_items; nums text[] := '{}'; ids uuid[] := '{}'; tot
 begin
   select company_id, form_type into v_company, v_form from cm_cases where id = p_case;
   if v_company is null then raise exception 'Case not found.'; end if;
+  if exists (select 1 from cm_settlement_batches where case_id = p_case and kind = 'full' and decision = 'OFFERED') then
+    raise exception 'A Full & Final offer is already awaiting a decision for this case. Accept or decline it first.';
+  end if;
   perform cm_bypass_on();
   for r in select * from cm_items where case_id = p_case and resolution_status <> 'Settled' and scope_status <> 'Close'
       and (p_cycle is null or cycle_id = p_cycle) order by item_number loop
@@ -625,31 +624,32 @@ begin
 end $$;
 
 -- Whole-case Full & Final decision. Accepting closes every cycle and the case.
-create or replace function cm_resolve_case_cash(p_case uuid, p_outcome text) returns jsonb language plpgsql as $$
-declare v_company uuid; priced int; pend int; total numeric;
+create or replace function cm_resolve_case_cash(p_case uuid, p_outcome text, p_signed_ref text default '') returns jsonb language plpgsql as $$
+declare priced int; pend int; total numeric;
 begin
   if p_outcome not in ('accepted','declined') then raise exception 'Choose accepted or declined.'; end if;
-  select company_id into v_company from cm_cases where id = p_case;
+  -- items already settled by an earlier partial release are done; only the rest must be a clean pending offer
   select count(*), count(*) filter (where resolution_status = 'Pending'), coalesce(sum(offer_amount),0)
-    into priced, pend, total from cm_items where case_id = p_case and offer_amount > 0;
-  if priced = 0 then raise exception 'There are no priced items on this case.'; end if;
-  if pend <> priced then raise exception 'This is not a clean full-case offer: every priced item must be pending signature. Use the batch tools for a partial settlement.'; end if;
+    into priced, pend, total from cm_items where case_id = p_case and offer_amount > 0 and resolution_status <> 'Settled';
+  if priced = 0 then raise exception 'There are no outstanding priced items on this case.'; end if;
+  if pend <> priced then raise exception 'This is not a clean full-case offer: every outstanding priced item must be pending signature. Use the batch tools for a partial settlement.'; end if;
+  if p_outcome = 'accepted' and nullif(btrim(coalesce(p_signed_ref,'')),'') is null then raise exception 'Enter the signed release document URL or reference before accepting.'; end if;
   perform cm_bypass_on();
   if p_outcome = 'accepted' then
     update cm_items set resolution_status = 'Settled', resolution_date = now(), status = 'Settled',
       last_action = 'FULL-CASE cash settlement ACCEPTED ' || to_char(now(),'YYYY-MM-DD HH24:MI') || ' by ' || cm_actor() || ' — locked; no repair scheduling.'
-    where case_id = p_case and offer_amount > 0;
-    update cm_settlement_batches set decision = 'ACCEPTED', decision_date = now() where case_id = p_case and decision = 'OFFERED';
+    where case_id = p_case and offer_amount > 0 and resolution_status = 'Pending';
+    update cm_settlement_batches set decision = 'ACCEPTED', decision_date = now(), signed_release_ref = p_signed_ref where case_id = p_case and decision = 'OFFERED';
     update cm_cases set status = 'Closed', case_closed_on = now(), manager_status = 'CLOSED', manager_stage = 'CLOSED' where id = p_case;
-    perform cm_audit_log(p_case, 'FULL-CASE CASH SETTLEMENT ACCEPTED — CASE CLOSED', priced || ' priced item(s), $' || total);
-    perform cm_log(p_case, 'Internal Note', cm_actor(), 'Full & Final cash settlement accepted for all priced items. Case closed and all inspection cycles closed. Retain the signed release in Documents.');
+    perform cm_audit_log(p_case, 'FULL-CASE CASH SETTLEMENT ACCEPTED — CASE CLOSED', priced || ' item(s), $' || total || ', ref ' || p_signed_ref);
+    perform cm_log(p_case, 'Internal Note', cm_actor(), 'Full & Final cash settlement accepted. Case closed and all inspection cycles closed. Signed release: ' || p_signed_ref);
   else
     update cm_items set resolution_method = '', resolution_status = '', resolution_date = null, status = 'Open',
       last_action = 'FULL-CASE cash offer DECLINED ' || to_char(now(),'YYYY-MM-DD HH24:MI') || ' by ' || cm_actor() || ' — reopened.'
-    where case_id = p_case and offer_amount > 0;
+    where case_id = p_case and offer_amount > 0 and resolution_status = 'Pending';
     update cm_settlement_batches set decision = 'DECLINED', decision_date = now() where case_id = p_case and decision = 'OFFERED';
-    perform cm_audit_log(p_case, 'FULL-CASE CASH SETTLEMENT DECLINED', priced || ' priced item(s) reopened');
-    perform cm_log(p_case, 'Internal Note', cm_actor(), 'Full-case cash offer declined. All priced items reopened; conciliation remains active.');
+    perform cm_audit_log(p_case, 'FULL-CASE CASH SETTLEMENT DECLINED', priced || ' item(s) reopened');
+    perform cm_log(p_case, 'Internal Note', cm_actor(), 'Full-case cash offer declined. Priced items reopened; conciliation remains active.');
   end if;
   perform cm_bypass_off();
   return jsonb_build_object('outcome', p_outcome, 'updated', priced, 'total', total, 'closed', p_outcome = 'accepted');
@@ -658,10 +658,12 @@ end $$;
 create or replace function cm_route_to_repair(p_item_ids uuid[], p_scheduled date default null) returns int language plpgsql as $$
 declare n int; v_case uuid;
 begin
+  perform cm_bypass_on();
   update cm_items set resolution_method = 'Repair', status = 'Repair Scheduled', scheduled_on = coalesce(p_scheduled, scheduled_on),
     last_action = 'Routed to repair ' || to_char(now(),'YYYY-MM-DD HH24:MI') || ' by ' || cm_actor()
   where id = any(p_item_ids) and resolution_status = '';
   get diagnostics n = row_count;
+  perform cm_bypass_off();
   select case_id into v_case from cm_items where id = any(p_item_ids) limit 1;
   if n > 0 then perform cm_log(v_case, 'Site Visit', cm_actor(), n || ' item(s) routed to repair (not cash)' || coalesce(', scheduled ' || p_scheduled, '') || '.'); end if;
   return n;
@@ -676,7 +678,7 @@ begin
   if p_inspection_date is null then raise exception 'Claim inspection date is required.'; end if;
   if cm_case_is_closed(c) then raise exception 'A closed case cannot be booked for claim inspection.'; end if;
   if c.claim_booked_on is not null then raise exception 'A claim inspection has already been booked for this case.'; end if;
-  select array_agg(id) into eligible from cm_items where case_id = p_case and status <> 'Closed' and car_outcome in ('Warranted','Partially Warranted');
+  select array_agg(id) into eligible from cm_items where case_id = p_case and status <> 'Closed' and resolution_status <> 'Settled' and car_outcome in ('Warranted','Partially Warranted');
   if eligible is null then raise exception 'There are no open warranted or partially warranted items to include in the claim inspection.'; end if;
   today := cm_today(c.company_id);
   -- close only the CAR/repair cycles; Under Investigation is an independent workstream
@@ -712,7 +714,7 @@ begin
 end $$;
 
 -- seeds the lists/settings for a new company (run once per tenant)
-create or replace function cm_seed_company(p_company uuid) returns void language plpgsql as $$
+create or replace function cm_seed_company(p_company uuid) returns void language plpgsql security definer set search_path = public as $$
 begin
   insert into cm_settings(company_id) values (p_company) on conflict do nothing;
   insert into cm_lists(company_id, list_key, "values") values
@@ -738,6 +740,49 @@ begin
     execute format('create policy %I on %I for delete using (cm_has_role(company_id, array[''manager'']))', t || '_del', t);
   end loop;
 end $$;
+drop policy cm_audit_upd on cm_audit; drop policy cm_audit_del on cm_audit;
+drop policy cm_comms_upd on cm_comms; drop policy cm_comms_del on cm_comms;
 alter table cm_members enable row level security;
 create policy cm_members_read on cm_members for select using (user_id = auth.uid() or cm_has_role(company_id, array['manager']));
 create policy cm_members_manage on cm_members for all using (cm_has_role(company_id, array['manager'])) with check (cm_has_role(company_id, array['manager']));
+
+create or replace function cm_reopen_case(p_case uuid, p_reason text) returns void language plpgsql as $$
+begin
+  if nullif(btrim(coalesce(p_reason,'')),'') is null then raise exception 'Give a reason for re-opening.'; end if;
+  update cm_cases set manager_status = 'ACTIVE', closure_reason = '', manager_stage = '', case_closed_on = null,
+    status = case when lower(status) in ('closed','settled','cancelled','cancelled conciliation') then 'Conciliation Requested' else status end where id = p_case;
+  perform cm_audit_log(p_case, 'CASE RE-OPENED', p_reason);
+  perform cm_log(p_case, 'Internal Note', cm_actor(), 'Case re-opened: ' || p_reason || '. Re-open the inspection cycle(s) that are still live.');
+end $$;
+
+-- self-serve workspace: the caller becomes its first manager
+create or replace function cm_create_workspace(p_name text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare v uuid := gen_random_uuid();
+begin
+  if auth.uid() is null then raise exception 'Sign in first.'; end if;
+  if exists (select 1 from cm_members where user_id = auth.uid()) then raise exception 'You already belong to a workspace.'; end if;
+  insert into cm_settings(company_id, name) values (v, coalesce(nullif(btrim(p_name),''), 'My company'));
+  insert into cm_members(company_id, user_id, role) values (v, auth.uid(), 'manager');
+  perform cm_seed_company(v);
+  return v;
+end $$;
+
+-- managers add a teammate who has already signed up (looked up by email; never exposes other accounts)
+create or replace function cm_add_member(p_company uuid, p_email text, p_role text) returns void
+language plpgsql security definer set search_path = public as $$
+declare u uuid;
+begin
+  if not cm_has_role(p_company, array['manager']) then raise exception 'Managers only.'; end if;
+  if p_role not in ('manager','coordinator','viewer') then raise exception 'Invalid role.'; end if;
+  select id into u from auth.users where lower(email) = lower(btrim(p_email));
+  if u is null then raise exception 'No account with that email yet — ask them to sign up first.'; end if;
+  if exists (select 1 from cm_members where user_id = u and company_id <> p_company) then raise exception 'That person already belongs to another workspace.'; end if;
+  insert into cm_members(company_id, user_id, role) values (p_company, u, p_role) on conflict (company_id, user_id) do update set role = excluded.role;
+end $$;
+
+create or replace function cm_list_members(p_company uuid) returns table(user_id uuid, email text, role text)
+language sql security definer set search_path = public as $$
+  select m.user_id, u.email::text, m.role from cm_members m join auth.users u on u.id = m.user_id
+  where m.company_id = p_company and cm_has_role(p_company, array['manager']);
+$$;
