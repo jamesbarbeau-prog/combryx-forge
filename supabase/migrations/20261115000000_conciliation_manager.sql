@@ -786,3 +786,6 @@ language sql security definer set search_path = public as $$
   select m.user_id, u.email::text, m.role from cm_members m join auth.users u on u.id = m.user_id
   where m.company_id = p_company and cm_has_role(p_company, array['manager']);
 $$;
+
+-- seeding is internal (called by cm_create_workspace); no client may call it for an arbitrary company id
+revoke execute on function cm_seed_company(uuid) from public, anon, authenticated;

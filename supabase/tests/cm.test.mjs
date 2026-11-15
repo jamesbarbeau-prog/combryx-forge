@@ -6,7 +6,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m); if(!c) process.exitCode=1;}
 await db.exec(`create schema auth; create table auth.users(id uuid primary key, email text);
 create function auth.jwt() returns jsonb language sql stable as $$ select jsonb_build_object('email', current_setting('request.jwt.email', true)) $$;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub',true),'')::uuid $$;
-create role authenticated nologin; grant usage on schema public, auth to authenticated;
+create role authenticated nologin; create role anon nologin; create role service_role nologin; grant usage on schema public, auth to authenticated;
 create schema storage; create table storage.buckets(id text primary key, name text, public boolean); create table storage.objects(id uuid, bucket_id text, name text); alter table storage.objects enable row level security; create function storage.foldername(text) returns text[] language sql immutable as $$ select string_to_array($1,'/') $$;
 create table warranty_communities(id uuid primary key default gen_random_uuid(), name text);
 create table warranty_lots(id uuid primary key default gen_random_uuid(), company_id uuid, community_id uuid, lot_number text, homeowner_name text, homeowner_email text, phone_primary text, address text, enrollment_number text, closing_date date);`);

@@ -247,6 +247,7 @@ end $$;
 
 -- private bucket for NP letters, CARs, releases and evidence; path = <company_id>/...
 insert into storage.buckets (id, name, public) values ('cm-documents','cm-documents', false) on conflict (id) do nothing;
-create policy cm_docs_read on storage.objects for select using (bucket_id = 'cm-documents' and cm_has_role(((storage.foldername(name))[1])::uuid, array['manager','coordinator','viewer']));
-create policy cm_docs_write on storage.objects for insert with check (bucket_id = 'cm-documents' and cm_has_role(((storage.foldername(name))[1])::uuid, array['manager']));
-create policy cm_docs_update on storage.objects for update using (bucket_id = 'cm-documents' and cm_has_role(((storage.foldername(name))[1])::uuid, array['manager']));
+-- CASE guarantees the bucket test runs before the uuid cast, so other buckets' paths can never raise a cast error
+create policy cm_docs_read on storage.objects for select using (case when bucket_id = 'cm-documents' then cm_has_role(((storage.foldername(name))[1])::uuid, array['manager','coordinator','viewer']) else false end);
+create policy cm_docs_write on storage.objects for insert with check (case when bucket_id = 'cm-documents' then cm_has_role(((storage.foldername(name))[1])::uuid, array['manager']) else false end);
+create policy cm_docs_update on storage.objects for update using (case when bucket_id = 'cm-documents' then cm_has_role(((storage.foldername(name))[1])::uuid, array['manager']) else false end);
