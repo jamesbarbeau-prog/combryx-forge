@@ -1,7 +1,7 @@
 // Dashboard — warranty overview: KPIs, Tarion intake status, conciliation performance by community, action queue.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, RefreshCw, Layers, Users, CalendarDays, FileText, CircleDollarSign } from 'lucide-react';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import * as api from '@/cm/api';
@@ -23,6 +23,8 @@ export default function WarrantyTodayPage() {
   const [pos, setPos] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
   const pf = usePortfolio();
+  const [opened30, setOpened30] = useState<number | null>(null);
+  useEffect(() => { count(supabase.from('cases').select('id', { count: 'exact', head: true }).gte('opened_at', new Date(Date.now() - 30 * 864e5).toISOString()).is('deleted_at', null)).then(setOpened30); }, []);
   const [syncing, setSyncing] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -79,16 +81,15 @@ export default function WarrantyTodayPage() {
   const go = (community: string, stage = 'Active') => nav(`/warranty/conciliation?community=${encodeURIComponent(community)}&stage=${encodeURIComponent(stage)}`);
   const stageOf = (label: string) => label === 'Scheduled' ? 'Scheduled' : label === 'Awaiting CAR' ? 'Awaiting CAR' : 'CAR Received';
 
-  const kpis: { n: number | null; l: string; link?: string; to?: string; tone?: string }[] = [
-    { n: openCases, l: 'Open warranty cases', to: '/warranty/cases' },
-    { n: cm ? new Set(live.map(v => v.case_id)).size : null, l: 'Active conciliations', to: '/warranty/conciliation' },
-    { n: pf.ready ? pf.due30 : null, l: 'Repair periods ending within 30 days', to: '/warranty/communities' },
-    { n: pf.ready ? pf.passed : null, l: 'Repair period passed, items still open', to: '/warranty/communities', tone: pf.passed ? 'r' : '' },
-    { n: cm ? upcoming : null, l: 'Upcoming inspections', link: 'see the list', to: '/warranty/conciliation?stage=Scheduled' },
-    { n: cm ? cashSoon : null, l: 'Cash offers due within 7 days', to: '/warranty/conciliation' },
-    { n: cm ? overdue : null, l: 'Overdue 30-day clocks', to: '/warranty/conciliation?stage=CAR%20Received', tone: overdue ? 'r' : '' },
-    { n: pos, l: 'PO approvals waiting', to: '/warranty/po-requests' },
+  const kpis: { n: number | null; l: string; to: string; icon: typeof Layers; tone: 'steel' | 'brass' | 'red' | 'green'; d?: string; spark?: number[] }[] = [
+    { n: openCases, l: 'Open warranty cases', to: '/warranty/cases', icon: Layers, tone: 'steel', d: opened30 != null ? `${opened30} opened in the last 30 days` : undefined },
+    { n: cm ? new Set(live.map(v => v.case_id)).size : null, l: 'Active conciliations', to: '/warranty/conciliation', icon: Users, tone: 'steel', d: cm ? `${upcoming} inspection${upcoming === 1 ? '' : 's'} upcoming` : undefined },
+    { n: pf.ready ? pf.due30 : null, l: 'Repair deadlines ≤ 30 days', to: '/warranty/communities', icon: CalendarDays, tone: 'brass', spark: pf.spark.ends },
+    { n: pf.ready ? pf.passed : null, l: 'Repair period passed', to: '/warranty/communities', icon: AlertTriangle, tone: 'red', spark: pf.spark.passed },
+    { n: pos, l: 'PO approvals waiting', to: '/warranty/po-requests', icon: FileText, tone: 'steel' },
+    { n: cm ? cashSoon : null, l: 'Cash offers due ≤ 7 days', to: '/warranty/conciliation', icon: CircleDollarSign, tone: 'green', d: cm && overdue ? `${overdue} overdue 30-day clock${overdue === 1 ? '' : 's'}` : undefined },
   ];
+  const TONE = { steel: '#3F6A8F', brass: '#B8903F', red: '#A5402F', green: '#4A7A55' };
 
   return (
     <div className="bgp">
@@ -98,15 +99,15 @@ export default function WarrantyTodayPage() {
         .bgp h1 { font-size: 30px; font-weight: 800; letter-spacing: -0.035em; line-height: 1.1; margin-top: 8px; }
         .bgp h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
         .bgp .sub { color: #485163; font-size: 14px; }
-        .bgp-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-top: 24px; }
-        .bgp-kpi { position: relative; background: #F8F6F1; border-radius: 10px; padding: 24px 22px 20px; border: 1px solid #DDD6C9; overflow: hidden; text-align: left; font-family: inherit; color: inherit; cursor: pointer;
+        .bgp-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 14px; margin-top: 24px; }
+        .bgp-kpi { position: relative; background: #F8F6F1; border-radius: 10px; padding: 16px 16px 16px; min-height: 148px; display: flex; flex-direction: column; align-items: flex-start; border: 1px solid #DDD6C9; overflow: hidden; text-align: left; font-family: inherit; color: inherit; cursor: pointer;
           box-shadow: 0 1px 1px rgba(60,48,28,.05), 0 2px 6px rgba(60,48,28,.04); transition: transform .15s, box-shadow .15s; }
-        .bgp-kpi::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: #B08D4F; }
+        .bgp-kpi::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 0; background: transparent; }
         .bgp-kpi:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(60,48,28,.10); }
         .bgp-kpi:focus-visible { outline: 2px solid #C9A96A; outline-offset: 2px; }
-        .bgp-kpi .n { font-size: 36px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+        .bgp-kpi .n { font-size: 34px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
         .bgp-kpi.r .n { color: #A5402F; }
-        .bgp-kpi .l { font-size: 14.5px; color: #485163; margin-top: 10px; line-height: 1.3; }
+        .bgp-kpi .l { font-size: 13.5px; color: #485163; margin-top: 10px; line-height: 1.3; }
         .bgp-kpi .k { display: block; font-size: 13.5px; font-weight: 600; color: #2F5576; margin-top: 4px; }
         .bgp-banner { margin-top: 22px; background: #F8F6F1; border-radius: 10px; border: 1px solid #DDD6C9; border-left: 6px solid #B08D4F; padding: 20px 24px; display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
           box-shadow: 0 1px 1px rgba(60,48,28,.05), 0 2px 6px rgba(60,48,28,.04); }
@@ -124,7 +125,11 @@ export default function WarrantyTodayPage() {
         .bgp-mini .n { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
         .bgp-mini .l { font-size: 12.5px; color: #485163; margin-top: 2px; }
         .bgp-two { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; margin-top: 34px; align-items: start; }
-        @media (max-width: 1100px) { .bgp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 1300px) { .bgp-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        @media (max-width: 700px) { .bgp-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        .bgp-kpi .d { font-size: 12px; color: #4A7A55; font-weight: 600; margin-top: 6px; }
+        .bgp-kpi .sp { display: block; margin-top: auto; padding-top: 10px; width: 100%; height: 40px; }
+        .bgp-kpi > svg:first-child { display: block; margin-bottom: 8px; }
         @media (max-width: 960px) { .bgp-two { grid-template-columns: 1fr; } .bgp { padding: 22px 14px 56px; } .bgp h1 { font-size: 30px; } .bgp-comms { grid-template-columns: 1fr; } }
         .bgp-card { background: #F8F6F1; border: 1px solid #DDD6C9; border-radius: 10px; padding: 20px 22px 12px; box-shadow: 0 1px 1px rgba(60,48,28,.05), 0 2px 6px rgba(60,48,28,.04); }
         .bgp-card h3 { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
@@ -140,13 +145,25 @@ export default function WarrantyTodayPage() {
       <div className="sub" style={{ marginTop: 8 }}>Community performance, upcoming work, deadlines and new forms from Tarion.</div>
 
       <div className="bgp-kpis">
-        {kpis.map(k => (
-          <button key={k.l} className={`bgp-kpi${k.tone ? ' ' + k.tone : ''}`} onClick={() => k.to && nav(k.to)}>
-            <div className="n">{k.n ?? '—'}</div>
-            <div className="l">{k.l}</div>
-            {k.link && <span className="k">{k.link} ›</span>}
-          </button>
-        ))}
+        {kpis.map(k => {
+          const Icon = k.icon; const col = TONE[k.tone]; const sp = k.spark ?? [];
+          const max = Math.max(1, ...sp); const pts = sp.map((v, i) => `${(i / Math.max(1, sp.length - 1)) * 120},${34 - (v / max) * 28 - 2}`);
+          return (
+            <button key={k.l} className="bgp-kpi" onClick={() => nav(k.to)}>
+              <Icon size={26} strokeWidth={1.5} color={col} />
+              <div className="n" style={k.tone === 'brass' || k.tone === 'red' ? { color: col } : undefined}>{k.n == null ? '—' : k.n.toLocaleString()}</div>
+              <div className="l">{k.l}</div>
+              {k.d && <div className="d">{k.d}</div>}
+              {sp.length > 1 && (
+                <svg className="sp" viewBox="0 0 120 34" preserveAspectRatio="none" aria-hidden="true">
+                  <defs><linearGradient id={`sp-${k.tone}`} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={col} stopOpacity=".28" /><stop offset="1" stopColor={col} stopOpacity="0" /></linearGradient></defs>
+                  <polygon points={`0,34 ${pts.join(' ')} 120,34`} fill={`url(#sp-${k.tone})`} />
+                  <polyline points={pts.join(' ')} fill="none" stroke={col} strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <PortfolioCharts pf={pf} />
