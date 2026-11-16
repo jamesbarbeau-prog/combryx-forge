@@ -445,6 +445,8 @@ export default function WarrantyReportsPage() {
       </div>
 
       {/* Tabs */}
+      <WarrantyQualityLinks />
+
       <div style={{ display: 'flex', gap: 2, marginBottom: 20, borderBottom: '1px solid var(--color-border)' }}>
         {TABS.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -925,6 +927,41 @@ export default function WarrantyReportsPage() {
 
         </>
       )}
+    </div>
+  );
+}
+
+// ─── Warranty performance shortcuts: Aging KPI + deficiency reports ───
+function WarrantyQualityLinks() {
+  const navigate = useNavigate();
+  const [aging, setAging] = useState<{ open: number; over300: number; over120: number } | null>(null);
+  useEffect(() => {
+    let live = true;
+    supabase.rpc('community_aging', { p_community: null, p_file: null }).then(({ data }) => {
+      if (!live) return;
+      const rows = (data ?? []) as { open_items: number; b180: number; b300: number; b300p: number }[];
+      setAging({ open: rows.reduce((a, r) => a + r.open_items, 0), over300: rows.reduce((a, r) => a + r.b300p, 0), over120: rows.reduce((a, r) => a + r.b180 + r.b300 + r.b300p, 0) });
+    });
+    return () => { live = false; };
+  }, []);
+  const card: React.CSSProperties = { textAlign: 'left', background: 'var(--color-panel)', border: '1px solid var(--color-border)', borderRadius: 12, padding: '14px 16px', cursor: 'pointer', fontFamily: 'var(--font-body)', color: 'var(--color-text)' };
+  const items: { title: string; line: string; to: string }[] = [
+    { title: 'Aging', line: aging ? `${aging.open.toLocaleString('en-CA')} open items, ${aging.over300.toLocaleString('en-CA')} over 300 days after closing` : 'Open items by days since closing, per community', to: '/warranty/aging' },
+    { title: 'Deficiencies by trade', line: 'Open, closed and aged items for each trade', to: '/warranty/reports/deficiencies?tab=trade' },
+    { title: 'Deficiencies by technician', line: 'Items finished, no-shows and days to complete', to: '/warranty/reports/deficiencies?tab=tech' },
+    { title: 'Recurring issues', line: 'What keeps coming back, trade by trade', to: '/warranty/reports/deficiencies?tab=recurring' },
+  ];
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text-sub)', marginBottom: 8 }}>Warranty performance</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+        {items.map(i => (
+          <button key={i.title} style={card} onClick={() => navigate(i.to)}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-navy)' }}>{i.title}</div>
+            <div style={{ fontSize: 12.5, color: 'var(--color-text-sub)', marginTop: 4, lineHeight: 1.4 }}>{i.line}</div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

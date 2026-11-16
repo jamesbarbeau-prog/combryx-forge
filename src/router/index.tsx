@@ -12,6 +12,7 @@ import HomesIndexPage      from '@/pages/homesindexpage';
 import CommunityPage       from '@/pages/communitypage';
 import LotDetailPage       from '@/pages/lotdetailpage';
 import AgingPage from '@/pages/agingpage';
+import DeficiencyReportsPage from '@/pages/deficiencyreportspage';
 import MorningPlanPage     from '@/pages/morningplanpage';
 import CasesPage           from '@/pages/casespage';
 import CaseDetailPage      from '@/pages/casedetailpage';
@@ -89,6 +90,7 @@ export const router = createBrowserRouter([
           { path: 'conciliation/:id', element: <ConciliationCasePage /> },
           { path: 'settlements', element: <Navigate to="/warranty/conciliation" replace /> },
           { path: 'reports',     element: <WarrantyReportsPage />        },
+          { path: 'reports/deficiencies', element: <DeficiencyReportsPage /> },
           { path: 'mail',        element: <MailPage />                   },
           { path: 'settings',    element: <SettingsPage />               },
           { path: 'mfa-setup',   element: <MFASetupPage />               },
