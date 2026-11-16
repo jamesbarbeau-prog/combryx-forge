@@ -75,9 +75,9 @@ export default function ConciliationPage() {
   }).sort((a, b) => (a.days_left ?? a.days_to_insp ?? 9999) - (b.days_left ?? b.days_to_insp ?? 9999)), [live, byId, stage, community, q]);
   const pendingIntake = intake.filter(i => i.status === 'pending');
   const stageData = [
-    { label: 'Scheduled', value: stats.scheduled, color: '#2a78d6' },
-    { label: 'Awaiting CAR', value: stats.awaiting, color: '#eb6834' },
-    { label: 'CAR received', value: stats.car, color: '#1baf7a' },
+    { label: 'Scheduled', value: stats.scheduled, color: '#3F7CAC' },
+    { label: 'Awaiting CAR', value: stats.awaiting, color: '#B8903F' },
+    { label: 'CAR received', value: stats.car, color: '#A9C4DB' },
   ];
   const clockData = useMemo(() => {
     const b = [0, 0, 0, 0];
@@ -88,8 +88,8 @@ export default function ConciliationPage() {
     return [
       { label: 'Overdue', value: b[0], color: '#A5402F' },
       { label: '0–7 days', value: b[1], color: '#9A6A16' },
-      { label: '8–14 days', value: b[2], color: '#2a78d6' },
-      { label: '15–30 days', value: b[3], color: '#2a78d6' },
+      { label: '8–14 days', value: b[2], color: '#3F7CAC' },
+      { label: '15–30 days', value: b[3], color: '#3F7CAC' },
     ];
   }, [live, byId]);
   const byCommunity = useMemo(() => {

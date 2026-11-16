@@ -116,7 +116,7 @@ export default function WarrantyLayout() {
             return (
               <div key={n.id}>
                 <div className="bg-navrow">
-                  <button className={`bg-nav${on ? ' on' : ''}`} onClick={() => navigate(n.path)} aria-current={on ? 'page' : undefined} title={n.label}>
+                  <button className={`bg-nav${on ? ' on' : ''}`} onClick={() => { navigate(n.path); if (n.id === 'communities') setCommOpen(true); }} aria-current={on ? 'page' : undefined} title={n.label}>
                     <Icon size={18} strokeWidth={1.8} /><span className="lbl">{n.label}</span>
                     {c != null && <span className="lbl bdg">{c.toLocaleString()}</span>}
                   </button>

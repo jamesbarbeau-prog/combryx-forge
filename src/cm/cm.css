@@ -4,9 +4,9 @@ font-family:'Plus Jakarta Sans',system-ui,sans-serif;color:var(--ink);background
 .cm h1{font-size:30px;font-weight:800;margin:0;letter-spacing:-.03em}.cm h2{font-size:15px;font-weight:700;margin:0 0 12px;letter-spacing:-.01em}
 .cm .sub{color:var(--sub);font-size:12.5px}.cm .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.cm .sp{flex:1}
 .cm .card{background:#fff;border:1px solid #DDD6C9;border-radius:16px;padding:20px;box-shadow:0 10px 26px rgba(30,64,130,.07)}
-.cm .grid{display:grid;gap:12px}.cm .stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.cm .charts{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.cm .tile{width:52px;height:52px;border-radius:13px;background:linear-gradient(145deg,#E4EBF2,#E0E9FB);display:flex;align-items:center;justify-content:center}
+.cm .grid{display:grid;gap:12px}.cm .stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.cm .charts{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.cm .tile{width:52px;height:52px;border-radius:13px;background:#EFEBE2;display:flex;align-items:center;justify-content:center}
 .cm .stat .n{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:6px 0 2px}.cm .stat .l{font-size:12.5px;color:var(--sub);font-weight:600}.cm .stat .h{font-size:12px;color:var(--mut)}
-.cm .stat{position:relative;overflow:hidden;padding-top:22px}.cm .stat::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg,#1E4FA8,#8393AE 55%,#B08D4F)}.cm .stat.r .n{color:#C23B2B}
+.cm .stat{position:relative;overflow:hidden;padding-top:16px}.cm .stat::before{display:none}.cm .stat.r .n{color:#A5402F}
 .cm button,.cm .btn{font:inherit;font-weight:600;font-size:12.5px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 12px;cursor:pointer}
 .cm button:hover{border-color:#CBD5E1;background:#F8FAFC}.cm button.pri{background:var(--blue);border-color:var(--blue);color:#fff}.cm button.pri:hover{background:#2F5576}
 .cm button.danger{color:var(--r);border-color:#FECACA}.cm button:disabled{opacity:.5;cursor:default}
