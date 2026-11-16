@@ -10,6 +10,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { ItemAssessment } from '@/components/itemassessment';
 import ItemPanel from '@/components/itempanel';
+import LotInspections from '@/components/lotinspections';
 import { ScheduleTradesDialog } from '@/components/scheduletrades';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 
@@ -114,6 +115,7 @@ const CHANNEL_CONFIG: Record<string, { icon: IconType; label: string; color: str
 
 const TABS = [
   { key: 'items',        label: 'Items',        icon: Layers        },
+  { key: 'inspections',  label: 'QCI & PDI',    icon: Shield        },
   { key: 'conciliation', label: 'Conciliation', icon: Shield        },
   { key: 'interactions', label: 'Interactions', icon: MessageSquare },
   { key: 'documents',    label: 'Documents',    icon: FileText      },
@@ -722,6 +724,12 @@ export default function CaseDetailPage() {
 
           {/* Tab content */}
           <div style={{ flex:1, overflowY:'auto', padding:'0 24px 24px' }}>
+
+            {activeTab === 'inspections' && (
+              <div style={{ paddingTop:16 }}>
+                {caseData?.lot_id ? <LotInspections lotId={caseData.lot_id} /> : <p style={{ fontSize:13, color:'var(--color-muted)', padding:'40px 0', textAlign:'center' }}>This case is not linked to a home yet, so there are no inspections to show.</p>}
+              </div>
+            )}
 
             {/* ── ITEMS ── */}
             {activeTab === 'items' && (
