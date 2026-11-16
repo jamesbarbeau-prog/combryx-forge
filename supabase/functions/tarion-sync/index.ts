@@ -40,7 +40,9 @@ async function login(): Promise<Session> {
     if (sid && srv) return { sessionId: sid, instance: srv.match(/^https:\/\/[^/]+/)![0] };
     faults.push(`${new URL(url).host}${pw !== pass ? ' (password+token)' : ''}: ${txt.match(/<faultstring>([^<]+)<\/faultstring>/)?.[1] ?? 'HTTP ' + res.status}`);
   }
-  throw new Error('Tarion login failed — ' + faults.join(' | '));
+  let ip = 'unknown';
+  try { ip = (await (await fetch('https://api.ipify.org')).text()).trim(); } catch { /* ignore */ }
+  throw new Error(`Tarion login failed (org id ${org ? 'sent' : 'NOT set'}; outbound IP seen by Tarion: ${ip}) — ` + faults.join(' | '));
 }
 
 async function soql(s: Session, q: string): Promise<Rec[]> {
