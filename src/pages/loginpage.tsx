@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Mail, Lock, User, AlertTriangle, Eye, EyeOff, MailCheck } from 'lucide-react';
 import { BrandShield } from '@/components/identity';
+import { CompanyMark } from '@/components/brand';
+import { useLoginBrand } from '@/lib/branding';
 
 type Mode = 'signin' | 'signup' | 'sent';
 
@@ -14,6 +16,7 @@ export default function LoginPage() {
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
   const [email, setEmail] = useState('');
+  const brand = useLoginBrand(email);
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -81,8 +84,10 @@ export default function LoginPage() {
 
       <aside className="lg-side" aria-hidden="true">
         <div className="lg-brand">
-          <BrandShield size={52} />
-          <div className="lg-name"><b>Builder<br />Guardian<sup>™</sup></b><span>Warranty Control Centre</span></div>
+          <CompanyMark size={brand.logo ? 76 : 52} brand={brand} />
+          {brand.logo
+            ? <div className="lg-name"><b style={{ fontSize: 17 }}>{brand.name ?? 'Warranty'}</b><span>Warranty Control Centre</span></div>
+            : <div className="lg-name"><b>Builder<br />Guardian<sup>™</sup></b><span>Warranty Control Centre</span></div>}
         </div>
         <p className="lg-line">Every claim, every lot, every defence, kept in one place.</p>
         <div className="lg-art" />
@@ -90,7 +95,7 @@ export default function LoginPage() {
 
       <main className="lg-main">
         <div className="lg-card">
-          <div className="lg-mobile-brand"><BrandShield size={40} /><b>Builder Guardian</b></div>
+          <div className="lg-mobile-brand"><CompanyMark size={brand.logo ? 56 : 40} brand={brand} /><b>{brand.logo ? (brand.name ?? 'Warranty') : 'Builder Guardian'}</b></div>
 
           {mode === 'sent' ? (
             <div className="lg-body" style={{ textAlign: 'center' }}>
@@ -142,7 +147,7 @@ export default function LoginPage() {
             </div>
           )}
         </div>
-        <p className="lg-foot">Builder Guardian. Private to company staff.</p>
+        <p className="lg-foot">{brand.logo && brand.name ? `${brand.name}. ` : 'Builder Guardian. '}Private to company staff.</p>
       </main>
     </div>
   );

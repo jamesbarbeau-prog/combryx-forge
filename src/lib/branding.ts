@@ -33,3 +33,22 @@ export function useBrand(): Brand {
   useEffect(() => { subs.add(setB); refreshBrand(); return () => { subs.delete(setB); }; }, []);
   return b;
 }
+
+function remember(b: Brand) { current = b; try { localStorage.setItem(LS, JSON.stringify(b)); } catch { /* ignore */ } subs.forEach(f => f(b)); }
+
+/** Sign-in page: the company that owns this email (work domain or invite), else the one remembered on this device. */
+export function useLoginBrand(email: string): Brand {
+  const saved = useBrand();
+  const [found, setFound] = useState<Brand | null>(null);
+  useEffect(() => {
+    const e = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(e)) { setFound(null); return; }
+    const t = setTimeout(async () => {
+      const { data } = await supabase.rpc('brand_for_email', { p_email: e });
+      const r = (data as { name: string | null; logo: string | null }[] | null)?.[0];
+      if (r) { const b = { name: r.name ?? null, logo: r.logo ?? null }; setFound(b); remember(b); } else setFound(null);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [email]);
+  return found ?? saved;
+}

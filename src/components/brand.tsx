@@ -1,7 +1,7 @@
 // Builder Guardian brand mark + wordmark.
 import { GuardianSignatureIcon } from '@/components/icons/GuardianSignatureIcons';
 import { BrandShield } from '@/components/identity';
-import { useBrand } from '@/lib/branding';
+import { useBrand, type Brand } from '@/lib/branding';
 
 /** The shield sits on a white tile so it reads on navy and on white alike. */
 export function BrandMark({ size = 34 }: { size?: number }) {
@@ -26,8 +26,8 @@ export function Wordmark({ dark = false, size = 15 }: { dark?: boolean; size?: n
 }
 
 /** The company's own logo on a white tile; the Builder Guardian shield until they upload one. */
-export function CompanyMark({ size = 44 }: { size?: number }) {
-  const b = useBrand();
+export function CompanyMark({ size = 44, brand }: { size?: number; brand?: Brand }) {
+  const own = useBrand(); const b = brand ?? own;
   if (!b.logo) return <BrandShield size={size} />;
   return (
     <div style={{ width: size, height: size, borderRadius: Math.round(size * 0.2), background: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: Math.round(size * 0.06), boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>

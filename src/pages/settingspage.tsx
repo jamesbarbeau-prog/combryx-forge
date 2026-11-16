@@ -130,7 +130,7 @@ function CompanyTab() {
   }
   async function save() {
     setSaving(true);
-    const { error } = await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
+    const { error } = await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings }, { onConflict: 'company_id' });
     setSaving(false);
     if (error) { setSaveErr(error.message); return; }
     setSaveErr(''); setSaved(true); setTimeout(() => setSaved(false), 2000); refreshBrand();
@@ -214,7 +214,7 @@ function TarionTab() {
   function set(key: string, val: string) { setSettings((p: any) => ({ ...p, [key]: val })); }
   async function saveProfile() {
     setSaving(true);
-    await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
+    await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings }, { onConflict: 'company_id' });
     setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
   }
 
