@@ -22,6 +22,8 @@ import TarionImportPage from '@/pages/tarianimportpage';
 import QDefImportPage from '@/pages/qdefimportpage';
 import DeficiencyImportPage from '@/pages/deficiencyimportpage';
 import TradesImportPage from '@/pages/tradesimportpage';
+import WorkOrderPortalPage from '@/pages/workorderportalpage';
+import VisitCheckPage from '@/pages/visitcheckpage';
 
 
 
@@ -30,6 +32,8 @@ import TradesImportPage from '@/pages/tradesimportpage';
 
 export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/warranty/today" replace /> },
+  { path: '/portal/work-order/:token', element: <WorkOrderPortalPage /> },
+  { path: '/portal/visit/:token', element: <VisitCheckPage /> },
   {
     path: '/warranty',
     children: [

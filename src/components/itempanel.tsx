@@ -1,9 +1,10 @@
 // Item panel: a right-hand slide-over for one warranty item. Tabs keep each job in its own window:
 // Details | AI assessment | Evidence | Trade & work order | History.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { X, Camera, Upload, Lock, Wrench, CheckCircle2 } from 'lucide-react';
+import { X, Camera, Upload, Lock, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ItemAssessment } from '@/components/itemassessment';
+import { SendWorkOrder, WO_COLS, SWO_CSS, type WOFull } from '@/components/sendworkorder';
 
 interface Item {
   id: string; company_id: string; case_id: string | null; item_number: number | null; room: string | null; floor_level: string | null;
@@ -12,7 +13,7 @@ interface Item {
   decision_notes: string | null; completed_at: string | null; chargeable: boolean | null;
 }
 interface Evidence { id: string; evidence_type: string; phase: string | null; file_url: string | null; file_name: string | null; notes: string | null; captured_at: string; is_locked: boolean | null }
-interface WorkOrder { id: string; status: string | null; issue: string; created_at: string | null; scheduled_time: string | null }
+type WorkOrder = WOFull;
 interface Trade { id: string; trade_name: string; trade_type: string | null }
 
 const TABS = [
@@ -58,10 +59,10 @@ export default function ItemPanel({ itemId, onClose, onChanged }: { itemId: stri
     if (it.case_id) {
       const { data: c } = await supabase.from('cases').select('lot_id').eq('id', it.case_id).maybeSingle();
       if (c?.lot_id) {
-        const { data: lot } = await supabase.from('lots').select('address, civic_number, street, lot_number').eq('id', c.lot_id).maybeSingle();
+        const { data: lot } = await supabase.from('warranty_lots').select('address, civic_number, street, lot_number').eq('id', c.lot_id).maybeSingle();
         setAddress({ lotId: c.lot_id, text: lot?.address ?? (`${lot?.civic_number ?? ''} ${lot?.street ?? ''}`.trim() || `Lot ${lot?.lot_number ?? ''}`) });
       }
-      const { data: wo } = await supabase.from('work_orders').select('id,status,issue,created_at,scheduled_time').eq('case_id', it.case_id).contains('custom_fields', { item_id: itemId }).order('created_at', { ascending: false });
+      const { data: wo } = await supabase.from('work_orders').select(WO_COLS).eq('case_id', it.case_id).contains('custom_fields', { item_id: itemId }).order('created_at', { ascending: false });
       setOrders((wo ?? []) as WorkOrder[]);
     }
   }, [itemId]);
@@ -126,7 +127,7 @@ export default function ItemPanel({ itemId, onClose, onChanged }: { itemId: stri
 
   return (
     <>
-      <style>{CSS}</style>
+      <style>{CSS}{SWO_CSS}</style>
       <div className="ip-scrim" onClick={onClose} />
       <aside className="ip" role="dialog" aria-label="Warranty item">
         <header className="ip-h">
@@ -186,7 +187,7 @@ export default function ItemPanel({ itemId, onClose, onChanged }: { itemId: stri
               </select>
               <label className="ip-l" style={{ marginTop: 18 }}>Work orders for this item</label>
               {orders.length === 0 && <div className="ip-m">None yet. Once a trade is assigned you can create one here.</div>}
-              {orders.map(w => <div key={w.id} className="ip-wo"><Wrench size={15} /><div><b>{w.issue}</b><small>{w.status ?? 'queued'} · created {fmt(w.created_at)}</small></div></div>)}
+              {orders.map(w => <SendWorkOrder key={w.id + (w.portal_sent_at ?? '')} order={w} tradeName={item.trade_required} address={address.text} onChanged={() => { load(); onChanged?.(); }} />)}
               <button className="ip-btn primary" style={{ marginTop: 10 }} onClick={createWorkOrder} disabled={!item.trade_required || busy === 'wo' || !item.case_id}>
                 <CheckCircle2 size={14} />{busy === 'wo' ? 'Creating…' : 'Create work order'}
               </button>

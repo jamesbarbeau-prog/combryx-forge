@@ -7,6 +7,7 @@ import {
   DollarSign, Layers, ChevronRight, Mail,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { VisitChecksPanel } from '@/components/visitchecks';
 import { format, addDays, startOfWeek, isSameDay, isToday, isTomorrow, isPast } from 'date-fns';
 
 // ─── Types ────────────────────────────────────────────────────
@@ -930,6 +931,9 @@ export default function WorkOrdersPage() {
           </div>
         </div>
       )}
+
+      {/* Portal visit checks */}
+      <VisitChecksPanel />
 
       {/* Create WO form */}
       {showCreate && (
