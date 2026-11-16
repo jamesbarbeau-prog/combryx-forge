@@ -434,7 +434,7 @@ export default function SettingsPage() {
 
 interface WUser {
   id: string; first_name: string; last_name: string;
-  email: string; phone: string | null; access_level: string; is_active: boolean;
+  email: string; phone: string | null; access_level: string; role?: string; is_active: boolean;
 }
 interface WTechProfile {
   id: string; user_id: string; tech_type: string;
@@ -457,15 +457,20 @@ export function WarrantyTeamTab() {
   const [expandedUser,   setExpandedUser]   = useState<string | null>(null);
   const [activeView,     setActiveView]     = useState<'team'|'sites'>('team');
   const [toast,          setToast]          = useState('');
+  const [cmRoles,        setCmRoles]        = useState<Record<string,string>>({});
+  const [levelDraft,     setLevelDraft]     = useState<Record<string,string>>({});
+  const [levelErr,       setLevelErr]       = useState<Record<string,string>>({});
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
-    const [uRes, cRes, tRes, ucRes] = await Promise.all([
-      supabase.from('users').select('id,first_name,last_name,email,phone,access_level,is_active').eq('company_id', COMPANY_ID).eq('is_active', true).order('first_name'),
+    const [uRes, cRes, tRes, ucRes, cmRes] = await Promise.all([
+      supabase.from('users').select('id,first_name,last_name,email,phone,access_level,role,is_active').eq('company_id', COMPANY_ID).eq('is_active', true).order('first_name'),
       supabase.from('warranty_communities').select('id,name').eq('company_id', COMPANY_ID).order('name'),
       supabase.from('tech_profiles').select('*').eq('company_id', COMPANY_ID),
       supabase.from('user_communities').select('*'),
+      supabase.from('cm_members').select('user_id,role'),
     ]);
+    if (cmRes.data) { const m: Record<string,string> = {}; (cmRes.data as any[]).forEach(r => m[r.user_id] = r.role); setCmRoles(m); }
     if (uRes.data)  setUsers(uRes.data as WUser[]);
     if (cRes.data)  setCommunities(cRes.data as WCommunity[]);
     if (tRes.data)  { const m: Record<string,WTechProfile> = {}; (tRes.data as WTechProfile[]).forEach(t => m[t.user_id]=t); setTechProfiles(m); }
@@ -477,10 +482,16 @@ export function WarrantyTeamTab() {
 
   function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2200); }
 
+  const levelOf = (u: WUser) => (u.access_level === 'company' || u.access_level === 'owner' ? 'admin'
+    : (u.role === 'manager' || u.access_level === 'manager') ? 'manager'
+    : cmRoles[u.id] === 'coordinator' ? 'coordinator' : 'viewer');
+
   async function saveRole(userId: string, level: string) {
-    setSaving(userId+'_role');
-    await supabase.from('users').update({ access_level: level }).eq('id', userId);
-    await fetchAll(); setSaving(null); showToast('Role saved');
+    setSaving(userId+'_role'); setLevelErr(e => ({ ...e, [userId]: '' }));
+    const { error } = await supabase.rpc('set_staff_level', { p_user: userId, p_level: level });
+    if (error) { setLevelErr(e => ({ ...e, [userId]: error.message })); setSaving(null); return; }
+    await fetchAll(); setSaving(null); setLevelDraft(d => { const n = { ...d }; delete n[userId]; return n; });
+    showToast('Access saved. They need to sign out and back in for it to apply.');
   }
 
   async function saveTech(userId: string, updates: Partial<WTechProfile>) {
@@ -594,12 +605,22 @@ export function WarrantyTeamTab() {
                   <div style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-mist)', padding: 18 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
 
-                      {/* Role */}
+                      {/* Access level */}
                       <div>
-                        <label style={lbl}>Role</label>
-                        <select defaultValue={user.access_level} onBlur={async e => { if (e.target.value !== user.access_level) await saveRole(user.id, e.target.value); }} style={inp} onFocus={focus}>
-                          {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                        </select>
+                        <label style={lbl}>Access level</label>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <select value={levelDraft[user.id] ?? levelOf(user)} onChange={e => setLevelDraft(d => ({ ...d, [user.id]: e.target.value }))} style={inp} onFocus={focus} onBlur={blur}>
+                            <option value="viewer">Staff (view only)</option>
+                            <option value="coordinator">Coordinator</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Administrator</option>
+                          </select>
+                          <button disabled={saving === user.id+'_role' || (levelDraft[user.id] ?? levelOf(user)) === levelOf(user)} onClick={() => saveRole(user.id, levelDraft[user.id] ?? levelOf(user))}
+                            style={{ height: 34, padding: '0 16px', borderRadius: 8, border: 'none', background: '#1B2A41', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: (levelDraft[user.id] ?? levelOf(user)) === levelOf(user) ? 0.4 : 1, fontFamily: 'inherit' }}>
+                            {saving === user.id+'_role' ? 'Saving…' : 'Save'}
+                          </button>
+                        </div>
+                        {levelErr[user.id] && <p style={{ fontSize: 12, color: '#A5402F', marginTop: 4 }}>{levelErr[user.id]}</p>}
                       </div>
 
                       {/* Tech type */}
