@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { StaffAccess } from '@/components/staffaccess';
 import { getCompanyId } from '@/lib/company';
 import {
   Building2, Check, Upload, Shield, Users, Mail, Lock, Plus, X, RefreshCw,
@@ -367,6 +368,7 @@ function TarionTab() {
 /* ── SECURITY TAB ── */
 function SecurityTab() {
   return (
+    <>
     <div className="forge-card" style={{ padding: 24 }}>
       <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Two-step sign-in</p>
       <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16, lineHeight: 1.6 }}>Add an authenticator app to your account so a stolen password is not enough.</p>
@@ -374,6 +376,8 @@ function SecurityTab() {
         <Shield size={13} /> Set up two-step sign-in
       </Link>
     </div>
+    <StaffAccess />
+    </>
   );
 }
 

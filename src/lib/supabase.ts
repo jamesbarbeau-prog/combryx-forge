@@ -9,7 +9,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
+// The sign-in lives in sessionStorage: closing the tab or browser signs you out (it is not kept in localStorage).
+try { Object.keys(localStorage).filter(k => /^sb-.*-auth-token/.test(k)).forEach(k => localStorage.removeItem(k)); } catch { /* storage blocked */ }
+
 export const supabase = createClient(
   supabaseUrl ?? 'https://placeholder.supabase.co',
-  supabaseAnonKey ?? 'placeholder-anon-key'
+  supabaseAnonKey ?? 'placeholder-anon-key',
+  { auth: { storage: window.sessionStorage, persistSession: true, autoRefreshToken: true } }
 );

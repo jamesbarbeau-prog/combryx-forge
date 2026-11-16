@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Camera, Upload, Lock, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getCompanyId } from '@/lib/company';
 import { ItemAssessment } from '@/components/itemassessment';
 import { SendWorkOrder, WO_COLS, SWO_CSS, type WOFull } from '@/components/sendworkorder';
 
@@ -88,7 +89,7 @@ export default function ItemPanel({ itemId, onClose, onChanged }: { itemId: stri
     try {
       const type = EVIDENCE_TYPES.find(t => t.id === upType)!;
       const ext = file.name.split('.').pop();
-      const path = `evidence/${item.case_id}/${item.id}/${type.id}_${Date.now()}.${ext}`;
+      const path = `${await getCompanyId()}/evidence/${item.case_id}/${item.id}/${type.id}_${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('case-documents').upload(path, file);
       if (upErr) throw upErr;
       const { data: u } = supabase.storage.from('case-documents').getPublicUrl(path);

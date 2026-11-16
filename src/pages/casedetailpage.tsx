@@ -383,7 +383,7 @@ export default function CaseDetailPage() {
     setUploadingEvidence(itemId);
     try {
       const ext = file.name.split('.').pop();
-      const path = `evidence/${caseData.id}/${itemId}/${evidenceType}_${Date.now()}.${ext}`;
+      const path = `${profile.company_id}/evidence/${caseData.id}/${itemId}/${evidenceType}_${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from('case-documents').upload(path, file);
       if (upErr) throw upErr;
       const { data: urlData } = supabase.storage.from('case-documents').getPublicUrl(path);
