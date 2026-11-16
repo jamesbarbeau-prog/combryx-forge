@@ -24,6 +24,9 @@ import DeficiencyImportPage from '@/pages/deficiencyimportpage';
 import TradesImportPage from '@/pages/tradesimportpage';
 import WorkOrderPortalPage from '@/pages/workorderportalpage';
 import VisitCheckPage from '@/pages/visitcheckpage';
+import FieldLayout from '@/pages/field/fieldlayout';
+import FieldHome from '@/pages/field/fieldhome';
+import InspectionPage from '@/pages/field/inspectionpage';
 
 
 
@@ -34,6 +37,14 @@ export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/warranty/today" replace /> },
   { path: '/portal/work-order/:token', element: <WorkOrderPortalPage /> },
   { path: '/portal/visit/:token', element: <VisitCheckPage /> },
+  {
+    path: '/field',
+    element: (<ProtectedRoute><FieldLayout /></ProtectedRoute>),
+    children: [
+      { index: true, element: <FieldHome /> },
+      { path: 'inspection/:id', element: <InspectionPage /> },
+    ],
+  },
   {
     path: '/warranty',
     children: [
