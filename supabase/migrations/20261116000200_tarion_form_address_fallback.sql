@@ -1,0 +1,5 @@
+-- Applied live as migration `tarion_form_address_fallback`.
+-- tw_ingest_form: when no lot carries the form's enrolment number, fall back to the street address
+-- (only if exactly one lot matches; fills the lot's enrolment number if it was blank).
+-- Helper tw_norm_street(text) normalises "154 Winterhaven Drive, Ottawa" and "154 Winterhaven Dr" to the same key.
+-- Full function body: see `select pg_get_functiondef('public.tw_ingest_form(uuid,jsonb)'::regprocedure)` on the live project.
