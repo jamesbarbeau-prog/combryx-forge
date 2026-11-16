@@ -56,7 +56,8 @@ function filterIrrelevantResults(description: string, results: any[]) {
     for (const lock of tradeLocks) {
       if (lock.nouns.some((n) => desc.includes(n)) && lock.forbidden.some((f) => content.includes(f))) return false;
     }
-    for (const n of hardNouns) if (desc.includes(n) && !content.includes(n)) return false;
+    // A noun like "stair" or "cabinet" in a PAINT or SCRATCH item is where the defect is, not what it is, so only hold to it for non-cosmetic items.
+    if (!isCosmetic(description)) for (const n of hardNouns) if (new RegExp('\\b' + n).test(desc) && !new RegExp('\\b' + n).test(content)) return false;
     const score = item.similarity || item.score || 0;
     if (i > 0 && top - score > 0.18) return false;
     return score > 0.52;
@@ -84,13 +85,22 @@ async function embedding(text: string): Promise<number[] | null> {
   } catch (e) { console.error('embedding failed', e); return null; }
 }
 
+// The keyword half of the search wants a few meaningful words joined with OR. Passing the whole sentence makes Postgres
+// require EVERY word to match, which finds nothing for a long description (this is why "paint imperfection on staircase wall"
+// never reached CPG 9.9, Paint finish is unacceptable).
+const STOP = new Set('the a an on in at of to and or is are was were has have had there this that it its with for from by be been not no into onto over under very some any all can could should would will near next one two per as if but also please see'.split(' '));
+function keywords(description: string): string {
+  const words = description.toLowerCase().replace(/[^a-z\s-]/g, ' ').split(/\s+/).map(w => w.replace(/^-+|-+$/g, '')).filter(w => w.length > 2 && !STOP.has(w));
+  return [...new Set(words)].slice(0, 12).join(' or ');
+}
+
 type Found = { sections: string[]; content: string; found: boolean };
 const none: Found = { found: false, sections: [], content: '' };
 
 async function search(admin: any, kind: 'obc' | 'cpg', description: string): Promise<Found> {
   const emb = await embedding(description);
   if (!emb) return none;
-  const args: any = { query_text: description, query_embedding: emb, match_count: 5 };
+  const args: any = { query_text: keywords(description) || description, query_embedding: emb, match_count: 6 };
   if (kind === 'cpg') { args.full_text_weight = 1.8; args.vector_weight = 1.0; }
   const { data, error } = await admin.rpc(kind === 'obc' ? 'hybrid_search_obc' : 'hybrid_search_cpg', args);
   if (error || !data?.length) return none;
