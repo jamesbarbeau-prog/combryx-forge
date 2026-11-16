@@ -12,13 +12,13 @@ const needsClose = (i: Item) => i.list === 'deficiency' || (i.list === 'si_check
 const fmt = (s: string | null) => s ? new Date(s).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 const statusOf = (i: Item) => i.res_status === 'fixed' ? ['Closed with photo', '#4A7A55'] : i.res_status === 'override' ? ['Closed by warranty override', '#4A7A55'] : i.res_status === 'verified' ? ['Verified', '#4A7A55'] : i.override_status === 'requested' ? ['Override requested', '#2F5576'] : i.override_status === 'denied' ? ['Override denied, still open', '#A5402F'] : ['Open with construction', '#9A6A16'];
 
-export default function LotInspections({ lotId }: { lotId: string }) {
+export default function LotInspections({ lotId, kind }: { lotId: string; kind?: 'qci' | 'pdi' }) {
   const [rows, setRows] = useState<Insp[] | null>(null); const [items, setItems] = useState<Item[]>([]); const [photos, setPhotos] = useState<Ph[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({}); const [msg, setMsg] = useState('');
 
   const load = useCallback(async () => {
     const { data: ins } = await supabase.from('inspections').select('id,kind,status,inspector_name,super_name,super_email,owner_names,started_at,completed_at,pdf_path,super_token,owner_token,purchaser_present').eq('lot_id', lotId).neq('status', 'cancelled').order('started_at', { ascending: false });
-    const list = (ins ?? []) as Insp[]; setRows(list);
+    const list = ((ins ?? []) as Insp[]).filter(r => !kind || r.kind === kind); setRows(list);
     if (!list.length) { setItems([]); setPhotos([]); return; }
     const ids = list.map(i => i.id);
     const [it, ph] = await Promise.all([
@@ -27,7 +27,7 @@ export default function LotInspections({ lotId }: { lotId: string }) {
     ]);
     setItems((it.data ?? []) as Item[]); const p = (ph.data ?? []) as Ph[]; setPhotos(p);
     if (p.length) { const { data } = await supabase.storage.from('inspection-photos').createSignedUrls(p.map(x => x.storage_path), 3600); const m: Record<string, string> = {}; (data ?? []).forEach((s, i) => { if (s.signedUrl) m[p[i].id] = s.signedUrl; }); setUrls(m); }
-  }, [lotId]);
+  }, [lotId, kind]);
   useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
 
   const [rebuilding, setRebuilding] = useState<string | null>(null);
@@ -41,8 +41,8 @@ export default function LotInspections({ lotId }: { lotId: string }) {
   const nav = useNavigate();
   const startBtns = (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-      <button onClick={() => nav(`/field?lot=${lotId}&start=qci`)} style={{ height: 40, borderRadius: 8, border: 'none', background: '#1B2A41', color: '#fff', fontWeight: 800, fontSize: 14, padding: '0 16px', cursor: 'pointer', fontFamily: 'inherit' }}>Start QCI</button>
-      <button onClick={() => nav(`/field?lot=${lotId}&start=pdi`)} style={{ height: 40, borderRadius: 8, border: 'none', background: 'linear-gradient(180deg,#B8975A,#8D7140)', color: '#fff', fontWeight: 800, fontSize: 14, padding: '0 16px', cursor: 'pointer', fontFamily: 'inherit' }}>Start PDI</button>
+      {(!kind || kind === 'qci') && <button onClick={() => nav(`/field?lot=${lotId}&start=qci`)} style={{ height: 40, borderRadius: 8, border: 'none', background: '#1B2A41', color: '#fff', fontWeight: 800, fontSize: 14, padding: '0 16px', cursor: 'pointer', fontFamily: 'inherit' }}>Start QCI</button>}
+      {(!kind || kind === 'pdi') && <button onClick={() => nav(`/field?lot=${lotId}&start=pdi`)} style={{ height: 40, borderRadius: 8, border: 'none', background: 'linear-gradient(180deg,#B8975A,#8D7140)', color: '#fff', fontWeight: 800, fontSize: 14, padding: '0 16px', cursor: 'pointer', fontFamily: 'inherit' }}>Start PDI</button>}
     </div>
   );
   const btn: React.CSSProperties = { height: 34, borderRadius: 8, border: '1px solid var(--color-border-hard)', background: '#fff', fontWeight: 700, fontSize: 13, padding: '0 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)' };
@@ -74,6 +74,7 @@ export default function LotInspections({ lotId }: { lotId: string }) {
             </div>
             <div style={{ display: 'flex', gap: 8, margin: '12px 0', flexWrap: 'wrap' }}>
               {r.pdf_path && <button style={btn} onClick={() => pdf(r.pdf_path!)}><FileText size={14} /> {r.kind === 'pdi' ? 'Official PDI form (signed PDF)' : 'QCI report (PDF)'}</button>}
+              {r.status !== 'in_progress' && <a style={{ ...btn, textDecoration: 'none', color: 'inherit', background: '#EFEBE2' }} href={`/portal/inspection/${r.super_token}`} target="_blank" rel="noreferrer"><ClipboardCheck size={14} /> Update items (close with photo)</a>}
               {r.status !== 'in_progress' && <button style={btn} onClick={() => copy(r.super_token)}><Copy size={14} /> Superintendent link</button>}
               {r.kind === 'pdi' && r.status !== 'in_progress' && <button style={btn} onClick={() => copy(r.owner_token)}><Copy size={14} /> Owner link</button>}
               {r.status !== 'in_progress' && <button style={btn} disabled={rebuilding === r.id} onClick={() => rebuild(r.id)}>{rebuilding === r.id ? 'Rebuilding…' : 'Rebuild PDF'}</button>}
