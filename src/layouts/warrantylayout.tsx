@@ -1,7 +1,7 @@
 // App shell: left rail (navigation + the 9 communities), slim top bar (search), content area.
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Building2, FolderOpen, Scale, Wrench, ClipboardCheck, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, ChevronRight, Bell } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
 import { supabase } from '@/lib/supabase';
 import { BrandShield } from '@/components/identity';
@@ -12,7 +12,6 @@ interface CommCount { community_id: string; name: string; lots: number; open_cas
 type CountKey = 'cases' | 'conc' | 'wo' | 'po';
 const NAV: { id: string; label: string; path: string; icon: typeof Home; count?: CountKey }[] = [
   { id: 'today',        label: 'Dashboard',    path: '/warranty/today',        icon: LayoutDashboard },
-  { id: 'communities',  label: 'Communities',  path: '/warranty/communities',  icon: Building2 },
   { id: 'cases',        label: 'Cases',        path: '/warranty/cases',        icon: FolderOpen, count: 'cases' },
   { id: 'conciliation', label: 'Conciliation', path: '/warranty/conciliation', icon: Scale, count: 'conc' },
   { id: 'work-orders',  label: 'Work Orders',  path: '/warranty/work-orders',  icon: Wrench, count: 'wo' },
@@ -23,8 +22,7 @@ const NAV: { id: string; label: string; path: string; icon: typeof Home; count?:
 const safeCount = async (q: PromiseLike<{ count: number | null; error: unknown }>) => { try { const r = await q; return r.error ? null : (r.count ?? 0); } catch { return null; } };
 
 function navOn(id: string, path: string, pathname: string) {
-  if (id === 'lots') return pathname.startsWith('/warranty/lots');
-  if (id === 'communities') return pathname === '/warranty/communities';
+  if (id === 'lots') return pathname.startsWith('/warranty/lots') || pathname.startsWith('/warranty/communities');
   return pathname === path || pathname.startsWith(path + '/');
 }
 
@@ -38,8 +36,6 @@ export default function WarrantyLayout() {
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [counts, setCounts] = useState<Partial<Record<CountKey, number | null>>>({});
-  const [commOpen, setCommOpen] = useState(false);
-  const [comms, setComms] = useState<CommCount[]>([]);
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [drawer, setDrawer] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
@@ -74,9 +70,7 @@ export default function WarrantyLayout() {
       setCounts({ cases, conc, wo, po });
     })();
   }, []);
-  useEffect(() => { supabase.rpc('community_counts').then(({ data }) => setComms((data ?? []) as CommCount[])); }, []);
   useEffect(() => { setDrawer(false); setUserMenu(false); }, [pathname]);
-  useEffect(() => { if (/^\/warranty\/communities\//.test(pathname)) setCommOpen(true); }, [pathname]);
   useEffect(() => {
     const close = (e: MouseEvent) => { if (userRef.current && !userRef.current.contains(e.target as Node)) setUserMenu(false); };
     document.addEventListener('mousedown', close);
@@ -96,8 +90,6 @@ export default function WarrantyLayout() {
   const display = fullName || (email.split('@')[0] || '').replace(/[._-]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   const initials = (fullName ? fullName.split(/\s+/).map(w => w[0]).join('') : (email.split('@')[0] || '?').split(/[._-]/).map(w => w[0]).join('')).slice(0, 2).toUpperCase() || '?';
   const todayLabel = new Date().toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  const activeComm = /^\/warranty\/communities\/([^/]+)/.exec(pathname)?.[1];
-  const commsOn = pathname === '/warranty/communities';
 
   return (
     <div className={`bg-app${collapsed ? ' is-collapsed' : ''}${drawer ? ' is-drawer' : ''}`} style={{ fontFamily: 'var(--font-body)' }}>
@@ -116,21 +108,11 @@ export default function WarrantyLayout() {
             return (
               <div key={n.id}>
                 <div className="bg-navrow">
-                  <button className={`bg-nav${on ? ' on' : ''}`} onClick={() => { navigate(n.path); if (n.id === 'communities') setCommOpen(true); }} aria-current={on ? 'page' : undefined} title={n.label}>
+                  <button className={`bg-nav${on ? ' on' : ''}`} onClick={() => navigate(n.path)} aria-current={on ? 'page' : undefined} title={n.label}>
                     <Icon size={18} strokeWidth={1.8} /><span className="lbl">{n.label}</span>
                     {c != null && <span className="lbl bdg">{c.toLocaleString()}</span>}
                   </button>
-                  {n.id === 'communities' && comms.length > 0 && <button className="bg-exp lbl" onClick={() => setCommOpen(v => !v)} aria-label={commOpen ? 'Hide communities' : 'Show communities'} aria-expanded={commOpen}>{commOpen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}</button>}
                 </div>
-                {n.id === 'communities' && commOpen && (
-                  <div className="bg-comms">
-                    {comms.map(cm => (
-                      <button key={cm.community_id} className={`bg-comm${activeComm === cm.community_id ? ' on' : ''}`} onClick={() => navigate(`/warranty/communities/${cm.community_id}`)} title={`${cm.name} · ${cm.lots} homes · ${cm.open_cases} open cases`}>
-                        <span className="nm">{cm.name}</span><span className="ct">{cm.open_cases}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
             );
           })}

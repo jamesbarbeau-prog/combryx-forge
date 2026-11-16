@@ -47,9 +47,11 @@ export async function importTrackerWorkbook(file: File, companyId: string, onSte
   { const { data, error } = await supabase.from('cm_cases').select('id, case_number').eq('company_id', companyId); if (error) throw new Error(error.message); for (const r of data ?? []) existing.set(r.case_number, r.id); }
 
   onStep(`Importing ${reg.length} cases…`);
-  const fresh: Row[] = []; let skipped = 0;
+  const fresh: Row[] = []; let skipped = 0; const seen = new Set<string>();
   for (const r of reg) {
     const cn = caseId(r['Case ID']);
+    if (seen.has(cn)) continue; // the same Case ID listed twice in the Register sheet
+    seen.add(cn);
     if (existing.has(cn)) { skipped++; continue; }
     const status = str(r['Status']);
     const mgrStatus = str(r['Manager Status']); const stage = str(r['Manager Stage']); let reason = str(r['Closure Reason']);
@@ -68,12 +70,23 @@ export async function importTrackerWorkbook(file: File, companyId: string, onSte
       builder_15_percent: num(r['Builder 15 Percent']), total_builder_exposure: num(r['Total Builder Exposure']), claim_outcome_notes: str(r['Claim Outcome Notes']),
     });
   }
+  const insertedIds = new Set<string>();
   for (const part of chunk(fresh, 25)) {
-    const { data, error } = await supabase.from('cm_cases').insert(part).select('id, case_number');
+    // ignoreDuplicates: a case that already exists (even one this login can't see) is left alone instead of failing the import
+    const { data, error } = await supabase.from('cm_cases').upsert(part, { onConflict: 'company_id,case_number', ignoreDuplicates: true }).select('id, case_number');
     if (error) throw new Error('Cases: ' + error.message);
-    for (const r of data ?? []) existing.set(r.case_number, r.id);
+    for (const r of data ?? []) { existing.set(r.case_number, r.id); insertedIds.add(r.id); }
   }
-  const newIds = new Set(fresh.map(f => existing.get(f.case_number as string)!));
+  // Re-read ids so cases skipped as duplicates still link to their children
+  { const { data } = await supabase.from('cm_cases').select('id, case_number').eq('company_id', companyId); for (const r of data ?? []) existing.set(r.case_number, r.id); }
+  // Cases left over from an interrupted earlier import (no cycles and no items) get their children filled in
+  const withKids = new Set<string>();
+  { const [a, b] = await Promise.all([
+      supabase.from('cm_cycles').select('case_id').eq('company_id', companyId).limit(10000),
+      supabase.from('cm_items').select('case_id').eq('company_id', companyId).limit(10000)]);
+    for (const r of [...(a.data ?? []), ...(b.data ?? [])]) withKids.add(r.case_id); }
+  const newIds = new Set<string>(insertedIds);
+  for (const cn of seen) { const id = existing.get(cn); if (id && !withKids.has(id)) newIds.add(id); }
 
   onStep('Importing inspection cycles…');
   const cyc = sheet(wb, 'Cycles').filter(r => caseId(r['Case ID']) && existing.has(caseId(r['Case ID'])) && newIds.has(existing.get(caseId(r['Case ID']))!));
