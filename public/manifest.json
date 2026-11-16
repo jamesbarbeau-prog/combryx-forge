@@ -1,11 +1,11 @@
 {
-    "name": "Combryx Warranty",
+    "name": "Builder Guardian",
     "short_name": "Warranty",
     "description": "Ontario Tarion Warranty Management",
     "start_url": "/warranty/today",
     "display": "standalone",
-    "background_color": "#F5F0E8",
-    "theme_color": "#2E3033",
+    "background_color": "#F4F7FB",
+    "theme_color": "#0B132B",
     "orientation": "landscape",
     "icons": [
       {

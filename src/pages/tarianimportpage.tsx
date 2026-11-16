@@ -405,7 +405,7 @@ export default function TarionImportPage() {
         <div>
           <p style={{ fontSize: 13, color: 'var(--color-muted)', marginBottom: 24, lineHeight: 1.6 }}>
             Upload a Statutory Warranty Form PDF downloaded from BuilderLink or MyHome.
-            Combryx will extract all items and create the case automatically.
+            Builder Guardian will extract all items and create the case automatically.
             Supports: Initial, Mid-Year, Year-End, 2nd Year, and MSD forms.
           </p>
 
@@ -626,7 +626,7 @@ export default function TarionImportPage() {
                 fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-body)',
               }}
             >
-              Import {parsed.items.length} Items into Combryx →
+              Import {parsed.items.length} Items into Builder Guardian →
             </button>
             <button
               onClick={() => { setStep('upload'); setParsed(null); setFile(null); }}
@@ -648,7 +648,7 @@ export default function TarionImportPage() {
         <div style={{ padding: '80px 0', textAlign: 'center' }}>
           <RefreshCw size={36} color="#1E5FA4" style={{ marginBottom: 16, animation: 'spin 1s linear infinite' }} />
           <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>Importing warranty form…</p>
-          <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>Creating case and items in Combryx</p>
+          <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>Creating case and items in Builder Guardian</p>
           <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
         </div>
       )}

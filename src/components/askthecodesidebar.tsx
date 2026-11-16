@@ -147,18 +147,18 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
         <div style={{
           padding: '16px 18px',
           borderBottom: '1px solid var(--color-border)',
-          background: 'linear-gradient(135deg, rgba(252,226,5,0.08) 0%, rgba(252,226,5,0.02) 100%)',
+          background: 'linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(37,99,235,0.02) 100%)',
           flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
                 width: 34, height: 34, borderRadius: 9,
-                background: 'rgba(252,226,5,0.15)',
-                border: '1px solid rgba(252,226,5,0.3)',
+                background: 'rgba(37,99,235,0.15)',
+                border: '1px solid rgba(37,99,235,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <HardHat size={16} color="#8A7600" strokeWidth={1.5} />
+                <HardHat size={16} color="#1D4ED8" strokeWidth={1.5} />
               </div>
               <div>
                 <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.01em' }}>
@@ -241,8 +241,8 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
                         display: 'flex', alignItems: 'center', gap: 8,
                       }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.background = 'rgba(252,226,5,0.08)';
-                        e.currentTarget.style.borderColor = 'rgba(252,226,5,0.25)';
+                        e.currentTarget.style.background = 'rgba(37,99,235,0.08)';
+                        e.currentTarget.style.borderColor = 'rgba(37,99,235,0.25)';
                         e.currentTarget.style.color = 'var(--color-text)';
                       }}
                       onMouseLeave={e => {
@@ -275,8 +275,8 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
               {msg.role === 'user' && (
                 <div style={{
                   maxWidth: '85%', padding: '10px 14px',
-                  background: 'rgba(252,226,5,0.12)',
-                  border: '1px solid rgba(252,226,5,0.25)',
+                  background: 'rgba(37,99,235,0.12)',
+                  border: '1px solid rgba(37,99,235,0.25)',
                   borderRadius: '12px 12px 2px 12px',
                   fontSize: 13, color: 'var(--color-text)', lineHeight: 1.5,
                 }}>
@@ -299,13 +299,13 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
                       <div style={{
                         width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                        background: 'rgba(252,226,5,0.12)',
-                        border: '1px solid rgba(252,226,5,0.2)',
+                        background: 'rgba(37,99,235,0.12)',
+                        border: '1px solid rgba(37,99,235,0.2)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        <HardHat size={11} color="#8A7600" strokeWidth={1.5} />
+                        <HardHat size={11} color="#1D4ED8" strokeWidth={1.5} />
                       </div>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: '#8A7600', paddingTop: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: '#1D4ED8', paddingTop: 4 }}>
                         OBC Expert
                       </span>
                     </div>
@@ -335,9 +335,9 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
                       style={{
                         display: 'flex', alignItems: 'center', gap: 5,
                         padding: '5px 10px', borderRadius: 6, fontSize: 10, fontWeight: 600,
-                        background: copied === msg.id + '-estimate' ? 'rgba(252,226,5,0.12)' : 'var(--color-mist)',
-                        border: copied === msg.id + '-estimate' ? '1px solid rgba(252,226,5,0.3)' : '1px solid var(--color-border)',
-                        color: copied === msg.id + '-estimate' ? '#8A7600' : 'var(--color-muted)',
+                        background: copied === msg.id + '-estimate' ? 'rgba(37,99,235,0.12)' : 'var(--color-mist)',
+                        border: copied === msg.id + '-estimate' ? '1px solid rgba(37,99,235,0.3)' : '1px solid var(--color-border)',
+                        color: copied === msg.id + '-estimate' ? '#1D4ED8' : 'var(--color-muted)',
                         cursor: 'pointer', fontFamily: 'var(--font-body)',
                         transition: 'all 0.12s',
                       }}
@@ -405,7 +405,7 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
                               display: 'flex', alignItems: 'center', gap: 6,
                               marginBottom: i < msg.sources!.length - 1 ? 4 : 0,
                             }}>
-                              <span style={{ fontFamily: 'var(--font-mono)', color: '#8A7600' }}>
+                              <span style={{ fontFamily: 'var(--font-mono)', color: '#1D4ED8' }}>
                                 Pg {s.page}
                               </span>
                               <span style={{ color: 'var(--color-border-hard)' }}>·</span>
@@ -432,12 +432,12 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
               <div style={{
                 width: 28, height: 28, borderRadius: 7,
-                background: 'rgba(252,226,5,0.12)',
-                border: '1px solid rgba(252,226,5,0.2)',
+                background: 'rgba(37,99,235,0.12)',
+                border: '1px solid rgba(37,99,235,0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>
-                <Loader2 size={14} color="#8A7600" strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} />
+                <Loader2 size={14} color="#1D4ED8" strokeWidth={1.5} style={{ animation: 'spin 1s linear infinite' }} />
               </div>
               <div style={{
                 padding: '8px 12px', borderRadius: '2px 10px 10px 10px',
@@ -498,8 +498,8 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleAsk()}
               onFocus={e => {
-                e.currentTarget.style.borderColor = '#FCE205';
-                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(252,226,5,0.12)';
+                e.currentTarget.style.borderColor = '#2563EB';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.12)';
               }}
               onBlur={e => {
                 e.currentTarget.style.borderColor = 'var(--color-border)';
@@ -512,8 +512,8 @@ export default function AskTheCodeSidebar({ open, onClose }: AskTheCodeSidebarPr
               disabled={loading || !input.trim()}
               style={{
                 width: 40, height: 40, borderRadius: 8, flexShrink: 0,
-                background: input.trim() && !loading ? '#FCE205' : 'var(--color-mist)',
-                border: input.trim() && !loading ? '1px solid #8A7600' : '1px solid var(--color-border)',
+                background: input.trim() && !loading ? '#2563EB' : 'var(--color-mist)',
+                border: input.trim() && !loading ? '1px solid #1D4ED8' : '1px solid var(--color-border)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: input.trim() && !loading ? 'pointer' : 'default',
                 transition: 'all 0.15s',

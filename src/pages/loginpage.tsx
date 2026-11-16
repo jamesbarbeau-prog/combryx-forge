@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Hammer, Mail, Lock, AlertTriangle, Eye, EyeOff, Shield } from 'lucide-react';
+import { Mail, Lock, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { BrandMark, Wordmark } from '@/components/brand';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -33,8 +34,8 @@ export default function LoginPage() {
   };
 
   function focusInput(e: React.FocusEvent<HTMLInputElement>) {
-    e.currentTarget.style.borderColor = '#FCE205';
-    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(252,226,5,0.15)';
+    e.currentTarget.style.borderColor = '#2563EB';
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.15)';
     e.currentTarget.style.background = '#FFFFFF';
   }
 
@@ -79,43 +80,27 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #F6F4EF 0%, #EDEAE3 100%)',
+      background: 'radial-gradient(1200px 600px at 20% -10%, #1B2B55 0%, #0B132B 55%, #070D1F 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 24, fontFamily: 'var(--font-body)',
     }}>
       <div style={{ width: '100%', maxWidth: 400, position: 'relative', zIndex: 1 }}>
 
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{
-            width: 56, height: 56, background: '#FCE205', borderRadius: 14,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 14px', boxShadow: '0 4px 20px rgba(252,226,5,0.35)',
-          }}>
-            <Hammer size={26} color="#111010" strokeWidth={2.5} />
-          </div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#111010', letterSpacing: '-0.03em', lineHeight: 1 }}>
-            Combryx Warranty
-          </h1>
-          <p style={{ fontSize: 13, color: 'var(--color-muted)', marginTop: 6 }}>
-            Sign in to your account
-          </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'center', marginBottom: 26 }}>
+          <BrandMark size={48} />
+          <div style={{ textAlign: 'left' }}><Wordmark size={22} /></div>
         </div>
 
         {/* Card */}
         <div style={{
           background: '#FFFFFF', borderRadius: 16,
           border: '1px solid var(--color-border)',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.08)', overflow: 'hidden',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.35)', overflow: 'hidden',
         }}>
-          <div style={{
-            padding: '12px 24px', borderBottom: '1px solid var(--color-border)',
-            background: 'rgba(252,226,5,0.04)', display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            <Shield size={13} color="#8A7600" strokeWidth={1.5} />
-            <p style={{ fontSize: 11, color: '#8A7600', fontWeight: 600 }}>
-              Combryx Warranty System
-            </p>
+          <div style={{ padding: '22px 28px 0' }}>
+            <h1 style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em', color: '#0F172A' }}>Sign in</h1>
+            <p style={{ fontSize: 13, color: 'var(--color-text-sub)', marginTop: 3 }}>Use your Builder Guardian email and password.</p>
           </div>
 
           <div style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -186,8 +171,8 @@ export default function LoginPage() {
               style={{
                 width: '100%', height: 44, fontSize: 13, fontWeight: 700,
                 borderRadius: 10, border: 'none', cursor: loading ? 'default' : 'pointer',
-                background: loading ? '#D4A800' : '#FCE205',
-                color: '#111010', fontFamily: 'var(--font-body)',
+                background: loading ? '#1D4ED8' : '#2563EB',
+                color: '#FFFFFF', fontFamily: 'var(--font-body)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 opacity: loading ? 0.8 : 1, marginTop: 4,
                 transition: 'all 0.15s',
@@ -195,7 +180,7 @@ export default function LoginPage() {
             >
               {loading ? (
                 <>
-                  <span style={{ width: 14, height: 14, border: '2px solid rgba(0,0,0,0.15)', borderTopColor: '#111', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }} />
+                  <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block', flexShrink: 0 }} />
                   Signing in…
                 </>
               ) : 'Sign In'}

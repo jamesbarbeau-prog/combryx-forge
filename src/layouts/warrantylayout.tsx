@@ -1,140 +1,133 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { LayoutDashboard, Building2, FolderOpen, Scale, Wrench, ClipboardCheck, BarChart3, Settings, LogOut, Download, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
+import { supabase } from '@/lib/supabase';
+import { BrandMark } from '@/components/brand';
+import QuickSearch from '@/components/quicksearch';
 
-const today = new Date().toLocaleDateString('en-CA', {
-  weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-});
+const today = new Date().toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
 
 const NAV = [
-  { id: 'today',       label: 'Today',       path: '/warranty/today'       },
-  { id: 'communities', label: 'Portfolio',    path: '/warranty/communities' },
-  { id: 'cases',       label: 'Cases',        path: '/warranty/cases'       },
-  { id: 'conciliation', label: 'Conciliation', path: '/warranty/conciliation' },
-  { id: 'work-orders', label: 'Work Orders',  path: '/warranty/work-orders' },
-  { id: 'po-requests', label: 'PO Approvals', path: '/warranty/po-requests' },
-  { id: 'reports',     label: 'Reports',      path: '/warranty/reports'     },
-  { id: 'settings',    label: 'Settings',     path: '/warranty/settings'    },
+  { id: 'today',        label: 'Dashboard',        path: '/warranty/today',        icon: LayoutDashboard },
+  { id: 'communities',  label: 'Communities',  path: '/warranty/communities',  icon: Building2 },
+  { id: 'cases',        label: 'Cases',        path: '/warranty/cases',        icon: FolderOpen },
+  { id: 'conciliation', label: 'Conciliation', path: '/warranty/conciliation', icon: Scale },
+  { id: 'work-orders',  label: 'Work orders',  path: '/warranty/work-orders',  icon: Wrench },
+  { id: 'po-requests',  label: 'PO approvals', path: '/warranty/po-requests',  icon: ClipboardCheck },
+  { id: 'reports',      label: 'Reports',      path: '/warranty/reports',      icon: BarChart3 },
+  { id: 'settings',     label: 'Tarion & settings', path: '/warranty/settings', icon: Settings },
 ];
 
+function isActive(id: string, path: string, pathname: string) {
+  if (id === 'communities') return pathname.startsWith('/warranty/communities') || pathname.startsWith('/warranty/lots');
+  return pathname === path || pathname.startsWith(path + '/');
+}
+
 export default function WarrantyLayout() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { signOut } = useAuth();
   const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [showInstall,   setShowInstall]   = useState(false);
+  const [email, setEmail] = useState('');
+  const [menu, setMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: any) => { e.preventDefault(); setInstallPrompt(e); setShowInstall(true); };
+    const handler = (e: any) => { e.preventDefault(); setInstallPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? '')); }, []);
+  useEffect(() => {
+    const close = (e: MouseEvent) => { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenu(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+  useEffect(() => setMenu(false), [location.pathname]);
 
   async function installApp() {
     if (!installPrompt) return;
     installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') setShowInstall(false);
+    if (outcome === 'accepted') setInstallPrompt(null);
   }
 
+  const initials = (email.split('@')[0] || '?').split(/[._-]/).map(s => s[0]).join('').slice(0, 2).toUpperCase() || '?';
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--color-canvas)', fontFamily: 'var(--font-body)' }}>
+    <div className="bg-shell" style={{ fontFamily: 'var(--font-body)' }}>
+      <style>{`
+        .bg-shell { background-color: #EDF1F8;
+          background-image: linear-gradient(rgba(30,64,130,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(30,64,130,0.035) 1px, transparent 1px); background-size: 26px 26px; min-height: 100vh; }
+        .bg-banner { position: sticky; top: 0; z-index: 50; background: linear-gradient(100deg, #0E2250 0%, #17448F 55%, #2166C2 100%); border-bottom: 4px solid #F2B134; box-shadow: 0 6px 22px rgba(11,19,43,0.18); }
+        .bg-banner__in { max-width: 1480px; margin: 0 auto; padding: 14px 28px; display: flex; align-items: center; gap: 22px; }
+        .bg-brandbar { width: 4px; align-self: stretch; background: #F2B134; border-radius: 2px; }
+        .bg-nav { background: #fff; border-bottom: 1px solid #DDE5F1; }
+        .bg-nav__in { max-width: 1480px; margin: 0 auto; padding: 0 22px; display: flex; align-items: stretch; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+        .bg-nav__in::-webkit-scrollbar { display: none; }
+        .bg-link { position: relative; display: flex; align-items: center; gap: 8px; padding: 13px 14px; border: 0; background: transparent; color: #475569; font: 600 13px var(--font-body); cursor: pointer; white-space: nowrap; transition: color .12s, background .12s; }
+        .bg-link:hover { color: #0F172A; background: #F4F7FB; }
+        .bg-link.on { color: #1D4ED8; }
+        .bg-link.on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: #2563EB; }
+        .bg-link:focus-visible, .bg-chip:focus-visible, .bg-menu-item:focus-visible { outline: 2px solid #F2B134; outline-offset: -2px; }
+        .bg-chip { display: flex; align-items: center; gap: 8px; padding: 5px 9px 5px 5px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.10); color: #fff; font: 600 12.5px var(--font-body); cursor: pointer; }
+        .bg-chip:hover { background: rgba(255,255,255,0.18); }
+        .bg-menu { position: absolute; right: 0; top: 46px; width: 236px; background: #fff; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: 0 16px 40px rgba(11,19,43,0.25); padding: 6px; z-index: 60; }
+        .bg-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: #0F172A; font: 600 13px var(--font-body); cursor: pointer; text-align: left; }
+        .bg-menu-item:hover { background: #EEF2F8; }
+        @media (max-width: 760px) { .bg-banner__in { padding: 10px 14px; gap: 12px; flex-wrap: wrap; } .bg-title { display: none; } .bg-date { display: none; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
 
-      {/* ── TOP NAV ── */}
-      <div style={{
-        borderBottom: '1px solid rgba(252,226,5,0.10)',
-        background: 'radial-gradient(ellipse at top left, #4A4D52 0%, #3A3C40 40%, #2E3033 100%)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.2)',
-        padding: '0 28px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        height: 56, position: 'sticky', top: 0, zIndex: 50,
-      }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 4 }}>
-            <div style={{
-              width: 28, height: 28, borderRadius: 7,
-              background: 'linear-gradient(135deg, #FCE205 0%, #D4A800 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span style={{ fontSize: 13, fontWeight: 900, color: '#111' }}>W</span>
-            </div>
-            <div>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#FCE205', letterSpacing: '-0.02em' }}>Combryx</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#FFFFFF', marginLeft: 6, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Warranty</span>
+      <header className="bg-banner">
+        <div className="bg-banner__in">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13, cursor: 'pointer' }} onClick={() => navigate('/warranty/today')}>
+            <div className="bg-brandbar" style={{ height: 44 }} />
+            <BrandMark size={40} />
+            <div className="bg-title">
+              <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: '0.02em', color: '#fff', textTransform: 'uppercase', lineHeight: 1.1 }}>Builder Guardian</div>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#F2B134', textTransform: 'uppercase', marginTop: 4 }}>Warranty control centre</div>
             </div>
           </div>
+          <div style={{ flex: 1 }} />
+          <QuickSearch />
+          <span className="bg-date" style={{ fontSize: 12.5, color: '#C9D8F5', fontWeight: 600 }}>{today}</span>
+          {installPrompt && <button className="bg-chip" onClick={installApp} style={{ padding: '7px 13px' }}><Download size={14} /> Install</button>}
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button className="bg-chip" onClick={() => setMenu(v => !v)} aria-haspopup="menu" aria-expanded={menu}>
+              <span style={{ width: 28, height: 28, borderRadius: '50%', background: '#F2B134', color: '#0B132B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 11.5 }}>{initials}</span>
+              <ChevronDown size={14} />
+            </button>
+            {menu && (
+              <div className="bg-menu" role="menu">
+                <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid var(--color-border)', marginBottom: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--color-muted)', fontWeight: 600 }}>Signed in as</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis' }}>{email || '—'}</div>
+                </div>
+                <button className="bg-menu-item" role="menuitem" onClick={() => navigate('/warranty/settings')}><Settings size={15} /> Settings</button>
+                <button className="bg-menu-item" role="menuitem" onClick={signOut}><LogOut size={15} /> Sign out</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
 
-          <div style={{ width: 1, height: 20, background: 'rgba(252,226,5,0.15)' }} />
-
-          {/* Nav */}
+      <div className="bg-nav">
+        <nav className="bg-nav__in" aria-label="Main">
           {NAV.map(n => {
-            const active =
-              location.pathname === n.path ||
-              (n.id === 'communities' && (location.pathname.startsWith('/warranty/communities') || location.pathname.startsWith('/warranty/lots'))) ||
-              (n.id === 'cases' && location.pathname.startsWith('/warranty/cases')) ||
-              (n.id !== 'today' && n.id !== 'communities' && n.id !== 'cases' && location.pathname.startsWith(n.path));
-
+            const on = isActive(n.id, n.path, location.pathname);
+            const Icon = n.icon;
             return (
-              <button
-                key={n.id}
-                onClick={() => navigate(n.path)}
-                style={{
-                  padding: '6px 10px', borderRadius: 6, fontSize: 12,
-                  fontWeight: active ? 700 : 500,
-                  background: active ? 'rgba(252,226,5,0.15)' : 'transparent',
-                  border: active ? '1px solid rgba(252,226,5,0.30)' : '1px solid transparent',
-                  color: active ? '#FCE205' : 'rgba(255,255,255,0.85)',
-                  cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.12s',
-                }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.color = '#FFFFFF'; }}
-                onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; }}
-              >
-                {n.label}
+              <button key={n.id} className={`bg-link${on ? ' on' : ''}`} onClick={() => navigate(n.path)} aria-current={on ? 'page' : undefined}>
+                <Icon size={16} strokeWidth={2} />{n.label}
               </button>
             );
           })}
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {showInstall && (
-            <button onClick={installApp} style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 700,
-              background: 'rgba(22,163,74,0.15)', border: '1px solid rgba(22,163,74,0.3)',
-              color: '#16A34A', cursor: 'pointer', fontFamily: 'var(--font-body)',
-            }}>
-              Install App
-            </button>
-          )}
-
-          <div style={{
-            fontSize: 11, color: 'rgba(255,255,255,0.4)',
-            padding: '5px 10px', borderRadius: 6,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.08)',
-          }}>
-            {today}
-          </div>
-
-          <button
-            onClick={signOut}
-            style={{
-              padding: '5px 10px', borderRadius: 6, fontSize: 11,
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)',
-              color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontFamily: 'var(--font-body)',
-            }}
-          >
-            Sign Out
-          </button>
-        </div>
+        </nav>
       </div>
 
       <Outlet />
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

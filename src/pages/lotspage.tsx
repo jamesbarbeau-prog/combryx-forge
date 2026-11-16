@@ -182,9 +182,9 @@ export default function LotsPage() {
         {(['all', 'open', 'assigned', 'unassigned'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)',
-            background: filter === f ? 'rgba(252,226,5,0.12)' : 'var(--color-panel)',
-            border: filter === f ? '1px solid rgba(252,226,5,0.3)' : '1px solid var(--color-border)',
-            color: filter === f ? '#8A7600' : 'var(--color-muted)',
+            background: filter === f ? 'rgba(37,99,235,0.12)' : 'var(--color-panel)',
+            border: filter === f ? '1px solid rgba(37,99,235,0.3)' : '1px solid var(--color-border)',
+            color: filter === f ? '#1D4ED8' : 'var(--color-muted)',
           }}>
             {f === 'all' ? 'All' : f === 'open' ? 'Open cases' : f === 'assigned' ? 'With owners' : 'Unassigned'}
           </button>

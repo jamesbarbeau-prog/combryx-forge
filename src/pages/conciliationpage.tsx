@@ -1,9 +1,10 @@
 // Conciliation Manager — dashboard, Tarion intake queue and team. Managers only (enforced by RLS).
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '@/cm/api';
 import type { CmCase, CmCycle, CmIntake } from '@/cm/api';
 import { GuardianSignatureIcon } from '@/components/icons/GuardianSignatureIcons';
+import { Donut, Columns, HBars } from '@/components/charts';
 import '@/cm/cm.css';
 
 const stagePill = (s: string) => s === 'Scheduled' ? 'b' : s === 'Awaiting CAR' ? 'a' : s === 'CAR Received' ? 'p' : 'g';
@@ -11,14 +12,15 @@ type Tab = 'dashboard' | 'intake' | 'team';
 
 export default function ConciliationPage() {
   const nav = useNavigate();
+  const [sp] = useSearchParams();
   const [member, setMember] = useState<{ company_id: string; role: string } | null | undefined>(undefined);
   const [cases, setCases] = useState<CmCase[]>([]);
   const [cycles, setCycles] = useState<CmCycle[]>([]);
   const [intake, setIntake] = useState<CmIntake[]>([]);
   const [tab, setTab] = useState<Tab>('dashboard');
   const [prop, setProp] = useState<'freehold' | 'common_elements'>('freehold');
-  const [stage, setStage] = useState('Active');
-  const [community, setCommunity] = useState('');
+  const [stage, setStage] = useState(sp.get('stage') || 'Active');
+  const [community, setCommunity] = useState(sp.get('community') || '');
   const [q, setQ] = useState('');
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -71,6 +73,33 @@ export default function ConciliationPage() {
     return !t || [c.case_number, c.homeowner, c.address, c.lot, c.enrolment].some(x => x.toLowerCase().includes(t));
   }).sort((a, b) => (a.days_left ?? a.days_to_insp ?? 9999) - (b.days_left ?? b.days_to_insp ?? 9999)), [live, byId, stage, community, q]);
   const pendingIntake = intake.filter(i => i.status === 'pending');
+  const stageData = [
+    { label: 'Scheduled', value: stats.scheduled, color: '#2a78d6' },
+    { label: 'Awaiting CAR', value: stats.awaiting, color: '#eb6834' },
+    { label: 'CAR received', value: stats.car, color: '#1baf7a' },
+  ];
+  const clockData = useMemo(() => {
+    const b = [0, 0, 0, 0];
+    for (const v of live) {
+      if (v.superseded || v.stage !== 'CAR Received' || v.days_left === null || byId.get(v.case_id)?.is_closed) continue;
+      b[v.days_left < 0 ? 0 : v.days_left <= 7 ? 1 : v.days_left <= 14 ? 2 : 3]++;
+    }
+    return [
+      { label: 'Overdue', value: b[0], color: '#DC2626' },
+      { label: '0–7 days', value: b[1], color: '#D97706' },
+      { label: '8–14 days', value: b[2], color: '#2a78d6' },
+      { label: '15–30 days', value: b[3], color: '#2a78d6' },
+    ];
+  }, [live, byId]);
+  const byCommunity = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const v of live) {
+      const c = byId.get(v.case_id);
+      if (!c || c.is_closed || v.superseded || v.stage === 'Closed' || !v.open_items) continue;
+      m.set(c.community || 'No community', (m.get(c.community || 'No community') ?? 0) + v.open_items);
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8).map(([label, value]) => ({ label, value }));
+  }, [live, byId]);
 
   if (member === undefined) return <div className="cm">Loading…</div>;
   if (member === null) return (
@@ -92,7 +121,7 @@ export default function ConciliationPage() {
   return (
     <div className="cm">
       <div className="row">
-        <GuardianSignatureIcon name="resolution" size={44} /><div><h1>Conciliation Manager</h1><div className="sub">Tarion conciliations — inspections, CAR clocks, cash settlements</div></div>
+        <div className="tile"><GuardianSignatureIcon name="resolution" size={34} /></div><div><h1>Conciliation</h1><div className="sub">Inspections, CAR clocks and cash settlements</div></div>
         <div className="sp" />
         <div className="seg">
           <button className={prop === 'freehold' ? 'on' : ''} onClick={() => setProp('freehold')}>Freehold</button>
@@ -131,14 +160,15 @@ export default function ConciliationPage() {
 
       {tab === 'dashboard' && <>
         <div className="grid stats">
-          <div className="card stat"><div className="n">{stats.open}</div><div className="l">Open inspections</div></div>
-          <div className="card stat"><div className="n">{stats.scheduled}</div><div className="l">Scheduled</div></div>
-          <div className="card stat a"><div className="n">{stats.awaiting}</div><div className="l">Awaiting CAR</div></div>
-          <div className="card stat p"><div className="n">{stats.car}</div><div className="l">CAR received</div></div>
-          <div className="card stat r"><div className="n">{stats.overdue}</div><div className="l">30-day overdue</div></div>
-          <div className="card stat a"><div className="n">{stats.unscheduled}</div><div className="l">Warranted, unscheduled</div></div>
-          <div className="card stat g"><div className="n">${api.money(stats.pendingAmt)}</div><div className="l">Cash awaiting signature</div></div>
-          <div className="card stat"><div className="n">${api.money(stats.exposure)}</div><div className="l">Internal estimate</div></div>
+          <div className="card stat"><div className="l">Open inspections</div><div className="n">{stats.open}</div><div className="h">{stats.scheduled} scheduled</div></div>
+          <div className="card stat r"><div className="l">30-day overdue</div><div className="n">{stats.overdue}</div><div className="h">{stats.dueSoon} more due within 7 days</div></div>
+          <div className="card stat a"><div className="l">Warranted, unscheduled</div><div className="n">{stats.unscheduled}</div><div className="h">items without a repair date</div></div>
+          <div className="card stat g"><div className="l">Cash awaiting signature</div><div className="n">${api.money(stats.pendingAmt)}</div><div className="h">${api.money(stats.exposure)} internal estimate</div></div>
+        </div>
+        <div className="grid charts" style={{ marginTop: 14 }}>
+          <div className="card"><h2>Inspections by stage</h2><Donut data={stageData} centerLabel="open" /></div>
+          <div className="card"><h2>30-day clock</h2><div className="sub" style={{ marginBottom: 12 }}>CAR received, by days left to repair</div><Columns data={clockData} height={128} /></div>
+          <div className="card"><h2>Open items by community</h2><div className="sub" style={{ marginBottom: 12 }}>Items still to resolve</div><HBars data={byCommunity} empty="No open items." /></div>
         </div>
         <div className="grid two" style={{ marginTop: 14, alignItems: 'start' }}>
           <div className="card">

@@ -25,8 +25,8 @@ const lbl: React.CSSProperties = {
   marginBottom: 5, display: 'block',
 };
 function focus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-  e.currentTarget.style.borderColor = '#FCE205';
-  e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(252,226,5,0.12)';
+  e.currentTarget.style.borderColor = '#2563EB';
+  e.currentTarget.style.boxShadow   = '0 0 0 3px rgba(37,99,235,0.12)';
 }
 function blur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
   e.currentTarget.style.borderColor = 'var(--color-border)';
@@ -91,16 +91,16 @@ function FileUpload({ bucket, path, label, accept = 'image/*', currentUrl, isPub
           </button>
         </div>
       ) : (
-        <div onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop} onClick={() => inputRef.current?.click()} style={{ border: `2px dashed ${dragging ? '#FCE205' : 'var(--color-border)'}`, borderRadius: 10, padding: '28px 20px', background: dragging ? 'rgba(252,226,5,0.06)' : 'var(--color-mist)', textAlign: 'center', cursor: 'pointer', transition: 'all 0.15s' }}>
+        <div onDragOver={e => { e.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={onDrop} onClick={() => inputRef.current?.click()} style={{ border: `2px dashed ${dragging ? '#2563EB' : 'var(--color-border)'}`, borderRadius: 10, padding: '28px 20px', background: dragging ? 'rgba(37,99,235,0.06)' : 'var(--color-mist)', textAlign: 'center', cursor: 'pointer', transition: 'all 0.15s' }}>
           {uploading ? (
             <div>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #FCE205', borderTopColor: 'transparent', margin: '0 auto 10px', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #2563EB', borderTopColor: 'transparent', margin: '0 auto 10px', animation: 'spin 0.8s linear infinite' }} />
               <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>Uploading...</p>
             </div>
           ) : (
             <div>
-              <Upload size={22} color={dragging ? '#8A7600' : 'var(--color-muted)'} strokeWidth={1.5} style={{ margin: '0 auto 10px' }} />
-              <p style={{ fontSize: 12, fontWeight: 600, color: dragging ? '#8A7600' : 'var(--color-text)', marginBottom: 4 }}>{dragging ? 'Drop to upload' : 'Drop file here or click to browse'}</p>
+              <Upload size={22} color={dragging ? '#1D4ED8' : 'var(--color-muted)'} strokeWidth={1.5} style={{ margin: '0 auto 10px' }} />
+              <p style={{ fontSize: 12, fontWeight: 600, color: dragging ? '#1D4ED8' : 'var(--color-text)', marginBottom: 4 }}>{dragging ? 'Drop to upload' : 'Drop file here or click to browse'}</p>
               <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>PNG, JPG, PDF accepted</p>
             </div>
           )}
@@ -159,7 +159,7 @@ function CompanyTab() {
         <label style={lbl}>Closing Message</label>
         <textarea style={{ ...inp, height: 72, padding: '8px 10px', resize: 'none' }} value={settings.closing_message ?? ''} onChange={e => set('closing_message', e.target.value)} onFocus={focus} onBlur={blur} placeholder="Thank you for choosing us." />
       </div>
-      <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#FCE205', border: 'none', color: saved ? '#FFFFFF' : '#111010', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
+      <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#16A34A' : '#2563EB', border: 'none', color: saved ? '#FFFFFF' : '#FFFFFF', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
         {saved ? <><Check size={14} /> Saved!</> : saving ? 'Saving...' : 'Save Company Info'}
       </button>
     </div>
@@ -254,7 +254,7 @@ function TarionTab() {
           Every new warranty form becomes a case with its items and homeowner photos, and coordinators get one email listing what came in.
           Tarion login details are stored on the server, not in this app.
         </p>
-        <button onClick={syncNow} disabled={syncing} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#FCE205', color: '#111', border: 'none', cursor: syncing ? 'wait' : 'pointer' }}>
+        <button onClick={syncNow} disabled={syncing} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#2563EB', color: '#FFFFFF', border: 'none', cursor: syncing ? 'wait' : 'pointer' }}>
           <RefreshCw size={13} /> {syncing ? 'Checking Tarion…' : 'Check Tarion now'}
         </button>
         {syncMsg && (
@@ -305,7 +305,7 @@ function TarionTab() {
             <option value="">All sites</option>
             {communities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <button onClick={addRecipient} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: '#FCE205', color: '#111', border: 'none', cursor: 'pointer' }}><Plus size={13} /> Add</button>
+          <button onClick={addRecipient} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: '#2563EB', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}><Plus size={13} /> Add</button>
         </div>
       </div>
 
@@ -326,7 +326,7 @@ function TarionTab() {
             </div>
           ))}
         </div>
-        <button onClick={saveProfile} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#FCE205', color: '#111', border: 'none', cursor: 'pointer' }}>
+        <button onClick={saveProfile} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#2563EB', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}>
           {saved ? <><Check size={14} /> Saved</> : saving ? 'Saving…' : 'Save profile'}
         </button>
       </div>
@@ -340,7 +340,7 @@ function SecurityTab() {
     <div className="forge-card" style={{ padding: 24 }}>
       <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Two-step sign-in</p>
       <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16, lineHeight: 1.6 }}>Add an authenticator app to your account so a stolen password is not enough.</p>
-      <Link to="/warranty/mfa-setup" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#FCE205', color: '#111', textDecoration: 'none' }}>
+      <Link to="/warranty/mfa-setup" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#2563EB', color: '#FFFFFF', textDecoration: 'none' }}>
         <Shield size={13} /> Set up two-step sign-in
       </Link>
     </div>
@@ -378,7 +378,7 @@ export default function SettingsPage() {
             {TABS.map(tab => {
               const Icon = tab.icon; const active = activeTab === tab.id;
               return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', borderRadius: 8, fontSize: 12, fontWeight: active ? 700 : 500, textAlign: 'left', cursor: 'pointer', border: 'none', background: active ? 'rgba(252,226,5,0.14)' : 'transparent', color: active ? 'var(--color-text)' : 'var(--color-muted)' }}>
+                <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 12px', borderRadius: 8, fontSize: 12, fontWeight: active ? 700 : 500, textAlign: 'left', cursor: 'pointer', border: 'none', background: active ? 'rgba(37,99,235,0.14)' : 'transparent', color: active ? 'var(--color-text)' : 'var(--color-muted)' }}>
                   <Icon size={13} strokeWidth={active ? 2 : 1.5} /> {tab.label}
                 </button>
               );
@@ -502,7 +502,7 @@ export function WarrantyTeamTab() {
       <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
         {(['team','sites'] as const).map(v => (
           <button key={v} onClick={() => setActiveView(v)}
-            style={{ padding: '7px 16px', borderRadius: 7, border: `1px solid ${activeView===v ? 'rgba(252,226,5,0.3)' : 'var(--color-border)'}`, background: activeView===v ? 'rgba(252,226,5,0.08)' : 'transparent', color: activeView===v ? '#8A7600' : 'var(--color-muted)', fontSize: 12, fontWeight: activeView===v ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-body)', textTransform: 'capitalize' as const }}>
+            style={{ padding: '7px 16px', borderRadius: 7, border: `1px solid ${activeView===v ? 'rgba(37,99,235,0.3)' : 'var(--color-border)'}`, background: activeView===v ? 'rgba(37,99,235,0.08)' : 'transparent', color: activeView===v ? '#1D4ED8' : 'var(--color-muted)', fontSize: 12, fontWeight: activeView===v ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-body)', textTransform: 'capitalize' as const }}>
             {v === 'team' ? `Team (${users.length})` : `Sites (${communities.length})`}
           </button>
         ))}
@@ -520,17 +520,17 @@ export function WarrantyTeamTab() {
             const isExp = expandedUser === user.id;
 
             return (
-              <div key={user.id} style={{ borderRadius: 10, overflow: 'hidden', background: 'var(--color-panel)', border: `1px solid ${isExp ? 'rgba(252,226,5,0.3)' : 'var(--color-border)'}`, transition: 'all 0.15s' }}>
+              <div key={user.id} style={{ borderRadius: 10, overflow: 'hidden', background: 'var(--color-panel)', border: `1px solid ${isExp ? 'rgba(37,99,235,0.3)' : 'var(--color-border)'}`, transition: 'all 0.15s' }}>
 
                 {/* Row */}
                 <div onClick={() => setExpandedUser(isExp ? null : user.id)} style={{ padding: '13px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(252,226,5,0.12)', border: '1px solid rgba(252,226,5,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13, fontWeight: 800, color: '#8A7600' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13, fontWeight: 800, color: '#1D4ED8' }}>
                     {user.first_name[0]}{user.last_name[0]}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>{user.first_name} {user.last_name}</span>
-                      <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: 'rgba(252,226,5,0.12)', border: '1px solid rgba(252,226,5,0.25)', color: '#8A7600' }}>{user.access_level}</span>
+                      <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: 'rgba(37,99,235,0.12)', border: '1px solid rgba(37,99,235,0.25)', color: '#1D4ED8' }}>{user.access_level}</span>
                       {tech?.tech_type && (
                         <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 100, background: tech.tech_type==='foreman' ? 'rgba(220,38,38,0.10)' : 'rgba(217,119,6,0.10)', color: tech.tech_type==='foreman' ? '#DC2626' : '#D97706', border: `1px solid ${tech.tech_type==='foreman' ? 'rgba(220,38,38,0.2)' : 'rgba(217,119,6,0.2)'}` }}>
                           {tech.tech_type==='foreman' ? 'Foreman' : 'Regular tech'}
@@ -625,14 +625,14 @@ export function WarrantyTeamTab() {
                           const isPrimary = assigned?.is_primary ?? false;
                           const isSaving  = saving === user.id+'_site_'+comm.id;
                           return (
-                            <div key={comm.id} style={{ display: 'flex', alignItems: 'center', gap: 0, borderRadius: 8, overflow: 'hidden', border: `1px solid ${assigned ? 'rgba(252,226,5,0.4)' : 'var(--color-border)'}` }}>
+                            <div key={comm.id} style={{ display: 'flex', alignItems: 'center', gap: 0, borderRadius: 8, overflow: 'hidden', border: `1px solid ${assigned ? 'rgba(37,99,235,0.4)' : 'var(--color-border)'}` }}>
                               <button onClick={() => toggleSite(user.id, comm.id)} disabled={!!isSaving}
-                                style={{ padding: '6px 12px', background: assigned ? 'rgba(252,226,5,0.10)' : 'var(--color-panel)', border: 'none', color: assigned ? '#8A7600' : 'var(--color-muted)', fontSize: 11, fontWeight: assigned ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                                style={{ padding: '6px 12px', background: assigned ? 'rgba(37,99,235,0.10)' : 'var(--color-panel)', border: 'none', color: assigned ? '#1D4ED8' : 'var(--color-muted)', fontSize: 11, fontWeight: assigned ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                                 {isSaving ? '…' : (assigned ? '✓ ' : '')}{comm.name}
                               </button>
                               {assigned && (
                                 <button onClick={() => setPrimary(user.id, comm.id)} title="Set as primary"
-                                  style={{ padding: '6px 8px', background: isPrimary ? '#FCE205' : 'rgba(252,226,5,0.05)', border: 'none', borderLeft: '1px solid rgba(252,226,5,0.25)', color: isPrimary ? '#111010' : '#8A7600', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                                  style={{ padding: '6px 8px', background: isPrimary ? '#2563EB' : 'rgba(37,99,235,0.05)', border: 'none', borderLeft: '1px solid rgba(37,99,235,0.25)', color: isPrimary ? '#FFFFFF' : '#1D4ED8', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                                   {isPrimary ? '★' : '☆'}
                                 </button>
                               )}

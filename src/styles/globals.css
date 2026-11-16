@@ -1,56 +1,60 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
   /* Canvas */
-  --color-canvas:       #F6F4EF;
+  --color-canvas:       #F4F7FB;
   --color-panel:        #FFFFFF;
-  --color-panel-raised: #FAFAF7;
-  --color-border:       #E4E0D8;
-  --color-border-hard:  #C8C2B4;
+  --color-panel-raised: #F8FAFD;
+  --color-border:       #E2E8F0;
+  --color-border-hard:  #CBD5E1;
 
   /* Text */
-  --color-text:         #111010;
-  --color-text-sub:     #4A4640;
-  --color-muted:        #8C8680;
+  --color-text:         #0F172A;
+  --color-text-sub:     #475569;
+  --color-muted:        #7B8AA0;
 
-  /* Yellow — FCE205 */
-  --color-gold:         #FCE205;
-  --color-gold-light:   #FDE93A;
-  --color-gold-soft:    rgba(252,226,5,0.15);
-  --color-gold-tint:    rgba(252,226,5,0.08);
+  /* Brand — navy ink, signal blue, amber accent */
+  --color-navy:         #0B132B;
+  --color-brand:        #2563EB;
+  --color-brand-dark:   #1D4ED8;
+  --color-amber:        #F59E0B;
+  --color-gold:         #2563EB;
+  --color-gold-light:   #3B82F6;
+  --color-gold-soft:    rgba(37,99,235,0.14);
+  --color-gold-tint:    rgba(37,99,235,0.07);
 
   /* Status */
-  --color-success:      #2D7A50;
-  --color-success-bg:   #EAF5EF;
-  --color-warning:      #B86A00;
-  --color-warning-bg:   #FEF3E2;
-  --color-danger:       #B53D3D;
-  --color-danger-bg:    #FDF0F0;
-  --color-info:         #1E5FA4;
-  --color-info-bg:      #EBF2FC;
+  --color-success:      #15803D;
+  --color-success-bg:   #ECFDF3;
+  --color-warning:      #B45309;
+  --color-warning-bg:   #FFF7E6;
+  --color-danger:       #B91C1C;
+  --color-danger-bg:    #FEF2F2;
+  --color-info:         #1D4ED8;
+  --color-info-bg:      #EFF4FF;
 
   /* Surface */
-  --color-mist:         #F0EDE7;
-  --color-ink:          #111010;
+  --color-mist:         #EEF2F8;
+  --color-ink:          #0B132B;
 
   /* Radius */
-  --radius-sm:  4px;
+  --radius-sm:  6px;
   --radius-md:  8px;
   --radius-lg:  12px;
 
   /* Shadow */
-  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06);
-  --shadow-md:  0 4px 14px rgba(0,0,0,0.08);
-  --shadow-lg:  0 8px 28px rgba(0,0,0,0.10);
+  --shadow-sm:  0 1px 2px rgba(15,23,42,0.05);
+  --shadow-md:  0 4px 14px rgba(15,23,42,0.08);
+  --shadow-lg:  0 12px 32px rgba(15,23,42,0.12);
 
   /* Type */
-  --font-body:  'DM Sans', system-ui, sans-serif;
-  --font-mono:  'DM Mono', monospace;
+  --font-body:  'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; -webkit-font-smoothing: antialiased; }
-body { font-family: var(--font-body); background: var(--color-canvas); color: var(--color-text); line-height: 1.5; }
+body { font-family: var(--font-body); font-variant-numeric: tabular-nums; background: var(--color-canvas); color: var(--color-text); line-height: 1.5; }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
@@ -67,20 +71,19 @@ input, select, textarea { font-family: inherit; }
 .forge-button--lg { font-size: 13px; padding: 10px 18px; }
 
 .forge-button--primary {
-  background: #FCE205;
-  border: 1px solid #111010;
-  color: #111010;
-  box-shadow: 0 2px 12px rgba(252,226,5,0.25), 0 1px 0 rgba(255,255,255,0.25) inset;
+  background: var(--color-brand);
+  border: 1px solid var(--color-brand-dark);
+  color: #FFFFFF;
+  box-shadow: 0 1px 2px rgba(37,99,235,0.25);
 }
 .forge-button--primary:hover {
-  background: #FDE93A;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(252,226,5,0.35);
+  background: var(--color-brand-dark);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.28);
 }
 .forge-button--primary:active {
   transform: translateY(0);
   box-shadow: none;
-  background: #E8D000;
+  background: #1E40AF;
 }
 
 .forge-button--secondary {
@@ -104,24 +107,21 @@ input, select, textarea { font-family: inherit; }
   display: inline-flex; align-items: center; justify-content: center;
   transition: all 0.15s ease; color: var(--color-muted); flex-shrink: 0;
 }
-.forge-icon-button:hover { border-color: rgba(252,226,5,0.4); background: rgba(252,226,5,0.08); color: var(--color-text); }
+.forge-icon-button:hover { border-color: rgba(37,99,235,0.4); background: rgba(37,99,235,0.08); color: var(--color-text); }
 
 /* CARDS */
 .forge-card {
   background: var(--color-panel);
-  border: 1px solid rgba(252,226,5,0.10);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   transition: transform 0.25s cubic-bezier(0.23,1,0.32,1), box-shadow 0.25s cubic-bezier(0.23,1,0.32,1);
 }
-.forge-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(0,0,0,0.09), 0 0 0 1px rgba(252,226,5,0.12);
-}
+.forge-card:hover { box-shadow: var(--shadow-md); }
 .forge-card-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(252,226,5,0.08);
+  border-bottom: 1px solid rgba(37,99,235,0.08);
 }
 .forge-card-body { padding: 18px; }
 
@@ -137,7 +137,7 @@ input, select, textarea { font-family: inherit; }
 .forge-badge--danger  { background: var(--color-danger-bg);  color: var(--color-danger);  border-color: #DDB0B0; }
 .forge-badge--info    { background: var(--color-info-bg);    color: var(--color-info);    border-color: #A8C8E8; }
 .forge-badge--neutral { background: var(--color-mist);       color: var(--color-text-sub); border-color: var(--color-border); }
-.forge-badge--gold    { background: rgba(252,226,5,0.12);    color: #7A6800; border-color: rgba(252,226,5,0.3); }
+.forge-badge--gold    { background: rgba(37,99,235,0.12);    color: #1D4ED8; border-color: rgba(37,99,235,0.3); }
 
 /* INPUTS */
 .forge-input {
@@ -147,9 +147,9 @@ input, select, textarea { font-family: inherit; }
 }
 .forge-input:focus {
   outline: none;
-  border-color: #FCE205;
-  box-shadow: 0 0 0 3px rgba(252,226,5,0.15);
-  background: rgba(252,226,5,0.02);
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+  background: rgba(37,99,235,0.02);
 }
 .forge-input::placeholder { color: var(--color-muted); }
 
@@ -162,7 +162,7 @@ input, select, textarea { font-family: inherit; }
 }
 .forge-table td { padding: 11px 14px; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
 .forge-table tbody tr:last-child td { border-bottom: none; }
-.forge-table tbody tr:hover td { background: rgba(252,226,5,0.05); }
+.forge-table tbody tr:hover td { background: rgba(37,99,235,0.05); }
 
 /* TYPOGRAPHY */
 .forge-label    { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
@@ -182,7 +182,7 @@ input, select, textarea { font-family: inherit; }
   font-weight: 500; color: var(--color-text-sub); transition: all 0.1s ease; cursor: pointer;
 }
 .forge-nav-item:hover { background: var(--color-mist); color: var(--color-text); }
-.forge-nav-item.active { background: rgba(252,226,5,0.12); color: #7A6800; border: 1px solid rgba(252,226,5,0.25); }
+.forge-nav-item.active { background: rgba(37,99,235,0.12); color: #1D4ED8; border: 1px solid rgba(37,99,235,0.25); }
 .forge-nav-section { padding: 10px 16px 4px; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); }
 
 /* TOPBAR */

@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { ItemAssessment } from '@/components/itemassessment';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -798,6 +799,8 @@ export default function CaseDetailPage() {
                           {/* Expanded panel */}
                           {isExpanded && (
                             <div style={{ borderTop:'1px solid var(--color-border)', background:'var(--color-mist)', padding:16 }}>
+
+                              <ItemAssessment itemId={item.id} description={item.description} room={item.room} />
 
                               {/* Trade assignment */}
                               <div style={{ marginBottom:14 }}>

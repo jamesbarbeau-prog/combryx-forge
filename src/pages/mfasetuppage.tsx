@@ -17,7 +17,7 @@ export default function MFASetupPage() {
     setLoading(true); setError('');
     const { data, error: enrollError } = await supabase.auth.mfa.enroll({
       factorType: 'totp',
-      friendlyName: 'Combryx Forge',
+      friendlyName: 'Builder Guardian',
     });
     if (enrollError) { setError(enrollError.message); setLoading(false); return; }
     setQrCode(data.totp.qr_code);
@@ -84,15 +84,15 @@ export default function MFASetupPage() {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
             width: 56, height: 56,
-            background: step === 'done' ? 'rgba(45,122,80,0.15)' : 'rgba(252,226,5,0.15)',
-            border: `2px solid ${step === 'done' ? 'var(--color-success)' : '#FCE205'}`,
+            background: step === 'done' ? 'rgba(45,122,80,0.15)' : 'rgba(37,99,235,0.15)',
+            border: `2px solid ${step === 'done' ? 'var(--color-success)' : '#2563EB'}`,
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 14px',
           }}>
             {step === 'done'
               ? <CheckCircle2 size={26} color="var(--color-success)" strokeWidth={1.5} />
-              : <Shield size={26} color="#8A7600" strokeWidth={1.5} />
+              : <Shield size={26} color="#1D4ED8" strokeWidth={1.5} />
             }
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>
@@ -125,23 +125,23 @@ export default function MFASetupPage() {
                 disabled={loading}
                 style={{
                   width: '100%', padding: '16px 18px', marginBottom: 12,
-                  background: 'rgba(252,226,5,0.05)',
-                  border: '1px solid rgba(252,226,5,0.25)',
+                  background: 'rgba(37,99,235,0.05)',
+                  border: '1px solid rgba(37,99,235,0.25)',
                   borderRadius: 10, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 14,
                   textAlign: 'left', transition: 'all 0.12s',
                   fontFamily: 'var(--font-body)',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(252,226,5,0.10)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(252,226,5,0.05)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.10)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.05)')}
               >
                 <div style={{
                   width: 42, height: 42, borderRadius: 10, flexShrink: 0,
-                  background: 'rgba(252,226,5,0.15)',
-                  border: '1px solid rgba(252,226,5,0.3)',
+                  background: 'rgba(37,99,235,0.15)',
+                  border: '1px solid rgba(37,99,235,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Smartphone size={18} color="#8A7600" strokeWidth={1.5} />
+                  <Smartphone size={18} color="#1D4ED8" strokeWidth={1.5} />
                 </div>
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginBottom: 3 }}>
@@ -244,8 +244,8 @@ export default function MFASetupPage() {
                 onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
                 onKeyDown={e => e.key === 'Enter' && verifyTOTP()}
                 onFocus={e => {
-                  e.currentTarget.style.borderColor = '#FCE205';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(252,226,5,0.15)';
+                  e.currentTarget.style.borderColor = '#2563EB';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.15)';
                 }}
                 onBlur={e => {
                   e.currentTarget.style.borderColor = 'var(--color-border)';
@@ -303,7 +303,7 @@ export default function MFASetupPage() {
                   Keep your authenticator app safe
                 </p>
                 <p style={{ fontSize: 11, color: 'var(--color-text-sub)', lineHeight: 1.6 }}>
-                  If you lose access to your authenticator app, contact your Combryx administrator to reset MFA on your account.
+                  If you lose access to your authenticator app, contact your Builder Guardian administrator to reset MFA on your account.
                 </p>
               </div>
               <button

@@ -250,7 +250,7 @@ export default function LotDetailPage() {
             <t.icon size={12} strokeWidth={1.5} />
             {t.label}
             {t.count !== undefined && t.count > 0 && (
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: tab === t.id ? 'rgba(252,226,5,0.15)' : 'var(--color-border)', color: tab === t.id ? '#8A7600' : 'var(--color-muted)' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: tab === t.id ? 'rgba(37,99,235,0.15)' : 'var(--color-border)', color: tab === t.id ? '#1D4ED8' : 'var(--color-muted)' }}>
                 {t.count}
               </span>
             )}
@@ -306,7 +306,7 @@ export default function LotDetailPage() {
           {/* Quick action */}
           <button
             onClick={() => { setTab('cases'); }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(252,226,5,0.1)', border: '1px solid rgba(252,226,5,0.3)', color: '#8A7600', cursor: 'pointer', fontFamily: 'var(--font-body)', width: 'fit-content' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', color: '#1D4ED8', cursor: 'pointer', fontFamily: 'var(--font-body)', width: 'fit-content' }}
           >
             <Shield size={13} /> View warranty cases <ChevronRight size={12} />
           </button>
@@ -322,7 +322,7 @@ export default function LotDetailPage() {
             </p>
             <button
               onClick={() => navigate('/warranty/cases')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(252,226,5,0.1)', border: '1px solid rgba(252,226,5,0.3)', color: '#8A7600', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', color: '#1D4ED8', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
             >
               <Plus size={12} /> New case
             </button>
@@ -374,7 +374,7 @@ export default function LotDetailPage() {
             <p style={{ fontSize: 13, fontWeight: 700 }}>{workOrders.length} work order{workOrders.length !== 1 ? 's' : ''}</p>
             <button
               onClick={() => navigate('/warranty/work-orders')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(252,226,5,0.1)', border: '1px solid rgba(252,226,5,0.3)', color: '#8A7600', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', color: '#1D4ED8', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
             >
               <Plus size={12} /> New work order
             </button>

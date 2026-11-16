@@ -48,13 +48,13 @@ export default function MailPage() {
             marginBottom: 28,
           }}
         >
-          Combryx does not host a mail inbox. Emails are sent and received through
+          Builder Guardian does not host a mail inbox. Emails are sent and received through
           your connected Outlook or Gmail account.
           <br />
           <br />
           Open a case and click <strong>Email Homeowner</strong> to compose directly
           in your email client. Incoming emails are automatically logged to the case
-          timeline when you use the Combryx add-in.
+          timeline when you use the Builder Guardian add-in.
         </p>
 
         <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
