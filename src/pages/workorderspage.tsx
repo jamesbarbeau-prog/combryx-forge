@@ -897,9 +897,9 @@ export default function WorkOrdersPage() {
           <button onClick={fetchWorkOrders} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 7, background: 'none', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-muted)', fontSize: 11, fontFamily: 'var(--font-body)' }}>
             <RefreshCw size={11} />
           </button>
-          <button onClick={handleRunSchedule} disabled={running}
+          <button onClick={() => navigate('/warranty/plan')}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 7, background: running ? 'var(--color-mist)' : 'rgba(217,119,6,0.12)', border: '1px solid rgba(217,119,6,0.3)', color: '#9A6A16', fontSize: 12, fontWeight: 700, cursor: running ? 'wait' : 'pointer', fontFamily: 'var(--font-body)' }}>
-            {running ? '⏳ Running…' : '🤖 Suggest Schedule'}
+            Morning plan: suggested bookings
           </button>
           <button onClick={() => setShowCreate(!showCreate)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 7, background: '#3F6A8F', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>

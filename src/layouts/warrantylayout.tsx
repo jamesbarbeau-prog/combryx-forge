@@ -1,7 +1,7 @@
 // App shell: left rail (navigation + the 9 communities), slim top bar (search), content area.
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
+import { Sunrise, LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
 import { supabase } from '@/lib/supabase';
 import { BrandShield } from '@/components/identity';
@@ -11,6 +11,7 @@ interface CommCount { community_id: string; name: string; lots: number; open_cas
 
 type CountKey = 'cases' | 'conc' | 'wo' | 'po';
 const NAV: { id: string; label: string; path: string; icon: typeof Home; count?: CountKey }[] = [
+  { id: 'plan',         label: 'Morning plan', path: '/warranty/plan',         icon: Sunrise },
   { id: 'today',        label: 'Dashboard',    path: '/warranty/today',        icon: LayoutDashboard },
   { id: 'cases',        label: 'Cases',        path: '/warranty/cases',        icon: FolderOpen, count: 'cases' },
   { id: 'conciliation', label: 'Conciliation', path: '/warranty/conciliation', icon: Scale, count: 'conc' },

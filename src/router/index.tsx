@@ -11,6 +11,7 @@ import LotsPage            from '@/pages/lotspage';
 import HomesIndexPage      from '@/pages/homesindexpage';
 import CommunityPage       from '@/pages/communitypage';
 import LotDetailPage       from '@/pages/lotdetailpage';
+import MorningPlanPage     from '@/pages/morningplanpage';
 import CasesPage           from '@/pages/casespage';
 import CaseDetailPage      from '@/pages/casedetailpage';
 import WorkOrdersPage      from '@/pages/workorderspage';
@@ -72,6 +73,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true,         element: <Navigate to="today" replace /> },
           { path: 'today',       element: <WarrantyTodayPage />           },
+          { path: 'plan',        element: <MorningPlanPage />             },
           { path: 'communities', element: <CommunitiesPage />             },
           { path: 'communities/:projectId', element: <CommunityPage /> },
           { path: 'lots',        element: <HomesIndexPage />             },
