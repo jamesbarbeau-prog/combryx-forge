@@ -44,6 +44,7 @@ export default function MorningPlanPage() {
   const [unticked, setUnticked] = useState<Record<string, Set<string>>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [made, setMade] = useState<Record<string, Made[]>>({});
+  const [booked, setBooked] = useState<Record<string, Group>>({});
   const [copied, setCopied] = useState('');
 
   const load = useCallback(async () => {
@@ -101,7 +102,7 @@ export default function MorningPlanPage() {
         out.push({ lot, token: wo.portal_token, when: `${dayLabel(day)}, ${win}`, count: items.length });
       }
     } catch (e) { setErr((e as Error).message); }
-    if (out.length) { setMade(m => ({ ...m, [gkey(g)]: out })); load(); }
+    if (out.length) { setMade(m => ({ ...m, [gkey(g)]: out })); setBooked(b => ({ ...b, [gkey(g)]: g })); load(); }
     setBusy(null);
   }
 
@@ -159,6 +160,22 @@ export default function MorningPlanPage() {
       {err && <div className="mp-err">{err}</div>}
       {loading && !plan && <div className="mp-empty">Working out the plan…</div>}
       {plan && !groups.length && <div className="mp-empty">Nothing is waiting. Every item with a trade already has a booking.</div>}
+
+      {Object.keys(booked).length > 0 && (
+        <div className="mp-list" style={{ marginBottom: 14 }}>
+          {Object.entries(booked).map(([k, g]) => { const rows = made[k] ?? []; return (
+            <section key={k} className="mp-card" style={{ borderLeftColor: '#4A7A55' }}>
+              <div className="mp-done" style={{ marginTop: 0, borderTop: 'none', paddingTop: 0 }}>
+                <div className="mp-ok"><Check size={14} /> Booked: {rows.length} work order{rows.length === 1 ? '' : 's'} for {g.community ?? 'community'} / {g.trade}. Nothing has been emailed yet.</div>
+                <div className="mp-acts">
+                  <button className="mp-btn" onClick={() => copyAll(g, rows)}>{copied === k ? <Check size={14} /> : <Copy size={14} />} {copied === k ? 'Copied' : 'Copy all links'}</button>
+                  <a className="mp-btn" href={mailAll(g, rows)}><Mail size={14} /> Email draft with all links</a>
+                  <button className="mp-link" onClick={() => setBooked(b => { const n = { ...b }; delete n[k]; return n; })}>Dismiss</button>
+                </div>
+              </div>
+            </section>); })}
+        </div>
+      )}
 
       <div className="mp-list">
         {groups.map(g => {
