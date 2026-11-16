@@ -1,7 +1,7 @@
 // App shell: left rail (navigation + the 9 communities), slim top bar (search), content area.
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { Sunrise, LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
+import { Sunrise, Hourglass, LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
 import { supabase } from '@/lib/supabase';
 import { CompanyMark } from '@/components/brand';
@@ -20,6 +20,7 @@ const NAV: { id: string; label: string; path: string; icon: typeof Home; count?:
   { id: 'inspections',  label: 'Inspections',  path: '/warranty/inspections',  icon: ClipboardList },
   { id: 'po-requests',  label: 'PO Approvals', path: '/warranty/po-requests',  icon: ClipboardCheck, count: 'po' },
   { id: 'lots',         label: 'Homes & Lots', path: '/warranty/lots',         icon: Home },
+  { id: 'aging',        label: 'Aging',        path: '/warranty/aging',        icon: Hourglass },
   { id: 'reports',      label: 'Reports',      path: '/warranty/reports',      icon: BarChart3 },
 ];
 const safeCount = async (q: PromiseLike<{ count: number | null; error: unknown }>) => { try { const r = await q; return r.error ? null : (r.count ?? 0); } catch { return null; } };

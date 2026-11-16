@@ -25,8 +25,7 @@ interface LotDetail {
 }
 
 interface FileSummary {
-  key: string; open: number; closed: number; other: number; oldest_open_days: number | null;
-  buckets: { d30: number; d60: number; d90: number; d90p: number };
+  key: string; open: number; closed: number; other: number;
   cases: { id: string; case_number: string; status: string; opened_at: string }[];
   inspections: number; inspections_in_progress: number;
 }
@@ -52,7 +51,7 @@ const WO_STATUS: Record<string, [string, string, string]> = {
 };
 
 const OPEN = '#B08D4F', CLOSED = '#4A7A55', OTHER = '#C6BDAC';
-const AGE_COLORS = ['#E3CFA3', '#C9A96A', '#9A6A16', '#A5402F'];
+const AGE_COLORS = ['#E3CFA3', '#D6BC83', '#C9A96A', '#B08D4F', '#8D7140', '#A5402F', '#7A2B1E'];
 const panel: React.CSSProperties = { background: 'var(--color-panel)', border: '1px solid var(--color-border)', borderRadius: 12 };
 
 export default function LotDetailPage() {
@@ -63,6 +62,7 @@ export default function LotDetailPage() {
 
   const [lot, setLot] = useState<LotDetail | null>(null);
   const [files, setFiles] = useState<FileSummary[]>([]);
+  const [ageDays, setAgeDays] = useState<number | null>(null);
   const [workOrders, setWorkOrders] = useState<WorkOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -87,17 +87,14 @@ export default function LotDetailPage() {
         supabase.from('work_orders').select('id, wo_number, description, status, scheduled_date, created_at, trades(name)').eq('lot_id', lotId!).order('created_at', { ascending: false }),
       ]);
       setFiles(((sum.data as any)?.files ?? []) as FileSummary[]);
+      setAgeDays((sum.data as any)?.age_days ?? null);
       setWorkOrders(((wo.data ?? []) as any[]).map(w => ({ id: w.id, wo_number: w.wo_number, description: w.description, status: w.status, trade_name: w.trades?.name ?? null, scheduled_date: w.scheduled_date, created_at: w.created_at })));
     } catch (e: any) {
       setError(e.message || 'Failed to load this home');
     } finally { setLoading(false); }
   }
 
-  const tot = useMemo(() => files.reduce((a, f) => ({
-    open: a.open + f.open, closed: a.closed + f.closed, other: a.other + f.other,
-    d30: a.d30 + f.buckets.d30, d60: a.d60 + f.buckets.d60, d90: a.d90 + f.buckets.d90, d90p: a.d90p + f.buckets.d90p,
-    oldest: Math.max(a.oldest, f.oldest_open_days ?? 0),
-  }), { open: 0, closed: 0, other: 0, d30: 0, d60: 0, d90: 0, d90p: 0, oldest: 0 }), [files]);
+  const tot = useMemo(() => files.reduce((a, f) => ({ open: a.open + f.open, closed: a.closed + f.closed, other: a.other + f.other }), { open: 0, closed: 0, other: 0 }), [files]);
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 400 }}>
@@ -183,7 +180,7 @@ export default function LotDetailPage() {
             <ChevronLeft size={14} /> All files
           </button>
           <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{file === 'work_orders' ? 'Work orders' : meta?.label}</h2>
-          {s && file !== 'work_orders' && <span style={{ fontSize: 13, color: 'var(--color-text-sub)' }}>{s.open} open, {s.closed} closed{s.oldest_open_days != null && s.open ? `, oldest open ${s.oldest_open_days} days` : ''}</span>}
+          {s && file !== 'work_orders' && <span style={{ fontSize: 13, color: 'var(--color-text-sub)' }}>{s.open} open, {s.closed} closed{ageDays != null && s.open ? `, ${ageDays} days since closing` : ''}</span>}
         </div>
         {file === 'qci' && <LotInspections lotId={lot.id} kind="qci" />}
         {file === 'pdi' && (
@@ -206,8 +203,8 @@ export default function LotDetailPage() {
 
   // ── Overview: dashboard + chooser ─────────────────────────────
   const maxFile = Math.max(1, ...files.map(f => f.open + f.closed + f.other));
-  const buckets = [['0 to 30 days', tot.d30], ['31 to 60', tot.d60], ['61 to 90', tot.d90], ['Over 90', tot.d90p]] as [string, number][];
-  const maxB = Math.max(1, ...buckets.map(b => b[1]));
+  const BANDS: [string, number][] = [['30', 30], ['60', 60], ['90', 90], ['120', 120], ['180', 180], ['300', 300], ['300+', Infinity]];
+  const bandIdx = ageDays == null ? -1 : BANDS.findIndex(([, max]) => ageDays <= max);
 
   return (
     <div style={wrap}>
@@ -218,7 +215,7 @@ export default function LotDetailPage() {
         <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 18 }}>
           <Tile label="Open items" value={tot.open} color={tot.open ? '#8D7140' : CLOSED} />
           <Tile label="Closed items" value={tot.closed} color={CLOSED} />
-          <Tile label="Oldest open item" value={tot.open ? `${tot.oldest} days` : '—'} color={tot.oldest > 90 ? '#A5402F' : 'var(--color-text)'} />
+          <Tile label="Days since closing" value={ageDays != null ? ageDays : '—'} color={tot.open && (ageDays ?? 0) > 300 ? '#A5402F' : 'var(--color-text)'} />
           <Tile label="Open work orders" value={workOrders.filter(w => !['complete', 'closed', 'resolved', 'cancelled'].includes(w.status)).length} color="#6B5B95" />
         </div>
         {tot.open + tot.closed + tot.other === 0 ? (
@@ -247,19 +244,19 @@ export default function LotDetailPage() {
               </div>
             </div>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>How long open items have waited</div>
-              <div style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 8 }}>Open items only. Age counts from the date the file was opened.</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, alignItems: 'end', height: 120 }}>
-                {buckets.map(([label, n], i) => (
-                  <div key={label} title={`${label}: ${n} open`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%' }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, marginBottom: 3 }}>{n}</span>
-                    <div style={{ width: '100%', maxWidth: 54, height: n ? Math.max(4, (n / maxB) * 84) : 2, background: n ? AGE_COLORS[i] : OTHER, borderRadius: '4px 4px 0 0' }} />
-                  </div>
+              <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 4 }}>Where this home sits in the aging scale</div>
+              <div style={{ fontSize: 12, color: 'var(--color-text-sub)', marginBottom: 10 }}>
+                {ageDays == null ? 'No closing date yet, so open items cannot be aged.' : `Closed ${ageDays} days ago. ${tot.open} item${tot.open === 1 ? ' is' : 's are'} still open.`}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+                {BANDS.map(([label], i) => (
+                  <div key={label} style={{ height: 16, borderRadius: 3, background: i === bandIdx ? AGE_COLORS[Math.min(i, AGE_COLORS.length - 1)] : OTHER, opacity: i === bandIdx ? 1 : 0.35 }} title={i === bandIdx ? 'This home' : ''} />
                 ))}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginTop: 5 }}>
-                {buckets.map(([label]) => <span key={label} style={{ fontSize: 11.5, color: 'var(--color-text-sub)', textAlign: 'center' }}>{label}</span>)}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, marginTop: 4 }}>
+                {BANDS.map(([label]) => <span key={label} style={{ fontSize: 11.5, color: 'var(--color-text-sub)', textAlign: 'center' }}>{label}</span>)}
               </div>
+              <div style={{ fontSize: 11.5, color: 'var(--color-muted)', marginTop: 6 }}>Days since closing</div>
             </div>
           </div>
         )}
@@ -288,8 +285,8 @@ export default function LotDetailPage() {
                     <span style={{ fontSize: 13, color: 'var(--color-text-sub)' }}>open of {total}</span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--color-text-sub)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {s!.open > 0 && s!.oldest_open_days != null
-                      ? <><Clock size={12} /> Oldest open {s!.oldest_open_days} days</>
+                    {s!.open > 0 && ageDays != null
+                      ? <><Clock size={12} /> {ageDays} days since closing</>
                       : total > 0 ? 'Everything is closed' : isInsp ? `${s!.inspections} on file` : `${s!.cases.length} on file`}
                   </div>
                   {s!.inspections_in_progress > 0 && <span style={{ display: 'inline-block', marginTop: 6, fontSize: 11.5, fontWeight: 700, color: '#2F5576', background: '#E2EAF1', borderRadius: 6, padding: '2px 8px' }}>Inspection in progress</span>}
@@ -311,7 +308,7 @@ export default function LotDetailPage() {
         </button>
       </div>
       <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
-        <Layers size={12} /> Dates on files imported from earlier records show when the file was loaded, until Tarion dates are synced.
+        <Layers size={12} /> Aging counts days since the home closed. It applies to open items only.
       </p>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>

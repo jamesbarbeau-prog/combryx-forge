@@ -11,6 +11,7 @@ import LotsPage            from '@/pages/lotspage';
 import HomesIndexPage      from '@/pages/homesindexpage';
 import CommunityPage       from '@/pages/communitypage';
 import LotDetailPage       from '@/pages/lotdetailpage';
+import AgingPage from '@/pages/agingpage';
 import MorningPlanPage     from '@/pages/morningplanpage';
 import CasesPage           from '@/pages/casespage';
 import CaseDetailPage      from '@/pages/casedetailpage';
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
           { index: true,         element: <Navigate to="today" replace /> },
           { path: 'today',       element: <WarrantyTodayPage />           },
           { path: 'plan',        element: <MorningPlanPage />             },
+          { path: 'aging',       element: <AgingPage />                   },
           { path: 'communities', element: <CommunitiesPage />             },
           { path: 'communities/:projectId', element: <CommunityPage /> },
           { path: 'lots',        element: <HomesIndexPage />             },
