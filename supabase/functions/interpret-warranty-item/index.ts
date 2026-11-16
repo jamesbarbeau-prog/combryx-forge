@@ -3,7 +3,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const MODEL = 'llama-3.3-70b-versatile';
+// llama-3.3-70b-versatile was shut down by Groq on 2026-08-16. gpt-oss-120b is the recommended replacement; qwen is the fallback.
+const MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b'];
+let MODEL = MODELS[0];
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -103,13 +105,29 @@ async function search(admin: any, kind: 'obc' | 'cpg', description: string): Pro
 }
 
 async function callGroq(key: string, user: string): Promise<string> {
-  const r = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: user }], max_tokens: 2048, temperature: 0.1 }),
-  });
-  if (!r.ok) throw new Error(`Groq ${r.status}`);
-  return (await r.json()).choices?.[0]?.message?.content ?? '';
+  let lastErr = '';
+  for (const model of MODELS) {
+    const body: Record<string, unknown> = {
+      model, temperature: 0.1, max_completion_tokens: 4096,
+      response_format: { type: 'json_object' },
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: user }],
+    };
+    if (model.startsWith('openai/gpt-oss')) body.reasoning_effort = 'low';
+    const r = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (r.ok) {
+      const out = (await r.json()).choices?.[0]?.message?.content ?? '';
+      if (out.trim()) { MODEL = model; return out; }
+      lastErr = `${model}: empty response`;
+      continue;
+    }
+    lastErr = `${model}: Groq ${r.status} ${(await r.text()).slice(0, 300)}`;
+    console.error('callGroq', lastErr);
+  }
+  throw new Error(lastErr || 'Groq unavailable');
 }
 
 function parse(raw: string): Record<string, any> {
@@ -167,7 +185,8 @@ Deno.serve(async (req: Request) => {
         } else if (det === 'homeowner') { result.risk_level = 'low'; result.risk_reasoning = 'Homeowner maintenance responsibility — low builder risk.'; }
         else { result.risk_level = 'medium'; result.risk_reasoning = 'Insufficient data to confirm risk level — defaulting to medium.'; }
       }
-      await admin.from('interpretation_cache').insert({
+      const parsedOk = !String(result.finding ?? '').startsWith('Response could not be parsed');
+      if (parsedOk) await admin.from('interpretation_cache').insert({
         company_id: companyId, item_description: description, item_description_hash: hash,
         obc_sections: obc.sections, cpg_sections: cpg.sections, interpretation: result, model_used: MODEL,
       });
@@ -182,6 +201,6 @@ Deno.serve(async (req: Request) => {
     return json({ ...result, _cached: wasCached, _obc_found: obc.found, _cpg_found: cpg.found });
   } catch (e) {
     console.error('interpret-warranty-item', e);
-    return json({ error: 'Interpretation failed' }, 500);
+    return json({ error: 'The AI service did not answer. Try again in a moment.' }, 502);
   }
 });

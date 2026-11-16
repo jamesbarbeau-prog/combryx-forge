@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { ItemAssessment } from '@/components/itemassessment';
+import ItemPanel from '@/components/itempanel';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -256,6 +257,7 @@ export default function CaseDetailPage() {
   const [itemFilter,         setItemFilter]         = useState<ItemFilter>('all');
   const [loading,            setLoading]            = useState(true);
   const [expandedItem,       setExpandedItem]       = useState<string | null>(null);
+  const [panelItem,          setPanelItem]          = useState<string | null>(null);
   const [expandedInteraction,setExpandedInteraction]= useState<string | null>(null);
   const [updatingItem,       setUpdatingItem]       = useState<string | null>(null);
   const [savingTrade,        setSavingTrade]        = useState<string | null>(null);
@@ -776,6 +778,7 @@ export default function CaseDetailPage() {
                                   <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:4, background:'rgba(30,95,164,0.10)', border:'1px solid rgba(30,95,164,0.2)', color:'#1E5FA4' }}>{item.trade_required}</span>
                                 )}
                                 <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:100, background:st.bg, color:st.color, marginLeft:'auto', flexShrink:0 }}>{st.label}</span>
+                                <button onClick={e => { e.stopPropagation(); setPanelItem(item.id); }} style={{ fontSize:11, fontWeight:700, padding:'2px 9px', borderRadius:7, border:'1px solid var(--color-border-hard)', background:'#fff', color:'#1D4ED8', cursor:'pointer', flexShrink:0 }}>Open</button>
                               </div>
                               <p style={{ fontSize:12, lineHeight:1.5, color: isItemDone || isItemNW ? 'var(--color-muted)' : 'var(--color-text)', textDecoration: isItemDone ? 'line-through' : 'none' }}>
                                 {item.description}
@@ -1162,6 +1165,7 @@ export default function CaseDetailPage() {
         </div>
       </div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      {panelItem && <ItemPanel itemId={panelItem} onClose={() => setPanelItem(null)} onChanged={() => { fetchItems(); }} />}
     </div>
   );
 }

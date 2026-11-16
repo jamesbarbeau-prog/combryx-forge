@@ -2,10 +2,10 @@
 
 :root {
   /* Canvas */
-  --color-canvas:       #F4F7FB;
+  --color-canvas:       #F6F7F9;
   --color-panel:        #FFFFFF;
   --color-panel-raised: #F8FAFD;
-  --color-border:       #E2E8F0;
+  --color-border:       #E5E8EE;
   --color-border-hard:  #CBD5E1;
 
   /* Text */

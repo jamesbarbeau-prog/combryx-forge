@@ -43,7 +43,7 @@ export default function QuickSearch() {
 
   return (
     <div ref={box} style={{ position: 'relative', width: 'min(460px, 100%)' }}>
-      <Search size={15} style={{ position: 'absolute', left: 13, top: 12, color: '#7B8AA0', pointerEvents: 'none' }} />
+      <Search size={15} style={{ position: 'absolute', left: 12, top: 10.5, color: '#7B8AA0', pointerEvents: 'none' }} />
       <input ref={ref} value={q} onChange={e => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         onKeyDown={e => {
           if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, hits.length - 1)); }
@@ -52,8 +52,8 @@ export default function QuickSearch() {
           else if (e.key === 'Escape') { setOpen(false); ref.current?.blur(); }
         }}
         placeholder="Search lot, civic address, owner, enrolment or case #" aria-label="Search homes"
-        style={{ width: '100%', height: 39, borderRadius: 10, border: '1px solid rgba(255,255,255,0.35)', background: '#fff', padding: '0 52px 0 36px', font: '500 13px var(--font-body)', color: '#0F172A', outline: 'none' }} />
-      <kbd style={{ position: 'absolute', right: 10, top: 10, fontSize: 10.5, fontWeight: 700, color: '#7B8AA0', border: '1px solid #E2E8F0', borderRadius: 5, padding: '1px 6px', background: '#F8FAFC' }}>Ctrl K</kbd>
+        style={{ width: '100%', height: 36, borderRadius: 9, border: '1px solid #D5DBE5', background: '#fff', padding: '0 52px 0 36px', font: '500 13px var(--font-body)', color: '#0F172A', outline: 'none' }} />
+      <kbd style={{ position: 'absolute', right: 10, top: 8, fontSize: 10.5, fontWeight: 700, color: '#7B8AA0', border: '1px solid #E2E8F0', borderRadius: 5, padding: '1px 6px', background: '#F8FAFC' }}>Ctrl K</kbd>
       {open && q.trim().length >= 1 && (
         <div style={{ position: 'absolute', left: 0, right: 0, top: 46, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, boxShadow: '0 18px 44px rgba(11,19,43,0.25)', padding: 6, zIndex: 70, maxHeight: 420, overflowY: 'auto' }}>
           {hits.map((h, i) => (
