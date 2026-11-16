@@ -10,6 +10,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import { ItemAssessment } from '@/components/itemassessment';
 import ItemPanel from '@/components/itempanel';
+import { ScheduleTradesDialog } from '@/components/scheduletrades';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -258,6 +259,7 @@ export default function CaseDetailPage() {
   const [loading,            setLoading]            = useState(true);
   const [expandedItem,       setExpandedItem]       = useState<string | null>(null);
   const [panelItem,          setPanelItem]          = useState<string | null>(null);
+  const [showSchedule,       setShowSchedule]       = useState(false);
   const [expandedInteraction,setExpandedInteraction]= useState<string | null>(null);
   const [updatingItem,       setUpdatingItem]       = useState<string | null>(null);
   const [savingTrade,        setSavingTrade]        = useState<string | null>(null);
@@ -558,6 +560,11 @@ export default function CaseDetailPage() {
         </span>
         {isConcilCase && <span style={{ fontSize:9, fontWeight:800, padding:'2px 8px', borderRadius:100, background:'rgba(220,38,38,0.12)', color:'#A5402F', border:'1px solid rgba(220,38,38,0.3)', textTransform:'uppercase' as const, letterSpacing:'0.08em' }}>Conciliation</span>}
         <span style={{ flex:1, fontSize:13, fontWeight:600, color:'var(--color-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{caseData.display_name ?? caseData.title}</span>
+        {readyCount > 0 && (
+          <button onClick={() => setShowSchedule(true)} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:7, background:'#3F6A8F', border:'none', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)', flexShrink:0 }}>
+            <Calendar size={13} /> Schedule trades ({readyCount})
+          </button>
+        )}
         <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:100, background:status.bg, border:`1px solid ${status.color}30` }}>
           <div style={{ width:6, height:6, borderRadius:'50%', background:status.dot }} />
           <span style={{ fontSize:11, fontWeight:700, color:status.color }}>{status.label}</span>
@@ -610,14 +617,14 @@ export default function CaseDetailPage() {
             </div>
           )}
 
-          {readyToSchedule && (
-            <div style={{ padding:'12px 14px', borderRadius:8, background:'rgba(30,95,164,0.06)', border:'1px solid rgba(30,95,164,0.25)' }}>
+          {readyCount > 0 && (
+            <div style={{ padding:'12px 14px', borderRadius:8, background:'rgba(63,106,143,0.07)', border:'1px solid rgba(63,106,143,0.3)' }}>
               <p style={{ fontSize:10, fontWeight:700, color:'#3F6A8F', marginBottom:4 }}>Ready to schedule</p>
               <p style={{ fontSize:10, color:'var(--color-muted)', marginBottom:8 }}>
-                {readyCount} item{readyCount !== 1 ? 's' : ''} · {[...new Set(items.filter(i=>i.trade_required).map(i=>i.trade_required))].length} trade{[...new Set(items.filter(i=>i.trade_required).map(i=>i.trade_required))].length !== 1 ? 's' : ''}
+                {readyCount} item{readyCount !== 1 ? 's' : ''} · {[...new Set(items.filter(i=>i.status==='outstanding' && i.trade_required).map(i=>i.trade_required))].length} trade{[...new Set(items.filter(i=>i.status==='outstanding' && i.trade_required).map(i=>i.trade_required))].length !== 1 ? 's' : ''}
               </p>
-              <button style={{ width:'100%', padding:'8px 0', borderRadius:7, background:'#3F6A8F', border:'none', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
-                Schedule all items →
+              <button onClick={() => setShowSchedule(true)} style={{ width:'100%', padding:'8px 0', borderRadius:7, background:'#3F6A8F', border:'none', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                Schedule trades →
               </button>
             </div>
           )}
@@ -1165,6 +1172,10 @@ export default function CaseDetailPage() {
         </div>
       </div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      {showSchedule && caseData && profile && (
+        <ScheduleTradesDialog caseId={caseData.id} companyId={profile.company_id} lotId={caseData.lot_id} items={items}
+          onClose={() => setShowSchedule(false)} onDone={() => { fetchItems(); }} />
+      )}
       {panelItem && <ItemPanel itemId={panelItem} onClose={() => setPanelItem(null)} onChanged={() => { fetchItems(); }} />}
     </div>
   );

@@ -63,7 +63,11 @@ export default function ItemPanel({ itemId, onClose, onChanged }: { itemId: stri
         const { data: lot } = await supabase.from('warranty_lots').select('address, civic_number, street, lot_number').eq('id', c.lot_id).maybeSingle();
         setAddress({ lotId: c.lot_id, text: lot?.address ?? (`${lot?.civic_number ?? ''} ${lot?.street ?? ''}`.trim() || `Lot ${lot?.lot_number ?? ''}`) });
       }
-      const { data: wo } = await supabase.from('work_orders').select(WO_COLS).eq('case_id', it.case_id).contains('custom_fields', { item_id: itemId }).order('created_at', { ascending: false });
+      const [{ data: w1 }, { data: w2 }] = await Promise.all([
+        supabase.from('work_orders').select(WO_COLS).eq('case_id', it.case_id).contains('custom_fields', { item_id: itemId }),
+        supabase.from('work_orders').select(WO_COLS).eq('case_id', it.case_id).contains('custom_fields', { item_ids: [itemId] }),
+      ]);
+      const wo = [...((w1 ?? []) as unknown as WOFull[]), ...((w2 ?? []) as unknown as WOFull[])].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
       setOrders((wo ?? []) as WorkOrder[]);
     }
   }, [itemId]);

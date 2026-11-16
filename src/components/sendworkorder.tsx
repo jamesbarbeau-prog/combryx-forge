@@ -14,11 +14,19 @@ export const WO_COLS = 'id,status,issue,created_at,scheduled_time,portal_token,o
 
 interface Person { id: string; name: string; email: string | null }
 const WINDOWS = ['8:00 am – 12:00 pm', '12:00 pm – 4:00 pm', 'Any time that day', 'First thing in the morning'];
-const TEST_MAIL = 'james.barbeau@claridgehomes.com';
+export const TEST_MAIL = 'james.barbeau@claridgehomes.com';
 const origin = () => window.location.origin;
 export const tradeLink = (w: { portal_token: string }) => `${origin()}/portal/work-order/${w.portal_token}`;
 export const ownerLink = (w: { owner_token: string }) => `${origin()}/portal/visit/${w.owner_token}`;
 const fmt = (iso: string | null) => iso ? new Date(iso).toLocaleString('en-CA', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+
+/** Draft email with the portal link. In test mode it is addressed to the tester, never to the real trade. */
+export function workOrderMailto(issue: string, address: string, link: string, realEmail: string) {
+  const subject = `Work order: ${issue}`;
+  const body = `Hello,\n\nWe have a warranty repair at ${address || 'the site'} for you.\n\nOpen the work order, see the proposed time, print it, and accept the time or ask for a different one here:\n${link}\n\nThank you.`;
+  if (TEST_MAIL) return `mailto:${encodeURIComponent(TEST_MAIL)}?subject=${encodeURIComponent('[TEST] ' + subject)}&body=${encodeURIComponent(`TEST MODE. This would go to: ${realEmail || 'nobody (no address on file)'}\n\n` + body)}`;
+  return `mailto:${encodeURIComponent(realEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 export function statusOf(w: WOFull): { text: string; tone: 'ok' | 'warn' | 'bad' | 'idle' } {
   if (w.status === 'no_show') return { text: 'No-show reported', tone: 'bad' };
@@ -78,14 +86,7 @@ export function SendWorkOrder({ order, tradeName, address, onChanged }: { order:
   }
 
   const link = tradeLink(order);
-  const mailto = () => {
-    const subject = `Work order: ${order.issue}`;
-    const body = `Hello,\n\nWe have a warranty repair at ${address || 'the site'} for you.\n\nOpen the work order, see the proposed time, print it, and accept the time or ask for a different one here:\n${link}\n\nThank you.`;
-    const real = email || order.recipient_email || '';
-    // Test mode: the draft opens addressed to the tester, never to the real trade. Set TEST_MAIL to '' to go live.
-    if (TEST_MAIL) return `mailto:${encodeURIComponent(TEST_MAIL)}?subject=${encodeURIComponent('[TEST] ' + subject)}&body=${encodeURIComponent(`TEST MODE. This would go to: ${real || 'nobody (no address on file)'}\n\n` + body)}`;
-    return `mailto:${encodeURIComponent(real)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  };
+  const mailto = () => workOrderMailto(order.issue, address, link, email || order.recipient_email || '');
   async function copy(text: string) { try { await navigator.clipboard.writeText(text); setMsg('Link copied.'); } catch { setMsg(text); } }
 
   const st = statusOf(order);
