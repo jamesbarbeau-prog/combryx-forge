@@ -12,7 +12,7 @@ const json = (b: unknown, status = 200) =>
 async function requireUser(req: Request) {
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   if (!token) return null;
-  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const admin = createClient(Deno.env.get('SUPABASE_URL')!, (Deno.env.get('SB_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!);
   const { data } = await admin.auth.getUser(token);
   if (!data?.user) return null;
   const { data: row } = await admin.from('users').select('company_id, is_active').eq('id', data.user.id).maybeSingle();

@@ -355,7 +355,7 @@ Deno.serve(async req => {
     const url = Deno.env.get('SUPABASE_URL')!;
     const body = await req.json().catch(() => ({}));
     const mode: string = body.mode ?? 'all';
-    const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const admin = createClient(url, (Deno.env.get('SB_SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!);
     let db: any, companyId: string;
     const cron = req.headers.get('x-cron-secret');
     if (cron && cron === Deno.env.get('CM_CRON_SECRET')) {
@@ -363,7 +363,7 @@ Deno.serve(async req => {
       companyId = Deno.env.get('CM_COMPANY_ID') ?? (await admin.from('cm_settings').select('company_id').limit(1).maybeSingle()).data?.company_id;
       if (!companyId) return json({ error: 'CM_COMPANY_ID is not set.' }, 400);
     } else {
-      db = createClient(url, Deno.env.get('SUPABASE_ANON_KEY')!, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } });
+      db = createClient(url, (Deno.env.get('SB_PUBLISHABLE_KEY') ?? 'sb_publishable_2gScWn0IHoGB3vRAgrwLLA_a_IfsKNV'), { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } });
       const { data: { user } } = await db.auth.getUser();
       if (!user) return json({ error: 'Sign in required.' }, 401);
       const { data: m } = await db.from('cm_members').select('company_id, role').eq('user_id', user.id).eq('role', 'manager').limit(1).maybeSingle();
