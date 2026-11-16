@@ -1,0 +1,33 @@
+name: Build Android APK
+
+# Builds an installable Android app (APK) you can download from the run's "Artifacts" and sideload onto a phone.
+on:
+  workflow_dispatch:
+  push:
+    branches: [warranty-rescope]
+    paths: ['src/**', 'public/**', 'android/**', 'capacitor.config.ts', 'package.json', 'index.html', '.github/workflows/android-apk.yml']
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - name: Build the web app
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://nsjdnpqgxtoysbdtiprb.supabase.co
+          VITE_SUPABASE_ANON_KEY: sb_publishable_2gScWn0IHoGB3vRAgrwLLA_a_IfsKNV
+      - run: npx cap sync android
+      - name: Build the APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: builder-guardian-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Mail, Lock, User, AlertTriangle, Eye, EyeOff, MailCheck } from 'lucide-react';
@@ -18,6 +18,17 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Coming back from the confirmation email: the session is already in the link, so go straight into the app.
+  const hashErr = (() => { const h = new URLSearchParams(window.location.hash.replace(/^#/, '')); return h.get('error_description') ?? ''; })();
+  const [entering, setEntering] = useState(() => /access_token|[?&]code=/.test(window.location.hash + window.location.search));
+  useEffect(() => {
+    const go = () => navigate((location.state as { from?: string } | null)?.from ?? '/warranty/today', { replace: true });
+    supabase.auth.getSession().then(({ data: { session } }) => { if (session) go(); else setEntering(false); });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((ev, session) => { if (session && (ev === 'SIGNED_IN' || ev === 'INITIAL_SESSION')) go(); });
+    return () => subscription.unsubscribe();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (hashErr) setError(/expired|invalid/i.test(hashErr) ? 'That confirmation link has expired. Sign in, or create the account again to get a new link.' : hashErr.replace(/\+/g, ' ')); }, [hashErr]);
 
   function switchMode(m: Mode) { setMode(m); setError(''); }
 
@@ -45,7 +56,7 @@ export default function LoginPage() {
       }
       const { error: upErr } = await supabase.auth.signUp({
         email: addr, password,
-        options: { data: { first_name: first.trim(), last_name: last.trim() }, emailRedirectTo: `${window.location.origin}/warranty/login` },
+        options: { data: { first_name: first.trim(), last_name: last.trim() }, emailRedirectTo: `${window.location.origin}/warranty/today` },
       });
       if (upErr) {
         setError(/already|registered/i.test(upErr.message) ? 'An account with this email already exists. Sign in instead.' : 'We could not create the account. Check your work email and try again.');
@@ -57,6 +68,12 @@ export default function LoginPage() {
 
   const submit = () => (mode === 'signup' ? handleSignUp() : handleSignIn());
   const onKey = (e: React.KeyboardEvent) => { if (e.key === 'Enter') submit(); };
+
+  if (entering) return (
+    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', background: 'linear-gradient(180deg,#1B2A41,#16233A)', color: '#fff', fontFamily: 'var(--font-body)', textAlign: 'center', padding: 24 }}>
+      <div><BrandShield size={64} /><div style={{ fontWeight: 800, fontSize: 20, marginTop: 14 }}>Email confirmed</div><div style={{ color: '#D9CFB8', marginTop: 6 }}>Signing you in…</div></div>
+    </div>
+  );
 
   return (
     <div className="lg">

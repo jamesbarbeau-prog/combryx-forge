@@ -1,14 +1,17 @@
 // The on-site inspection screen for both QCI (against site instructions, selections and upgrades, plus observed defects) and PDI (with the owner, Tarion layout).
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Camera, Image as ImageIcon, Plus, Trash2, Check, X, Minus, FileText, Copy, ChevronLeft, ExternalLink, AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { getCompanyId } from '@/lib/company';
+import {
+  addPhoto, finishInspection, getCachedLot, getInsp, listItems, listPhotos, listSigs, patchInsp, putItem, putItems, putSig,
+  removeItem, removePhoto, useLocal, usePhotoUrls, useSyncStatus, type LocalPhoto,
+} from '@/lib/offline';
 import { SignaturePad } from '@/components/signaturepad';
 import LotSource from '@/components/lotsource';
 import {
-  INSP_COLS, LIST_LABEL, PDI_CHECKLIST, ROOMS, SRC_LABEL, fmtDate, loadLotSource, seedSiChecks, signedUrls, uploadPhoto,
-  type InspItem, type InspPhoto, type Inspection, type ListKey, type SiLine,
+  LIST_LABEL, PDI_CHECKLIST, ROOMS, SRC_LABEL, appOrigin, fmtDate, loadLotSource,
+  type InspItem, type Inspection, type ListKey, type SiLine,
 } from '@/lib/inspections';
 
 const NAVY = '#1B2A41', BRASS = '#8D7140';
@@ -18,48 +21,50 @@ const big = (bg: string, fg = '#fff', border = 'none'): React.CSSProperties => (
 
 type Tab = 'lines' | 'checklist' | 'findings' | 'finish';
 
+/** One inspection item per source line, written to the phone (works with no signal). */
+async function seedLocal(insp: Inspection, lines: SiLine[]) {
+  const existing = await listItems(insp.id);
+  const have = new Set(existing.filter(i => i.list === 'si_check').map(i => i.ref_line_id));
+  const fresh = lines.filter(l => !have.has(l.id)); if (!fresh.length) return;
+  const base = existing.filter(i => i.list === 'si_check').length;
+  await putItems(fresh.map((l, n) => ({ company_id: insp.company_id, inspection_id: insp.id, seq: base + n + 1, list: 'si_check' as ListKey, source: l.kind, description: (l.ref ? `${l.ref}: ` : '') + l.text, ref_line_id: l.id })));
+}
+
 export default function InspectionPage() {
   const { id } = useParams();
-  const [insp, setInsp] = useState<Inspection | null>(null);
-  const [items, setItems] = useState<InspItem[]>([]);
-  const [photos, setPhotos] = useState<InspPhoto[]>([]);
-  const [urls, setUrls] = useState<Record<string, string>>({});
+  const sync = useSyncStatus();
+  const [insp, ready] = useLocal(() => getInsp(id!), [id]);
+  const [itemsL] = useLocal(() => listItems(id!), [id]);
+  const [photosL] = useLocal(() => listPhotos(id!), [id]);
+  const items = itemsL ?? []; const photos = photosL ?? [];
+  const urls = usePhotoUrls(photosL);
   const [lines, setLines] = useState<SiLine[]>([]);
-  const [tab, setTab] = useState<Tab>('findings');
+  const [tab, setTab] = useState<Tab | null>(null);
   const [sheet, setSheet] = useState<null | { list: ListKey; room?: string; description?: string }>(null);
-  const [err, setErr] = useState(''); const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+  const seeding = useRef(false);
+  const lotId = insp?.lot_id ?? null;
 
-  const reload = useCallback(async () => {
-    if (!id) return;
-    const [i, it, ph] = await Promise.all([
-      supabase.from('inspections').select(INSP_COLS).eq('id', id).single(),
-      supabase.from('inspection_items').select('*').eq('inspection_id', id).order('seq'),
-      supabase.from('inspection_photos').select('id,item_id,storage_path').eq('inspection_id', id).order('created_at'),
-    ]);
-    if (i.error) { setErr(i.error.message); setLoading(false); return; }
-    const insp0 = i.data as unknown as Inspection;
-    setInsp(insp0); setItems((it.data ?? []) as InspItem[]); const p = (ph.data ?? []) as InspPhoto[]; setPhotos(p);
-    setUrls(await signedUrls(p.map(x => x.storage_path)));
-    setLoading(false);
-    return insp0;
-  }, [id]);
-
+  // Site instruction lines: the copy saved on the phone first, refreshed from the server when there is signal.
   useEffect(() => {
+    if (!lotId) return; let live = true;
     (async () => {
-      const i0 = await reload();
-      if (i0 && i0.lot_id) {
-        const src = await loadLotSource(i0.lot_id); setLines(src.lines);
-        if (i0.kind === 'qci' && i0.status === 'in_progress' && src.lines.length) {
-          const cur = await supabase.from('inspection_items').select('*').eq('inspection_id', i0.id);
-          try { await seedSiChecks(i0, src.lines, (cur.data ?? []) as InspItem[]); await reload(); } catch (e: any) { setErr(e.message); }
-        }
-      }
-      if (i0) setTab(i0.status !== 'in_progress' ? 'finish' : i0.kind === 'qci' ? 'lines' : 'checklist');
+      const saved = (await getCachedLot(lotId))?.lines ?? []; if (live) setLines(saved);
+      if (navigator.onLine) { try { const s2 = await loadLotSource(lotId); if (live && s2.lines.length) setLines(s2.lines); } catch { /* keep saved */ } }
     })();
-  }, [reload]);
+    return () => { live = false; };
+  }, [lotId, sync.online]);
 
-  if (loading) return <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center' }}><Loader2 size={16} className="spin" /> Loading…<style>{`.spin{animation:sp .9s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}`}</style></div>;
-  if (!insp) return <div style={{ ...card, color: '#A5402F' }}>{err || 'Inspection not found.'}</div>;
+  // QCI: make each line ready to tick, once.
+  useEffect(() => {
+    if (!insp || insp.kind !== 'qci' || insp.status !== 'in_progress' || !lines.length || itemsL === undefined || seeding.current) return;
+    seeding.current = true; seedLocal(insp, lines).catch((e: any) => setErr(e.message ?? 'Could not add the lines')).finally(() => { seeding.current = false; });
+  }, [insp?.id, insp?.status, lines, itemsL?.length]);
+
+  useEffect(() => { if (insp && tab === null) setTab(insp.status !== 'in_progress' ? 'finish' : insp.kind === 'qci' ? 'lines' : 'checklist'); }, [insp, tab]);
+
+  if (!ready || (insp && tab === null)) return <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center' }}><Loader2 size={16} className="spin" /> Loading…<style>{`.spin{animation:sp .9s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}`}</style></div>;
+  if (!insp) return <div style={{ ...card, color: '#A5402F' }}>{err || (sync.online ? 'Inspection not found.' : 'This inspection is not saved on this phone. Connect to the internet once to open it.')}</div>;
 
   const editable = insp.status === 'in_progress';
   const isQci = insp.kind === 'qci';
@@ -73,7 +78,7 @@ export default function InspectionPage() {
     { id: 'finish', label: editable ? 'Finish' : 'Signed' },
   ];
 
-  const photosOf = (itemId: string) => photos.filter(p => p.item_id === itemId);
+  const photosOf = (itemId: string) => photos.filter(p => p.item_id === itemId && p.kind !== 'closing');
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
@@ -99,39 +104,38 @@ export default function InspectionPage() {
       {err && <div style={{ ...card, color: '#A5402F', fontSize: 14, display: 'flex', gap: 8 }}><AlertTriangle size={16} /> {err}</div>}
 
       {tab === 'lines' && isQci && (
-        <LinesTab insp={insp} items={siItems} photosOf={photosOf} urls={urls} editable={editable} reload={reload} setErr={setErr} lines={lines} onLines={setLines} />
+        <LinesTab insp={insp} items={siItems} photosOf={photosOf} urls={urls} editable={editable} online={sync.online} setErr={setErr} lines={lines} onLines={setLines} />
       )}
       {tab === 'checklist' && !isQci && (
-        <ChecklistTab insp={insp} editable={editable} reload={reload} addIssue={(name) => setSheet({ list: 'deficiency', room: undefined, description: name + ': ' })} />
+        <ChecklistTab insp={insp} editable={editable} addIssue={(name) => setSheet({ list: 'deficiency', room: undefined, description: name + ': ' })} />
       )}
       {tab === 'findings' && (
-        <FindingsTab insp={insp} items={findings} photosOf={photosOf} urls={urls} editable={editable} reload={reload} setErr={setErr} add={(list) => setSheet({ list })} />
+        <FindingsTab insp={insp} items={findings} photosOf={photosOf} urls={urls} editable={editable} setErr={setErr} add={(list) => setSheet({ list })} />
       )}
-      {tab === 'finish' && <FinishTab insp={insp} items={items} photos={photos} editable={editable} reload={reload} answeredSi={answeredSi} totalSi={siItems.length} answeredCk={answeredCk} />}
+      {tab === 'finish' && <FinishTab insp={insp} items={items} photos={photos} editable={editable} online={sync.online} answeredSi={answeredSi} totalSi={siItems.length} answeredCk={answeredCk} />}
 
       {sheet && editable && (
-        <FindingSheet insp={insp} init={sheet} nextSeq={(l: ListKey) => items.filter(i => i.list === l).length + 1} onClose={() => setSheet(null)} onSaved={async (msg) => { setSheet(null); if (msg) setErr(msg); else setErr(''); await reload(); setTab('findings'); }} />
+        <FindingSheet insp={insp} init={sheet} nextSeq={(l: ListKey) => items.filter(i => i.list === l).length + 1} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); setErr(''); setTab('findings'); }} />
       )}
     </div>
   );
 }
 
 // ───────── Photos ─────────
-function PhotoRow({ item, photos, urls, editable, insp, reload, setErr }: { item: InspItem; photos: InspPhoto[]; urls: Record<string, string>; editable: boolean; insp: Inspection; reload: () => Promise<any>; setErr: (s: string) => void }) {
+function PhotoRow({ item, photos, urls, editable, insp, setErr }: { item: InspItem; photos: LocalPhoto[]; urls: Record<string, string>; editable: boolean; insp: Inspection; setErr: (s: string) => void }) {
   const [busy, setBusy] = useState(false);
   async function add(files: FileList | null) {
     if (!files?.length) return; setBusy(true); setErr('');
-    try { for (const f of Array.from(files)) await uploadPhoto(insp.id, item.id, f); await reload(); }
-    catch (e: any) { setErr('Photo did not upload: ' + (e.message ?? 'check your connection and try again')); }
+    try { for (const f of Array.from(files)) await addPhoto(insp, item.id, f); }
+    catch (e: any) { setErr('Could not save the photo on this phone: ' + (e.message ?? 'try again')); }
     finally { setBusy(false); }
   }
-  async function del(p: InspPhoto) { await supabase.from('inspection_photos').delete().eq('id', p.id); await supabase.storage.from('inspection-photos').remove([p.storage_path]); await reload(); }
   return (
     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8, alignItems: 'center' }}>
       {photos.map(p => (
         <div key={p.id} style={{ position: 'relative' }}>
-          {urls[p.storage_path] ? <a href={urls[p.storage_path]} target="_blank" rel="noreferrer"><img src={urls[p.storage_path]} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, border: '1px solid #C6BDAC', display: 'block' }} /></a> : <div style={{ width: 72, height: 72, borderRadius: 8, background: '#E4DDCF' }} />}
-          {editable && <button onClick={() => del(p)} aria-label="Remove photo" style={{ position: 'absolute', top: -6, right: -6, width: 24, height: 24, borderRadius: 12, border: 'none', background: '#A5402F', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer' }}><X size={13} /></button>}
+          {urls[p.id] ? <a href={urls[p.id]} target="_blank" rel="noreferrer"><img src={urls[p.id]} alt="" style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, border: p.uploaded ? '1px solid #C6BDAC' : '2px dashed #B08D4F', display: 'block' }} /></a> : <div style={{ width: 72, height: 72, borderRadius: 8, background: '#E4DDCF' }} />}
+          {editable && <button onClick={() => removePhoto(p.id)} aria-label="Remove photo" style={{ position: 'absolute', top: -6, right: -6, width: 24, height: 24, borderRadius: 12, border: 'none', background: '#A5402F', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer' }}><X size={13} /></button>}
         </div>
       ))}
       {editable && (
@@ -150,25 +154,26 @@ function PhotoRow({ item, photos, urls, editable, insp, reload, setErr }: { item
 }
 
 // ───────── QCI: lines against site instructions, selections and upgrades ─────────
-function LinesTab({ insp, items, photosOf, urls, editable, reload, setErr, lines, onLines }: { insp: Inspection; items: InspItem[]; photosOf: (id: string) => InspPhoto[]; urls: Record<string, string>; editable: boolean; reload: () => Promise<any>; setErr: (s: string) => void; lines: SiLine[]; onLines: (l: SiLine[]) => void }) {
+function LinesTab({ insp, items, photosOf, urls, editable, online, setErr, lines, onLines }: { insp: Inspection; items: InspItem[]; photosOf: (id: string) => LocalPhoto[]; urls: Record<string, string>; editable: boolean; online: boolean; setErr: (s: string) => void; lines: SiLine[]; onLines: (l: SiLine[]) => void }) {
   const [syncing, setSyncing] = useState(false);
   const [showSrc, setShowSrc] = useState(false);
-  async function set(it: InspItem, result: InspItem['result']) { await supabase.from('inspection_items').update({ result }).eq('id', it.id); await reload(); }
-  async function note(it: InspItem, v: string) { if ((it.note ?? '') !== v) { await supabase.from('inspection_items').update({ note: v || null }).eq('id', it.id); await reload(); } }
+  async function set(it: InspItem, result: InspItem['result']) { await putItem({ ...it, company_id: insp.company_id, result }); }
+  async function note(it: InspItem, v: string) { if ((it.note ?? '') !== v) await putItem({ ...it, company_id: insp.company_id, note: v || null }); }
   async function pull() {
     if (!insp.lot_id) return; setSyncing(true);
-    try { const s = await loadLotSource(insp.lot_id); onLines(s.lines); const cur = await supabase.from('inspection_items').select('*').eq('inspection_id', insp.id); await seedSiChecks(insp, s.lines, (cur.data ?? []) as InspItem[]); await reload(); }
+    try { const s = await loadLotSource(insp.lot_id); onLines(s.lines); await seedLocal(insp, s.lines); }
     catch (e: any) { setErr(e.message); } finally { setSyncing(false); }
   }
   return (
     <div style={{ display: 'grid', gap: 10 }}>
-      {insp.lot_id && editable && (
+      {insp.lot_id && editable && !online && <div style={{ ...card, fontSize: 13.5, color: '#485163' }}>Working without signal. The {lines.length} site instruction line{lines.length === 1 ? '' : 's'} saved on this phone are all you need. New lines can be added when you are connected.</div>}
+      {insp.lot_id && editable && online && (
         <>
           <button onClick={() => setShowSrc(v => !v)} style={big('#F8F6F1', '#1B2A41', '1px solid #B9AF9B')}>{showSrc ? 'Hide' : 'Site instruction sheets and lines'}{!showSrc && lines.length ? ` (${lines.length})` : ''}</button>
           {(showSrc || (!lines.length && !items.length)) && <LotSource lotId={insp.lot_id} onChange={l => { if (l.length !== lines.length) onLines(l); }} />}
         </>
       )}
-      {editable && lines.length > items.length && <button onClick={pull} disabled={syncing} style={big(NAVY)}>{syncing ? 'Adding…' : `Add ${lines.length - items.length} new line${lines.length - items.length === 1 ? '' : 's'} to this inspection`}</button>}
+      {editable && online && lines.length > items.length && <button onClick={pull} disabled={syncing} style={big(NAVY)}>{syncing ? 'Adding…' : `Add ${lines.length - items.length} new line${lines.length - items.length === 1 ? '' : 's'} to this inspection`}</button>}
       {!items.length && <div style={{ ...card, color: '#485163', fontSize: 14 }}>No lines yet. Paste the site instructions and selections above, or just record what you see under Findings.</div>}
       {items.map(it => (
         <div key={it.id} style={{ ...card, borderLeft: `4px solid ${it.result === 'ok' ? '#4A7A55' : it.result === 'wrong' || it.result === 'missing' ? '#A5402F' : '#C6BDAC'}` }}>
@@ -186,7 +191,7 @@ function LinesTab({ insp, items, photosOf, urls, editable, reload, setErr, lines
             <>
               <textarea key={it.id + (it.note ?? '')} defaultValue={it.note ?? ''} disabled={!editable} onBlur={e => note(it, e.target.value.trim())} placeholder="What is wrong? (location, what is there instead)"
                 style={{ ...inp, minHeight: 70, padding: 10, marginTop: 8 }} />
-              <PhotoRow item={it} photos={photosOf(it.id)} urls={urls} editable={editable} insp={insp} reload={reload} setErr={setErr} />
+              <PhotoRow item={it} photos={photosOf(it.id)} urls={urls} editable={editable} insp={insp} setErr={setErr} />
             </>
           )}
         </div>
@@ -196,11 +201,11 @@ function LinesTab({ insp, items, photosOf, urls, editable, reload, setErr, lines
 }
 
 // ───────── PDI: Tarion minimum checklist ─────────
-function ChecklistTab({ insp, editable, reload, addIssue }: { insp: Inspection; editable: boolean; reload: () => Promise<any>; addIssue: (name: string) => void }) {
+function ChecklistTab({ insp, editable, addIssue }: { insp: Inspection; editable: boolean; addIssue: (name: string) => void }) {
   async function set(n: number, v: 'ok' | 'issue' | 'na', name: string) {
     const cur = insp.checklist?.[String(n)]; const next = { ...(insp.checklist ?? {}) } as Record<string, string>;
     if (cur === v) delete next[String(n)]; else next[String(n)] = v;
-    await supabase.from('inspections').update({ checklist: next }).eq('id', insp.id); await reload();
+    await patchInsp(insp.id, { checklist: next as Inspection['checklist'] });
     if (v === 'issue' && cur !== 'issue') addIssue(name);
   }
   return (
@@ -225,9 +230,9 @@ function ChecklistTab({ insp, editable, reload, addIssue }: { insp: Inspection; 
 }
 
 // ───────── Findings: defects, substitutions, items not assessed ─────────
-function FindingsTab({ insp, items, photosOf, urls, editable, reload, setErr, add }: { insp: Inspection; items: InspItem[]; photosOf: (id: string) => InspPhoto[]; urls: Record<string, string>; editable: boolean; reload: () => Promise<any>; setErr: (s: string) => void; add: (l: ListKey) => void }) {
+function FindingsTab({ insp, items, photosOf, urls, editable, setErr, add }: { insp: Inspection; items: InspItem[]; photosOf: (id: string) => LocalPhoto[]; urls: Record<string, string>; editable: boolean; setErr: (s: string) => void; add: (l: ListKey) => void }) {
   const lists: ListKey[] = insp.kind === 'qci' ? ['deficiency'] : ['deficiency', 'substitution', 'not_assessed'];
-  async function del(it: InspItem) { if (!confirm('Remove this finding and its photos?')) return; const ps = photosOf(it.id); if (ps.length) await supabase.storage.from('inspection-photos').remove(ps.map(p => p.storage_path)); await supabase.from('inspection_items').delete().eq('id', it.id); await reload(); }
+  async function del(it: InspItem) { if (!confirm('Remove this finding and its photos?')) return; await removeItem(it.id); }
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       {editable && (
@@ -252,7 +257,7 @@ function FindingsTab({ insp, items, photosOf, urls, editable, reload, setErr, ad
                     </div>
                     {editable && <button onClick={() => del(it)} aria-label="Remove finding" style={{ border: 'none', background: 'none', color: '#A5402F', padding: 8, cursor: 'pointer' }}><Trash2 size={17} /></button>}
                   </div>
-                  <PhotoRow item={it} photos={photosOf(it.id)} urls={urls} editable={editable} insp={insp} reload={reload} setErr={setErr} />
+                  <PhotoRow item={it} photos={photosOf(it.id)} urls={urls} editable={editable} insp={insp} setErr={setErr} />
                 </div>
               ))}
             </div>
@@ -276,12 +281,9 @@ function FindingSheet({ insp, init, nextSeq, onClose, onSaved }: { insp: Inspect
     if (!desc.trim()) { setErr('Describe what you found.'); return; }
     setBusy(true); setErr('');
     try {
-      const companyId = await getCompanyId();
-      const { data: item, error } = await supabase.from('inspection_items').insert({ company_id: companyId, inspection_id: insp.id, seq: nextSeq(list), list, source: 'observed', room: room || null, description: desc.trim() }).select('id').single();
-      if (error) throw error;
-      let failed = 0;
-      for (const f of files) { try { await uploadPhoto(insp.id, item!.id, f); } catch { failed++; } }
-      onSaved(failed ? `Saved, but ${failed} photo${failed > 1 ? 's' : ''} did not upload. Open the finding and add ${failed > 1 ? 'them' : 'it'} again.` : undefined);
+      const item = await putItem({ company_id: insp.company_id, inspection_id: insp.id, seq: nextSeq(list), list, source: 'observed', room: room || null, description: desc.trim() });
+      for (const f of files) await addPhoto(insp, item.id, f);
+      onSaved();
     } catch (e: any) { setErr(e.message ?? 'Could not save'); setBusy(false); }
   }
   const lists: ListKey[] = insp.kind === 'qci' ? ['deficiency'] : ['deficiency', 'substitution', 'not_assessed'];
@@ -312,7 +314,7 @@ function FindingSheet({ insp, init, nextSeq, onClose, onSaved }: { insp: Inspect
 }
 
 // ───────── Finish: details, signatures, lock ─────────
-function FinishTab({ insp, items, photos, editable, reload, answeredSi, totalSi, answeredCk }: { insp: Inspection; items: InspItem[]; photos: InspPhoto[]; editable: boolean; reload: () => Promise<any>; answeredSi: number; totalSi: number; answeredCk: number }) {
+function FinishTab({ insp, items, photos, editable, online, answeredSi, totalSi, answeredCk }: { insp: Inspection; items: InspItem[]; photos: LocalPhoto[]; editable: boolean; online: boolean; answeredSi: number; totalSi: number; answeredCk: number }) {
   const isQci = insp.kind === 'qci';
   const [superName, setSuperName] = useState(insp.super_name ?? ''); const [superEmail, setSuperEmail] = useState(insp.super_email ?? '');
   const [inspector, setInspector] = useState(insp.inspector_name ?? '');
@@ -321,13 +323,11 @@ function FinishTab({ insp, items, photos, editable, reload, answeredSi, totalSi,
   const [pName, setPName] = useState(insp.owner_names ?? ''); const [p2Name, setP2Name] = useState(''); const [dName, setDName] = useState(''); const [useDesignate, setUseDesignate] = useState(false); const [two, setTwo] = useState(false);
   const [sigB, setSigB] = useState<string | null>(null); const [sigP, setSigP] = useState<string | null>(null); const [sigP2, setSigP2] = useState<string | null>(null); const [sigD, setSigD] = useState<string | null>(null);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [note, setNote] = useState('');
-  const [sigs, setSigs] = useState<{ role: string; name: string | null; signature: string }[]>([]);
-
-  useEffect(() => { if (!editable) supabase.from('inspection_signatures').select('role,name,signature').eq('inspection_id', insp.id).then(({ data }) => setSigs((data ?? []) as any)); }, [editable, insp.id]);
+  const [sigsL] = useLocal(() => listSigs(insp.id), [insp.id]); const sigs = sigsL ?? [];
 
   const defects = items.filter(i => i.list === 'deficiency').length, subs = items.filter(i => i.list === 'substitution').length, na = items.filter(i => i.list === 'not_assessed').length;
   const siBad = items.filter(i => i.list === 'si_check' && (i.result === 'wrong' || i.result === 'missing')).length;
-  const base = `${window.location.origin}/portal/inspection/`;
+  const base = `${appOrigin()}/portal/inspection/`;
 
   async function finish() {
     setErr('');
@@ -346,31 +346,23 @@ function FinishTab({ insp, items, photos, editable, reload, answeredSi, totalSi,
     }
     setBusy(true);
     try {
-      const companyId = await getCompanyId();
       const rows = [{ role: 'builder', name: inspector.trim(), signature: sigB }] as { role: string; name: string; signature: string }[];
       if (!isQci && present) {
         if (useDesignate) rows.push({ role: 'designate', name: dName.trim(), signature: sigD! }); else rows.push({ role: 'purchaser', name: pName.trim(), signature: sigP! });
         if (two) rows.push({ role: 'purchaser2', name: p2Name.trim(), signature: sigP2! });
       }
-      const { error: se } = await supabase.from('inspection_signatures').upsert(rows.map(r => ({ ...r, company_id: companyId, inspection_id: insp.id })), { onConflict: 'inspection_id,role' });
-      if (se) throw se;
-      const { error } = await supabase.from('inspections').update({
+      for (const r of rows) await putSig(insp, r.role, r.name, r.signature);
+      await finishInspection(insp, {
         inspector_name: inspector.trim(), super_name: superName.trim(), super_email: superEmail.trim(), notes: notes.trim() || null,
         possession_date: poss || null, purchaser_present: isQci ? true : present, absent_note: !isQci && !present ? absent.trim() : null,
-        status: 'signed', completed_at: new Date().toISOString(),
-      }).eq('id', insp.id);
-      if (error) throw error;
+      });
       try { localStorage.setItem('bg-super-name', superName.trim()); localStorage.setItem('bg-super-email', superEmail.trim()); } catch { /* ignore */ }
-      await reload();
-      try {
-        const { error: fe } = await supabase.functions.invoke('inspection-send', { body: { inspection_id: insp.id } });
-        if (fe) throw fe; await reload(); setNote('Signed. The PDF has been created and the test email sent.');
-      } catch { setNote('Signed and locked. The PDF and emails are not switched on yet; use the links below.'); }
+      setNote(navigator.onLine ? 'Signed and saved. Sending the PDF and test email now.' : 'Signed and saved on this phone. It sends automatically as soon as you have signal. You do not need to do anything.');
     } catch (e: any) { setErr(e.message ?? 'Could not sign'); } finally { setBusy(false); }
   }
 
   async function openPdf() {
-    if (!insp.pdf_path) return; const { data } = await supabase.storage.from('inspection-photos').createSignedUrl(insp.pdf_path, 600); if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    if (!insp.pdf_path) return; if (!navigator.onLine) { setNote('Connect to the internet to open the PDF.'); return; } const { data } = await supabase.storage.from('inspection-photos').createSignedUrl(insp.pdf_path, 600); if (data?.signedUrl) window.open(data.signedUrl, '_blank');
   }
   const copy = (t: string) => navigator.clipboard?.writeText(t).then(() => setNote('Link copied.'));
 
@@ -431,6 +423,7 @@ function FinishTab({ insp, items, photos, editable, reload, answeredSi, totalSi,
             {sigs.map(s => (<div key={s.role}><div style={{ fontSize: 12.5, color: '#485163' }}>{s.role === 'builder' ? 'Builder representative' : s.role === 'designate' ? 'Designate' : 'Purchaser'}: <b>{s.name}</b></div><img src={s.signature} alt="Signature" style={{ height: 70, background: '#fff', border: '1px solid #D9D2C5', borderRadius: 6 }} /></div>))}
             {!insp.purchaser_present && <div style={{ fontSize: 13.5 }}>Purchaser absent. {insp.absent_note}</div>}
           </div>
+          {!insp.pdf_path && <div style={{ ...card, fontSize: 13.5, borderLeft: '4px solid #B08D4F' }}>{online ? 'Sending the PDF and emails…' : 'Saved on this phone. The PDF, emails and the update to the office system go out automatically when you have signal.'}</div>}
           {insp.pdf_path && <button onClick={openPdf} style={big(NAVY)}><FileText size={17} /> Open the {isQci ? 'QCI report' : 'PDI form'} (PDF)</button>}
           <div style={{ ...card, display: 'grid', gap: 8 }}>
             <div style={{ fontWeight: 800 }}>Share</div>

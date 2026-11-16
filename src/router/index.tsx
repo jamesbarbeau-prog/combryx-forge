@@ -26,6 +26,7 @@ import WorkOrderPortalPage from '@/pages/workorderportalpage';
 import VisitCheckPage from '@/pages/visitcheckpage';
 import InspectionPortalPage from '@/pages/inspectionportalpage';
 import InspectionsPage from '@/pages/inspectionspage';
+import { isInstalledApp } from '@/lib/supabase';
 import FieldLayout from '@/pages/field/fieldlayout';
 import FieldHome from '@/pages/field/fieldhome';
 import InspectionPage from '@/pages/field/inspectionpage';
@@ -36,7 +37,7 @@ import InspectionPage from '@/pages/field/inspectionpage';
 
 
 export const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/warranty/today" replace /> },
+  { path: '/', element: <Navigate to={isInstalledApp() ? '/field' : '/warranty/today'} replace /> },
   { path: '/portal/work-order/:token', element: <WorkOrderPortalPage /> },
   { path: '/portal/visit/:token', element: <VisitCheckPage /> },
   { path: '/portal/inspection/:token', element: <InspectionPortalPage /> },

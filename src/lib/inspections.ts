@@ -104,3 +104,6 @@ export async function seedSiChecks(insp: Inspection, lines: SiLine[], existing: 
 }
 
 export const fmtDate = (s: string | null | undefined) => s ? new Date(s.length === 10 ? s + 'T12:00:00' : s).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+
+/** Public address of the app: links sent to superintendents and owners must not point at the phone app itself. */
+export const appOrigin = () => ((window as any).Capacitor?.isNativePlatform?.() ? 'https://builder-guardian-app.netlify.app' : window.location.origin);
