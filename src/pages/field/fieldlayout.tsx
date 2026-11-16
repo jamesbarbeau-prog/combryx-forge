@@ -2,7 +2,7 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { CheckCircle2, CloudOff, Loader2, LogOut, Monitor, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
-import { BrandShield } from '@/components/identity';
+import { CompanyMark } from '@/components/brand';
 import { dropParked, retryParked, syncNow, unsyncedCount, useSyncStatus } from '@/lib/offline';
 
 function SyncBar() {
@@ -34,7 +34,7 @@ export default function FieldLayout() {
       <header style={{ position: 'sticky', top: 0, zIndex: 30 }}>
         <div style={{ background: 'linear-gradient(180deg,#1B2A41,#16233A)', color: '#fff', display: 'flex', alignItems: 'center', gap: 10, padding: 'calc(var(--sat) + 10px) 14px 10px', borderBottom: '2px solid #B08D4F' }}>
           <Link to="/field" style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', textDecoration: 'none', flex: 1 }}>
-            <BrandShield size={34} />
+            <CompanyMark size={34} />
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '0.01em' }}>Field{pathname.includes('/inspection/') ? ' inspection' : ''}</span>
           </Link>
           <Link to="/warranty/today" aria-label="Open the desk app" style={{ color: '#D9CFB8', padding: 10 }}><Monitor size={20} /></Link>

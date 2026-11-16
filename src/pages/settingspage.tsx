@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { refreshBrand } from '@/lib/branding';
 import { StaffAccess } from '@/components/staffaccess';
 import { getCompanyId } from '@/lib/company';
 import {
@@ -60,7 +61,7 @@ function FileUpload({ bucket, path, label, accept = 'image/*', currentUrl, isPub
     let url = '';
     if (isPublic) {
       const { data } = supabase.storage.from(bucket).getPublicUrl(filename);
-      url = data.publicUrl;
+      url = `${data.publicUrl}?v=${Date.now()}`;
     } else {
       const { data } = await supabase.storage.from(bucket).createSignedUrl(filename, 60 * 60 * 24 * 365);
       url = data?.signedUrl ?? '';
@@ -120,6 +121,7 @@ function CompanyTab() {
   const [settings, setSettings] = useState<any>({});
   const [saving, setSaving]     = useState(false);
   const [saved, setSaved]       = useState(false);
+  const [saveErr, setSaveErr]   = useState('');
 
   useEffect(() => { load(); }, []);
   async function load() {
@@ -128,8 +130,10 @@ function CompanyTab() {
   }
   async function save() {
     setSaving(true);
-    await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
-    setSaving(false); setSaved(true); setTimeout(() => setSaved(false), 2000);
+    const { error } = await supabase.from('company_settings').upsert({ company_id: COMPANY_ID, settings });
+    setSaving(false);
+    if (error) { setSaveErr(error.message); return; }
+    setSaveErr(''); setSaved(true); setTimeout(() => setSaved(false), 2000); refreshBrand();
   }
   function set(key: string, val: string) { setSettings((prev: any) => ({ ...prev, [key]: val })); }
 
@@ -164,6 +168,7 @@ function CompanyTab() {
       <button onClick={save} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: saved ? '#4A7A55' : '#3F6A8F', border: 'none', color: saved ? '#FFFFFF' : '#FFFFFF', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
         {saved ? <><Check size={14} /> Saved!</> : saving ? 'Saving...' : 'Save Company Info'}
       </button>
+      {saveErr && <p style={{ fontSize: 12, color: '#A5402F', marginTop: 8 }}>Could not save: {saveErr}</p>}
     </div>
   );
 }

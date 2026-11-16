@@ -4,7 +4,8 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Sunrise, LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
 import { supabase } from '@/lib/supabase';
-import { BrandShield } from '@/components/identity';
+import { CompanyMark } from '@/components/brand';
+import { useBrand } from '@/lib/branding';
 import QuickSearch from '@/components/quicksearch';
 
 interface CommCount { community_id: string; name: string; lots: number; open_cases: number; open_items: number }
@@ -34,6 +35,7 @@ export default function WarrantyLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { signOut } = useAuth();
+  const brand = useBrand();
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
@@ -100,8 +102,10 @@ export default function WarrantyLayout() {
 
       <aside className="bg-rail" aria-label="Main navigation">
         <div className="bg-rail__brand" onClick={() => navigate('/warranty/today')}>
-          <BrandShield size={44} />
-          <div className="bg-rail__name"><b>Builder<br />Guardian<sup>™</sup></b><span>Warranty Control Centre</span></div>
+          <CompanyMark size={brand.logo ? 58 : 44} />
+          {brand.logo
+            ? <div className="bg-rail__name"><b style={{ fontSize: 14, lineHeight: 1.15 }}>{brand.name ?? 'Warranty'}</b><span>Warranty Control Centre</span></div>
+            : <div className="bg-rail__name"><b>Builder<br />Guardian<sup>™</sup></b><span>Warranty Control Centre</span></div>}
         </div>
 
         <nav className="bg-rail__nav">
