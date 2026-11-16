@@ -12,7 +12,14 @@ const TZ = 'America/Toronto';
 const dayOf = (d: Date | string) => new Date(d).toLocaleDateString('en-CA', { timeZone: TZ });
 const nice = (d: string | null) => d ? new Date(d).toLocaleDateString('en-CA', { timeZone: TZ, weekday: 'long', month: 'long', day: 'numeric' }) : '';
 
-async function sendMail(to: string[], subject: string, html: string): Promise<'sent' | 'not_configured' | string> {
+// TEST MODE (default): every email goes only to MAIL_TEST_TO, never to an owner or trade. Real sending needs the secret MAIL_LIVE=true.
+const LIVE = Deno.env.get('MAIL_LIVE') === 'true';
+const TEST_TO = Deno.env.get('MAIL_TEST_TO') ?? 'james.barbeau@claridgehomes.com';
+
+async function sendMail(realTo: string[], realSubject: string, realHtml: string): Promise<'sent' | 'not_configured' | string> {
+  const to = LIVE ? realTo : [TEST_TO];
+  const subject = LIVE ? realSubject : `[TEST] ${realSubject}`;
+  const html = LIVE ? realHtml : `<p style="background:#FFF4D6;border:1px solid #E0C36A;padding:8px 10px;font:12px Arial,sans-serif;color:#5B4A10;margin:0 0 14px">TEST MODE. This would have gone to: ${esc(realTo.join(', ') || 'nobody (no address on file)')}.</p>${realHtml}`;
   const key = Deno.env.get('RESEND_API_KEY'), from = Deno.env.get('MAIL_FROM'), hook = Deno.env.get('MAIL_WEBHOOK_URL');
   try {
     if (key && from) {
@@ -46,15 +53,15 @@ async function sendChecks(admin: any, app: string, companyId: string, w: Rec, re
   const tradeLink = `${app}/portal/work-order/${w.portal_token}`, ownerLink = `${app}/portal/visit/${w.owner_token}`;
   let sent = 0, notConfigured = 0;
   const tally = (r: string) => { if (r === 'sent') sent++; else if (r === 'not_configured') notConfigured++; };
-  if (w.recipient_email) {
+  if (w.recipient_email || !LIVE) {
     tally(await sendMail([w.recipient_email], `${reminder ? 'Reminder: ' : ''}Did you attend today's visit? ${w.issue}`.slice(0, 150),
       wrap(c.company, `<p>${reminder ? 'We have not heard back yet. ' : ''}Please confirm whether you attended the work order at <b>${esc(c.address)}</b>${day ? ` on ${esc(day)}` : ''}.</p><p style="color:#485163">${esc(w.issue)}</p>${btn(tradeLink, 'Confirm attendance')}<p style="font-size:13px;color:#6C7280">If you could not attend, tell us there and the office will rebook.</p>`)));
   }
-  if (c.ownerTo.length) {
+  if (c.ownerTo.length || !LIVE) {
     tally(await sendMail(c.ownerTo, `${reminder ? 'Reminder: ' : ''}How did today's repair visit go?`,
       wrap(c.company, `<p>Hello${c.ownerName ? ' ' + esc(c.ownerName) : ''},</p><p>${esc(w.recipient_name || 'A trade')} was scheduled to visit your home${day ? ` on ${esc(day)}` : ''} for: <b>${esc(w.issue)}</b>.</p><p>Two quick questions: did they come, and are you satisfied?</p>${btn(ownerLink, 'Answer in 20 seconds')}<p style="font-size:13px;color:#6C7280">If nobody came, please tell us so we can fix it right away.</p>`)));
   }
-  return { sent, notConfigured, hasOwnerEmail: c.ownerTo.length > 0, hasTradeEmail: !!w.recipient_email };
+  return { sent, notConfigured, hasOwnerEmail: c.ownerTo.length > 0 || !LIVE, hasTradeEmail: !!w.recipient_email || !LIVE };
 }
 
 Deno.serve(async req => {
@@ -116,8 +123,8 @@ Deno.serve(async req => {
       for (const w of ns ?? []) {
         try {
           const c = await context(admin, companyId, w);
-          if (w.recipient_email) await sendMail([w.recipient_email], `Missed visit: ${w.issue}`.slice(0, 150), wrap(c.company, `<p>The visit at <b>${esc(c.address)}</b> was reported as not attended. Please contact us to rebook as soon as you can.</p>${btn(`${app}/portal/work-order/${w.portal_token}`, 'Open the work order')}`));
-          if (c.ownerTo.length) await sendMail(c.ownerTo, 'We are sorry we missed you', wrap(c.company, `<p>Hello${c.ownerName ? ' ' + esc(c.ownerName) : ''},</p><p>We understand nobody attended your scheduled repair visit. We are sorry. We have contacted the trade and the office will be in touch to rebook.</p>`));
+          if (w.recipient_email || !LIVE) await sendMail(w.recipient_email ? [w.recipient_email] : [], `Missed visit: ${w.issue}`.slice(0, 150), wrap(c.company, `<p>The visit at <b>${esc(c.address)}</b> was reported as not attended. Please contact us to rebook as soon as you can.</p>${btn(`${app}/portal/work-order/${w.portal_token}`, 'Open the work order')}`));
+          if (c.ownerTo.length || !LIVE) await sendMail(c.ownerTo, 'We are sorry we missed you', wrap(c.company, `<p>Hello${c.ownerName ? ' ' + esc(c.ownerName) : ''},</p><p>We understand nobody attended your scheduled repair visit. We are sorry. We have contacted the trade and the office will be in touch to rebook.</p>`));
           await admin.from('work_orders').update({ noshow_notified_at: new Date().toISOString() }).eq('id', w.id); out.sweep.noShowNotified++;
         } catch (e) { out.errors.push(`${w.id}: ${(e as Error).message.slice(0, 120)}`); }
       }
