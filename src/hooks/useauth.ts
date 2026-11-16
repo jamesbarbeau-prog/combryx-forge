@@ -1,7 +1,8 @@
 // src/hooks/useauth.ts
-// Simple auth hook using QDEF token — no Supabase auth dependency
+// Sign-out for the warranty app. Sign-in itself is Supabase email + password (see loginpage).
 
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
 
 const QDEF_TOKEN_KEY    = 'qdef_token';
 const QDEF_EXPIRY_KEY   = 'qdef_expiry';
@@ -10,7 +11,8 @@ const QDEF_USERNAME_KEY = 'qdef_username';
 export function useAuth() {
   const navigate = useNavigate();
 
-  function signOut() {
+  async function signOut() {
+    await supabase.auth.signOut();
     localStorage.removeItem(QDEF_TOKEN_KEY);
     localStorage.removeItem(QDEF_EXPIRY_KEY);
     localStorage.removeItem(QDEF_USERNAME_KEY);

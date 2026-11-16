@@ -17,6 +17,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getCompanyId } from '@/lib/company';
 import {
   Upload, CheckCircle2, AlertTriangle, RefreshCw,
   FileText, X, ChevronRight, AlertCircle,
@@ -38,7 +39,6 @@ const COMMUNITIES: Record<string, { id: string; name: string }> = {
   westwood:      { id: 'e1981d6e-fcf5-4d28-82f4-7e0932e9d0f4', name: 'Westwood'            },
 };
 
-const COMPANY_ID = 'c8bd8b99-090d-4379-86cd-95c3844c09f9';
 
 function detectCommunity(filename: string): { id: string; name: string } | null {
   const base = filename.toLowerCase().replace(/\.(xlsx?|csv)$/i, '').replace(/[-\s]/g, '_');
@@ -189,6 +189,7 @@ function groupRows(rows: DefRow[]): ParsedGroup[] {
 // ─── Supabase import ──────────────────────────────────────────────────────────
 
 async function importGroups(communityId: string, groups: ParsedGroup[]) {
+  const COMPANY_ID = await getCompanyId();
   let cases_created = 0;
   let items_created = 0;
   const errors: string[] = [];

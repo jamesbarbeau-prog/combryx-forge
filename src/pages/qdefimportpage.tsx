@@ -20,6 +20,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getCompanyId } from '@/lib/company';
 import {
   Upload, CheckCircle2, AlertTriangle, RefreshCw,
   FileText, X, Home, ChevronRight, AlertCircle,
@@ -42,7 +43,6 @@ const COMMUNITIES: Record<string, { id: string; name: string }> = {
   westwood:     { id: 'e1981d6e-fcf5-4d28-82f4-7e0932e9d0f4', name: 'Westwood'             },
 };
 
-const COMPANY_ID = 'c8bd8b99-090d-4379-86cd-95c3844c09f9';
 
 function detectCommunity(filename: string): { id: string; name: string } | null {
   const base = filename.toLowerCase().replace(/\.(csv|xlsx?)$/i, '').replace(/[-\s]/g, '_');
@@ -126,6 +126,7 @@ function mapRow(row: Record<string, string>): ParsedLot {
 // ─── Supabase upsert ─────────────────────────────────────────────────────────
 
 async function importLots(communityId: string, lots: ParsedLot[]) {
+  const COMPANY_ID = await getCompanyId();
   const result = { inserted: 0, updated: 0, errors: [] as string[] };
   const { data: existing } = await supabase.from('warranty_lots').select('lot_number').eq('community_id', communityId);
   const existingSet = new Set((existing ?? []).map((e: { lot_number: string }) => e.lot_number));
