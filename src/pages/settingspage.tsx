@@ -186,6 +186,8 @@ function TarionTab() {
   const [newSite, setNewSite]   = useState('');
   const [syncing, setSyncing]   = useState(false);
   const [syncMsg, setSyncMsg]   = useState<{ ok: boolean; lines: string[] } | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoMsg, setPhotoMsg]   = useState<{ ok: boolean; lines: string[] } | null>(null);
 
   const load = useCallback(async () => {
     const [s, i, r, c] = await Promise.all([
@@ -243,6 +245,26 @@ function TarionTab() {
     setSyncing(false); load();
   }
 
+  // Looks at every imported form again and pulls its photos from Tarion's photo service. Repeats until none are left (each pass has a time limit).
+  async function getAllPhotos() {
+    setPhotoBusy(true); setPhotoMsg(null);
+    let downloaded = 0, formsDone = 0, last = -1, left = 0; const notes: string[] = [], errors: string[] = [];
+    try {
+      for (let pass = 0; pass < 12; pass++) {
+        setPhotoMsg({ ok: true, lines: [`Getting photos from Tarion… pass ${pass + 1}`, `${downloaded} photos saved so far`] });
+        const { data, error } = await supabase.functions.invoke('tarion-sync', { body: { mode: 'photos', recheck: pass === 0 } });
+        if (error) { let d = error.message; try { const j = await (error as any).context?.json?.(); if (j?.error) d = j.error; } catch { /* generic */ } errors.push(d); break; }
+        const p = data?.photos ?? {};
+        downloaded += p.downloaded ?? 0; formsDone += p.forms ?? 0; left = p.remaining ?? 0;
+        (p.notes ?? []).forEach((n: string) => notes.push(n)); (p.errors ?? []).forEach((e: string) => errors.push(e)); (data?.errors ?? []).forEach((e: string) => errors.push(e));
+        if (!left || left === last) break;   // finished, or a pass made no progress
+        last = left;
+      }
+    } catch (e) { errors.push((e as Error).message); }
+    const lines = [`${downloaded} photos saved from ${formsDone} form${formsDone === 1 ? '' : 's'}.` + (left ? ` ${left} form${left === 1 ? '' : 's'} still waiting: run it again.` : ''), ...notes.slice(0, 12), ...errors.slice(0, 8).map(e => 'Problem: ' + e)];
+    setPhotoMsg({ ok: !errors.length, lines }); setPhotoBusy(false); load();
+  }
+
   const siteName = (id: string | null) => (id ? communities.find(c => c.id === id)?.name ?? 'Site' : 'All sites');
   const statusColor: Record<string, string> = { imported: '#4A7A55', needs_review: '#9A6A16', skipped: '#6C7280' };
 
@@ -257,6 +279,14 @@ function TarionTab() {
         <button onClick={syncNow} disabled={syncing} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#3F6A8F', color: '#FFFFFF', border: 'none', cursor: syncing ? 'wait' : 'pointer' }}>
           <RefreshCw size={13} /> {syncing ? 'Checking Tarion…' : 'Check Tarion now'}
         </button>
+        <button onClick={getAllPhotos} disabled={photoBusy || syncing} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#F8F6F1', color: '#1F2A3C', border: '1px solid #D9D2C5', cursor: photoBusy ? 'wait' : 'pointer', marginTop: 10 }}>
+          <RefreshCw size={13} /> {photoBusy ? 'Getting photos…' : 'Get photos for all homes'}
+        </button>
+        {photoMsg && (
+          <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 8, fontSize: 12, lineHeight: 1.6, background: photoMsg.ok ? 'rgba(22,163,74,0.07)' : 'rgba(220,38,38,0.07)', border: `1px solid ${photoMsg.ok ? 'rgba(22,163,74,0.25)' : 'rgba(220,38,38,0.25)'}` }}>
+            {photoMsg.lines.map((l, i) => <div key={i}>{l}</div>)}
+          </div>
+        )}
         {syncMsg && (
           <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 8, fontSize: 12, lineHeight: 1.6, background: syncMsg.ok ? 'rgba(22,163,74,0.07)' : 'rgba(220,38,38,0.07)', border: `1px solid ${syncMsg.ok ? 'rgba(22,163,74,0.25)' : 'rgba(220,38,38,0.25)'}` }}>
             {syncMsg.lines.map((l, i) => <div key={i}>{l}</div>)}

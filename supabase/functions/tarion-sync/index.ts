@@ -3,13 +3,14 @@
 // Two jobs, one login:
 //   conciliation  scheduled-inspection letters (NP) -> Conciliation Manager (cm_* tables)   [unchanged logic]
 //   forms         every NEW warranty claim form -> case + items, owner photos, coordinator digest email
-// Body: { mode: 'all' | 'forms' | 'conciliation', backfillDays?: number }
+// Body: { mode: 'all' | 'forms' | 'conciliation' | 'photos', backfillDays?: number (max 400), recheck?: boolean (photos: look again at every imported form) }
 //
 // Secrets: TARION_USERNAME, TARION_PASSWORD, TARION_ORG_ID, optional TARION_TOKEN, TARION_LOGIN_URL, TARION_API_VERSION (default 54.0)
 //          scheduled runs: CM_CRON_SECRET (+ CM_COMPANY_ID)
 //          email (optional, either one): RESEND_API_KEY + MAIL_FROM   |   MAIL_WEBHOOK_URL + MAIL_WEBHOOK_SECRET      APP_URL (optional link)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { extractText, getDocumentProxy } from 'npm:unpdf@0.12.1';
+import { unzipSync } from 'npm:fflate@0.8.2';
 
 const API = Deno.env.get('TARION_API_VERSION') ?? '54.0';
 const WO_STATUSES = ['Scheduled', 'Rescheduled', 'Inspection Confirmed'];
@@ -174,7 +175,7 @@ async function runForms(s: Session, admin: any, companyId: string, backfillDays?
   const { data: map } = await admin.from('warranty_form_map').select('tarion_code');
   const codes: string[] = (map ?? []).map((m: Rec) => m.tarion_code);
   const { count: seen } = await admin.from('tarion_form_imports').select('id', { count: 'exact', head: true }).eq('company_id', companyId);
-  const days = Math.min(60, backfillDays ?? (seen ? 3 : 7));
+  const days = Math.min(400, backfillDays ?? (seen ? 3 : 7));
   const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 19) + 'Z';
 
   // 1) forms that were waiting for a lot with this enrolment number
@@ -224,10 +225,36 @@ async function runForms(s: Session, admin: any, companyId: string, backfillDays?
   return { results, errors };
 }
 
+/* ================= Tarion photo service =================
+   Tarion's photo download: GET https://formattachments.tarion.com/download/{enrolment}/{case}[/{line item}]  (header sessionId)
+   returns a zip laid out {enrolment}/{case}/{lineItem}/{file}. 204 = no photos. Same login as everything else. */
+const PHOTO_HOST = 'https://formattachments.tarion.com';
+async function servicePhotos(s: Session, enrolment: string, caseNumber: string): Promise<{ code: number; files: { item: string; name: string; bytes: Uint8Array }[] }> {
+  const plain = caseNumber.replace(/\D/g, '').replace(/^0+/, '');
+  const forms = plain.length < 8 ? [('00000000' + plain).slice(-8), plain] : [plain];
+  let code = 0;
+  for (const cn of forms) {
+    const res = await fetch(`${PHOTO_HOST}/download/${encodeURIComponent(enrolment)}/${encodeURIComponent(cn)}`, { headers: { sessionId: s.sessionId } });
+    code = res.status;
+    if (code === 200) {
+      const zip = unzipSync(new Uint8Array(await res.arrayBuffer())), files: { item: string; name: string; bytes: Uint8Array }[] = [];
+      for (const [path, bytes] of Object.entries(zip)) {
+        const parts = path.split('/').filter(Boolean), name = parts[parts.length - 1] ?? '';
+        if (!bytes.length || !name || !IMG.test(name.split('.').pop() ?? '')) continue;
+        files.push({ item: parts.length >= 3 ? parts[parts.length - 2] : '', name, bytes });
+      }
+      return { code, files };
+    }
+    if (code !== 400 && code !== 404 && code !== 204) break;   // 401/403/5xx: the other number form will not help
+  }
+  return { code, files: [] };
+}
+
 /* ================= owner photos ================= */
-async function runPhotos(s: Session, admin: any, companyId: string, deadline: number) {
-  const out = { downloaded: 0, forms: 0, notes: [] as string[], errors: [] as string[] };
-  const { data: pend } = await admin.from('tarion_form_imports').select('id, tarion_case_id, tarion_case_number, case_id, photos_done, created_at')
+async function runPhotos(s: Session, admin: any, companyId: string, deadline: number, recheck = false) {
+  const out = { downloaded: 0, forms: 0, remaining: 0, notes: [] as string[], errors: [] as string[] };
+  if (recheck) await admin.from('tarion_form_imports').update({ photos_complete: false }).eq('company_id', companyId).eq('status', 'imported').not('case_id', 'is', null);
+  const { data: pend } = await admin.from('tarion_form_imports').select('id, tarion_case_id, tarion_case_number, enrolment, case_id, photos_done, created_at')
     .eq('company_id', companyId).eq('status', 'imported').eq('photos_complete', false).not('case_id', 'is', null).order('created_at', { ascending: false }).limit(25);
   for (const imp of pend ?? []) {
     if (Date.now() > deadline) break;
@@ -235,24 +262,35 @@ async function runPhotos(s: Session, admin: any, companyId: string, deadline: nu
       const { data: items } = await admin.from('warranty_items').select('id, item_number, tarion_deficiency_id').eq('case_id', imp.case_id).not('tarion_deficiency_id', 'is', null);
       const byDef = new Map<string, Rec>((items ?? []).map((i: Rec) => [i.tarion_deficiency_id, i]));
       const byNo = new Map<string, Rec>((items ?? []).map((i: Rec) => [String(i.item_number), i]));
-      const cand = new Map<string, { id: string; kind: 'cv' | 'att'; title: string; ext: string; created: string; item: Rec | undefined }>();
-      const strat: Record<string, number> = { links: 0, caseFiles: 0, attachments: 0 };
+      const cand = new Map<string, { id: string; kind: 'cv' | 'att' | 'zip'; title: string; ext: string; created: string; item: Rec | undefined; bytes?: Uint8Array }>();
+      const strat: Record<string, number> = { service: 0, links: 0, caseFiles: 0, attachments: 0 };
+      let svc = 'service not asked';
+
+      // 0) Tarion's photo service: every photo on the form in one download
+      if (imp.enrolment) {
+        try {
+          const r = await servicePhotos(s, imp.enrolment, imp.tarion_case_number);
+          svc = r.code === 200 ? `service ${r.files.length} file(s)` : r.code === 204 ? 'service: no photos' : `service HTTP ${r.code}`;
+          for (const f of r.files) { const base = f.name.replace(/[^A-Za-z0-9._-]/g, '_'); cand.set('z-' + f.item + '-' + base, { id: f.item + '-' + base, kind: 'zip', title: f.name.replace(/\.[^.]+$/, ''), ext: f.name.split('.').pop() ?? 'jpg', created: new Date().toISOString(), item: byNo.get(f.item.replace(/\D/g, '')), bytes: f.bytes }); strat.service++; }
+        } catch (e) { svc = 'service error: ' + (e as Error).message.slice(0, 80); }
+      } else svc = 'no enrolment on the form';
+      const viaService = strat.service > 0;
 
       // A) files linked straight to the item records
-      try {
+      if (!viaService) try {
         const links = await soqlIn(s, 'SELECT ContentDocumentId, LinkedEntityId FROM ContentDocumentLink WHERE LinkedEntityId IN ', [...byDef.keys()]);
         const docItem = new Map(links.map(l => [l.ContentDocumentId, byDef.get(l.LinkedEntityId)]));
         if (docItem.size) for (const v of await soqlIn(s, 'SELECT Id, Title, FileExtension, CreatedDate, ContentDocumentId FROM ContentVersion WHERE IsLatest = true AND ContentDocumentId IN ', [...docItem.keys()]))
           if (IMG.test(v.FileExtension ?? '')) { cand.set(v.Id, { id: v.Id, kind: 'cv', title: v.Title, ext: v.FileExtension, created: v.CreatedDate, item: docItem.get(v.ContentDocumentId) }); strat.links++; }
       } catch (e) { out.errors.push(`${imp.tarion_case_number} item links: ${(e as Error).message.slice(0, 120)}`); }
       // B) files that name the case (and optionally a line item) in their own fields
-      try {
+      if (!viaService) try {
         const id15 = imp.tarion_case_id.slice(0, 15);
         for (const v of await soql(s, `SELECT Id, Title, FileExtension, CreatedDate, Line_Item_Number__c FROM ContentVersion WHERE IsLatest = true AND (Case_ID__c = '${q(imp.tarion_case_id)}' OR Case_ID__c = '${q(id15)}')`))
           if (IMG.test(v.FileExtension ?? '') && !cand.has(v.Id)) { cand.set(v.Id, { id: v.Id, kind: 'cv', title: v.Title, ext: v.FileExtension, created: v.CreatedDate, item: byNo.get(String(v.Line_Item_Number__c ?? '').replace(/\D/g, '')) }); strat.caseFiles++; }
       } catch { /* this field may not exist; the other routes still run */ }
       // C) older-style attachments on the item records
-      try {
+      if (!viaService) try {
         for (const a of await soqlIn(s, 'SELECT Id, Name, ContentType, CreatedDate, ParentId FROM Attachment WHERE ParentId IN ', [...byDef.keys()]))
           if (/^image\//i.test(a.ContentType ?? '') && !cand.has(a.Id)) { cand.set(a.Id, { id: a.Id, kind: 'att', title: a.Name, ext: (a.Name.split('.').pop() ?? 'jpg'), created: a.CreatedDate, item: byDef.get(a.ParentId) }); strat.attachments++; }
       } catch { /* optional */ }
@@ -266,9 +304,14 @@ async function runPhotos(s: Session, admin: any, companyId: string, deadline: nu
         const path = `${companyId}/${imp.tarion_case_number}/${c.item.item_number}-${c.id}.${ext}`;
         if (haveSet.has(path)) continue;
         if (Date.now() > deadline) { hitDeadline = true; break; }
-        const res = await fetch(c.kind === 'cv' ? `${s.instance}/services/data/v${API}/sobjects/ContentVersion/${c.id}/VersionData` : `${s.instance}/services/data/v${API}/sobjects/Attachment/${c.id}/Body`, { headers: { Authorization: 'Bearer ' + s.sessionId } });
-        if (!res.ok) { out.errors.push(`${imp.tarion_case_number} photo ${c.title}: HTTP ${res.status}`); continue; }
-        const up = await admin.storage.from('warranty-photos').upload(path, await res.arrayBuffer(), { contentType: res.headers.get('content-type') ?? 'image/jpeg', upsert: true });
+        let body: ArrayBuffer | Uint8Array, ctype = 'image/jpeg';
+        if (c.kind === 'zip') { body = c.bytes!; ctype = /^png$/i.test(ext) ? 'image/png' : /^gif$/i.test(ext) ? 'image/gif' : /^webp$/i.test(ext) ? 'image/webp' : /^hei[cf]$/i.test(ext) ? 'image/heic' : 'image/jpeg'; }
+        else {
+          const res = await fetch(c.kind === 'cv' ? `${s.instance}/services/data/v${API}/sobjects/ContentVersion/${c.id}/VersionData` : `${s.instance}/services/data/v${API}/sobjects/Attachment/${c.id}/Body`, { headers: { Authorization: 'Bearer ' + s.sessionId } });
+          if (!res.ok) { out.errors.push(`${imp.tarion_case_number} photo ${c.title}: HTTP ${res.status}`); continue; }
+          body = await res.arrayBuffer(); ctype = res.headers.get('content-type') ?? 'image/jpeg';
+        }
+        const up = await admin.storage.from('warranty-photos').upload(path, body, { contentType: ctype, upsert: true });
         if (up.error) { out.errors.push(`${imp.tarion_case_number} upload: ${up.error.message.slice(0, 100)}`); continue; }
         const ins = await admin.from('warranty_item_evidence').insert({ company_id: companyId, item_id: c.item.id, case_id: imp.case_id, evidence_type: 'owner_photo', phase: 'assessment',
           file_name: `${c.title}.${ext}`, storage_path: path, is_before: true, captured_at: c.created, notes: 'Submitted by the homeowner through Tarion' });
@@ -276,12 +319,14 @@ async function runPhotos(s: Session, admin: any, companyId: string, deadline: nu
         done++; out.downloaded++;
       }
       const ageH = (Date.now() - new Date(imp.created_at).getTime()) / 36e5;
-      const complete = !hitDeadline && (cand.size > 0 ? unmatched === 0 || done > 0 : ageH > 72);
-      const note = `found ${cand.size} (item links ${strat.links}, case files ${strat.caseFiles}, attachments ${strat.attachments})` + (unmatched ? `; ${unmatched} not matched to an item` : '');
+      const complete = !hitDeadline && (cand.size > 0 ? unmatched === 0 || done > 0 : (/service: no photos/.test(svc) ? ageH > 2 : ageH > 72));
+      const note = `${svc}; found ${cand.size} (item links ${strat.links}, case files ${strat.caseFiles}, attachments ${strat.attachments})` + (unmatched ? `; ${unmatched} not matched to an item` : '');
       await admin.from('tarion_form_imports').update({ photos_found: cand.size, photos_done: done, photos_complete: complete, photo_note: note }).eq('id', imp.id);
       out.forms++; out.notes.push(`${imp.tarion_case_number}: ${note}`);
     } catch (e) { out.errors.push(`${imp.tarion_case_number} photos: ${(e as Error).message.slice(0, 160)}`); }
   }
+  const { count: left } = await admin.from('tarion_form_imports').select('id', { count: 'exact', head: true }).eq('company_id', companyId).eq('status', 'imported').eq('photos_complete', false).not('case_id', 'is', null);
+  out.remaining = left ?? 0;
   return out;
 }
 
@@ -378,9 +423,9 @@ Deno.serve(async req => {
     if (mode === 'all' || mode === 'conciliation') {
       try { report.conciliation = await runConciliation(s, db, companyId, t0 + 75_000); } catch (e) { report.conciliation = { checked: 0, results: {}, errors: ['conciliation: ' + (e as Error).message] }; }
     }
-    if (mode === 'all' || mode === 'forms') {
-      try { report.photos = await runPhotos(s, admin, companyId, t0 + RUN_MS); } catch (e) { report.photos = { errors: ['photos: ' + (e as Error).message] }; }
-      try { report.digest = await sendDigest(admin, companyId); } catch (e) { report.digest = { error: (e as Error).message }; }
+    if (mode === 'all' || mode === 'forms' || mode === 'photos') {
+      try { report.photos = await runPhotos(s, admin, companyId, t0 + RUN_MS, !!body.recheck); } catch (e) { report.photos = { errors: ['photos: ' + (e as Error).message] }; }
+      if (mode !== 'photos') try { report.digest = await sendDigest(admin, companyId); } catch (e) { report.digest = { error: (e as Error).message }; }
     }
     // keeps the shape the app already reads
     const c = report.conciliation ?? { checked: 0, results: {}, errors: [] };
