@@ -42,7 +42,7 @@ export default function FieldHome() {
       const { data: existing } = await supabase.from('inspections').select('id').eq('lot_id', lot.lot_id).eq('kind', kind).eq('status', 'in_progress').maybeSingle();
       if (existing) { nav(`/field/inspection/${existing.id}`); return; }
       const [{ data: l, error: le }, { data: { user } }, companyId] = await Promise.all([
-        supabase.from('warranty_lots').select('address,civic_number,street,enrollment_number,closing_date,homeowner_name,homeowner_first,homeowner_last,owner2_first,owner2_last,homeowner_email,homeowner_email2').eq('id', lot.lot_id).single(),
+        supabase.from('warranty_lots').select('address,civic_number,street,enrollment_number,closing_date,possession_date,homeowner_name,homeowner_first,homeowner_last,owner2_first,owner2_last,homeowner_email,homeowner_email2').eq('id', lot.lot_id).single(),
         supabase.auth.getUser(), getCompanyId(),
       ]);
       if (le || !l) throw le ?? new Error('Lot not found');
@@ -53,7 +53,7 @@ export default function FieldHome() {
       const { data: ins, error } = await supabase.from('inspections').insert({
         company_id: companyId, lot_id: lot.lot_id, kind, inspector_id: user?.id, inspector_name: inspector || user?.email || null,
         address: l.address || [l.civic_number, l.street].filter(Boolean).join(' ') || lot.address, enrolment_no: l.enrollment_number,
-        possession_date: l.closing_date, owner_names: [o1, o2].filter(Boolean).join(' and ') || null,
+        possession_date: l.possession_date || l.closing_date, owner_names: [o1, o2].filter(Boolean).join(' and ') || null,
         owner_emails: [l.homeowner_email, l.homeowner_email2].filter(Boolean),
         super_name: localStorage.getItem('bg-super-name'), super_email: localStorage.getItem('bg-super-email'),
       }).select('id').single();

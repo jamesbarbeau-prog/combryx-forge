@@ -24,6 +24,8 @@ import DeficiencyImportPage from '@/pages/deficiencyimportpage';
 import TradesImportPage from '@/pages/tradesimportpage';
 import WorkOrderPortalPage from '@/pages/workorderportalpage';
 import VisitCheckPage from '@/pages/visitcheckpage';
+import InspectionPortalPage from '@/pages/inspectionportalpage';
+import InspectionsPage from '@/pages/inspectionspage';
 import FieldLayout from '@/pages/field/fieldlayout';
 import FieldHome from '@/pages/field/fieldhome';
 import InspectionPage from '@/pages/field/inspectionpage';
@@ -37,6 +39,7 @@ export const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/warranty/today" replace /> },
   { path: '/portal/work-order/:token', element: <WorkOrderPortalPage /> },
   { path: '/portal/visit/:token', element: <VisitCheckPage /> },
+  { path: '/portal/inspection/:token', element: <InspectionPortalPage /> },
   {
     path: '/field',
     element: (<ProtectedRoute><FieldLayout /></ProtectedRoute>),
@@ -75,6 +78,7 @@ export const router = createBrowserRouter([
           { path: 'cases',       element: <CasesPage />                  },
           { path: 'cases/:id',   element: <CaseDetailPage />             },
           { path: 'work-orders', element: <WorkOrdersPage />             },
+          { path: 'inspections', element: <InspectionsPage /> },
           { path: 'po-requests', element: <PORequestsPage />             },
           { path: 'conciliation',     element: <ConciliationPage />     },
           { path: 'conciliation/:id', element: <ConciliationCasePage /> },

@@ -1,7 +1,7 @@
 // App shell: left rail (navigation + the 9 communities), slim top bar (search), content area.
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
 import { supabase } from '@/lib/supabase';
 import { BrandShield } from '@/components/identity';
@@ -15,6 +15,7 @@ const NAV: { id: string; label: string; path: string; icon: typeof Home; count?:
   { id: 'cases',        label: 'Cases',        path: '/warranty/cases',        icon: FolderOpen, count: 'cases' },
   { id: 'conciliation', label: 'Conciliation', path: '/warranty/conciliation', icon: Scale, count: 'conc' },
   { id: 'work-orders',  label: 'Work Orders',  path: '/warranty/work-orders',  icon: Wrench, count: 'wo' },
+  { id: 'inspections',  label: 'Inspections',  path: '/warranty/inspections',  icon: ClipboardList },
   { id: 'po-requests',  label: 'PO Approvals', path: '/warranty/po-requests',  icon: ClipboardCheck, count: 'po' },
   { id: 'lots',         label: 'Homes & Lots', path: '/warranty/lots',         icon: Home },
   { id: 'reports',      label: 'Reports',      path: '/warranty/reports',      icon: BarChart3 },

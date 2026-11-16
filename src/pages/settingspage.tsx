@@ -145,6 +145,7 @@ function CompanyTab() {
           { key: 'phone',   label: 'Phone',              placeholder: '416-555-0100'              },
           { key: 'email',   label: 'Email',              placeholder: 'warranty@yourbuilder.ca'         },
           { key: 'website', label: 'Website',            placeholder: 'www.yourbuilder.ca'            },
+          { key: 'builder_licence', label: 'Tarion builder licence #', placeholder: 'Printed on the PDI form' },
         ].map(f => (
           <div key={f.key}>
             <label style={lbl}>{f.label}</label>
