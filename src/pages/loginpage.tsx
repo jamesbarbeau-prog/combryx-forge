@@ -18,7 +18,7 @@ export default function LoginPage() {
     padding: '0 14px 0 42px',
     borderRadius: 10,
     border: '1px solid var(--color-border)',
-    background: '#FAFAF8',
+    background: '#FBFAF7',
     color: 'var(--color-text)',
     fontSize: 13,
     fontFamily: 'var(--font-body)',
@@ -34,15 +34,15 @@ export default function LoginPage() {
   };
 
   function focusInput(e: React.FocusEvent<HTMLInputElement>) {
-    e.currentTarget.style.borderColor = '#2563EB';
-    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.15)';
+    e.currentTarget.style.borderColor = '#3F6A8F';
+    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(63,106,143,0.15)';
     e.currentTarget.style.background = '#FFFFFF';
   }
 
   function blurInput(e: React.FocusEvent<HTMLInputElement>) {
     e.currentTarget.style.borderColor = 'var(--color-border)';
     e.currentTarget.style.boxShadow = 'none';
-    e.currentTarget.style.background = '#FAFAF8';
+    e.currentTarget.style.background = '#FBFAF7';
   }
 
   async function handleSignIn() {
@@ -80,7 +80,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'radial-gradient(1200px 600px at 20% -10%, #1B2B55 0%, #0B132B 55%, #070D1F 100%)',
+      background: 'radial-gradient(1200px 600px at 20% -10%, #1B2B55 0%, #1F2A3C 55%, #070D1F 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 24, fontFamily: 'var(--font-body)',
     }}>
@@ -99,7 +99,7 @@ export default function LoginPage() {
           boxShadow: '0 24px 60px rgba(0,0,0,0.35)', overflow: 'hidden',
         }}>
           <div style={{ padding: '22px 28px 0' }}>
-            <h1 style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em', color: '#0F172A' }}>Sign in</h1>
+            <h1 style={{ fontSize: 19, fontWeight: 800, letterSpacing: '-0.02em', color: '#1F2A3C' }}>Sign in</h1>
             <p style={{ fontSize: 13, color: 'var(--color-text-sub)', marginTop: 3 }}>Use your Builder Guardian email and password.</p>
           </div>
 
@@ -159,8 +159,8 @@ export default function LoginPage() {
                 padding: '10px 14px', borderRadius: 8,
                 background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)',
               }}>
-                <AlertTriangle size={13} color="#DC2626" strokeWidth={1.5} />
-                <p style={{ fontSize: 12, color: '#DC2626' }}>{error}</p>
+                <AlertTriangle size={13} color="#A5402F" strokeWidth={1.5} />
+                <p style={{ fontSize: 12, color: '#A5402F' }}>{error}</p>
               </div>
             )}
 
@@ -171,7 +171,7 @@ export default function LoginPage() {
               style={{
                 width: '100%', height: 44, fontSize: 13, fontWeight: 700,
                 borderRadius: 10, border: 'none', cursor: loading ? 'default' : 'pointer',
-                background: loading ? '#1D4ED8' : '#2563EB',
+                background: loading ? '#2F5576' : '#3F6A8F',
                 color: '#FFFFFF', fontFamily: 'var(--font-body)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 opacity: loading ? 0.8 : 1, marginTop: 4,
@@ -187,7 +187,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <div style={{ padding: '12px 24px', borderTop: '1px solid var(--color-border)', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <div style={{ padding: '12px 24px', borderTop: '1px solid var(--color-border)', background: '#FBFAF7', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <Lock size={11} color="var(--color-muted)" />
             <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>Secured by Supabase Auth</p>
           </div>

@@ -108,12 +108,12 @@ interface ScheduleSuggestion {
 // ─── Constants ────────────────────────────────────────────────
 
 const WO_STATUS: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  pending:      { label: 'Pending',      color: '#6B7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)'  },
-  scheduled:    { label: 'Scheduled',    color: '#1E5FA4', bg: 'rgba(30,95,164,0.08)',   border: 'rgba(30,95,164,0.2)'    },
-  in_progress:  { label: 'In Progress',  color: '#D97706', bg: 'rgba(217,119,6,0.08)',   border: 'rgba(217,119,6,0.25)'   },
-  completed:    { label: 'Completed',    color: '#16A34A', bg: 'rgba(22,163,74,0.08)',   border: 'rgba(22,163,74,0.2)'    },
-  cancelled:    { label: 'Cancelled',    color: '#DC2626', bg: 'rgba(220,38,38,0.08)',   border: 'rgba(220,38,38,0.2)'    },
-  on_hold:      { label: 'On Hold',      color: '#7C3AED', bg: 'rgba(124,58,237,0.08)',  border: 'rgba(124,58,237,0.2)'   },
+  pending:      { label: 'Pending',      color: '#6C7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)'  },
+  scheduled:    { label: 'Scheduled',    color: '#3F6A8F', bg: 'rgba(30,95,164,0.08)',   border: 'rgba(30,95,164,0.2)'    },
+  in_progress:  { label: 'In Progress',  color: '#9A6A16', bg: 'rgba(217,119,6,0.08)',   border: 'rgba(217,119,6,0.25)'   },
+  completed:    { label: 'Completed',    color: '#4A7A55', bg: 'rgba(22,163,74,0.08)',   border: 'rgba(22,163,74,0.2)'    },
+  cancelled:    { label: 'Cancelled',    color: '#A5402F', bg: 'rgba(220,38,38,0.08)',   border: 'rgba(220,38,38,0.2)'    },
+  on_hold:      { label: 'On Hold',      color: '#6B5B95', bg: 'rgba(124,58,237,0.08)',  border: 'rgba(124,58,237,0.2)'   },
 };
 
 const TRADE_LABELS: Record<string, string> = {
@@ -127,13 +127,13 @@ const TRADE_LABELS: Record<string, string> = {
 };
 
 const TRADE_COLORS: Record<string, string> = {
-  drywall:    '#1E5FA4', paint:      '#7C3AED',
-  plumbing:   '#0891B2', electrical: '#D97706',
-  flooring:   '#16A34A', roofing:    '#DC2626',
-  siding:     '#6B7280', masonry:    '#92400E',
-  concrete:   '#374151', window:     '#0891B2',
-  door:       '#374151', hvac:       '#DC2626',
-  tile:       '#7C3AED', general:    '#6B7280',
+  drywall:    '#3F6A8F', paint:      '#6B5B95',
+  plumbing:   '#3F7A8C', electrical: '#9A6A16',
+  flooring:   '#4A7A55', roofing:    '#A5402F',
+  siding:     '#6C7280', masonry:    '#92400E',
+  concrete:   '#374151', window:     '#3F7A8C',
+  door:       '#374151', hvac:       '#A5402F',
+  tile:       '#6B5B95', general:    '#6C7280',
 };
 
 const TIME_SLOTS = [
@@ -153,10 +153,10 @@ function fmt12(time: string): string {
 }
 
 function priorityColor(score: number): string {
-  if (score >= 100) return '#DC2626';
-  if (score >= 60)  return '#D97706';
-  if (score >= 30)  return '#1E5FA4';
-  return '#16A34A';
+  if (score >= 100) return '#A5402F';
+  if (score >= 60)  return '#9A6A16';
+  if (score >= 30)  return '#3F6A8F';
+  return '#4A7A55';
 }
 
 function priorityLabel(score: number): string {
@@ -185,7 +185,7 @@ function WOCard({
 }) {
   const st         = WO_STATUS[wo.status] ?? WO_STATUS.pending;
   const brpDays    = daysUntilBRP(wo.brp_end_date);
-  const brpColor   = brpDays === null ? '#6B7280' : brpDays < 0 ? '#DC2626' : brpDays < 14 ? '#DC2626' : brpDays < 30 ? '#D97706' : '#16A34A';
+  const brpColor   = brpDays === null ? '#6C7280' : brpDays < 0 ? '#A5402F' : brpDays < 14 ? '#A5402F' : brpDays < 30 ? '#9A6A16' : '#4A7A55';
   const pColor     = priorityColor(wo.priority_score);
   const progress   = wo.items_total > 0 ? Math.round((wo.items_complete / wo.items_total) * 100) : 0;
   const isManager  = ['manager','sr_manager','director','vp','owner','company'].includes(profile.access_level) || profile.is_owner;
@@ -273,12 +273,12 @@ function WOCard({
             )}
             {wo.tech_name && (
               <span style={{ fontSize: 10, color: 'var(--color-text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
-                <User size={9} color="#1E5FA4" /> {wo.tech_name}
+                <User size={9} color="#3F6A8F" /> {wo.tech_name}
               </span>
             )}
             {wo.scheduled_date && (
               <span style={{ fontSize: 10, color: 'var(--color-text)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                <Calendar size={9} color="#1E5FA4" />
+                <Calendar size={9} color="#3F6A8F" />
                 {isToday(new Date(wo.scheduled_date)) ? 'Today'
                   : isTomorrow(new Date(wo.scheduled_date)) ? 'Tomorrow'
                   : format(new Date(wo.scheduled_date), 'EEE MMM d')}
@@ -295,7 +295,7 @@ function WOCard({
               {wo.items_complete}/{wo.items_total}
             </div>
             <div style={{ height: 3, borderRadius: 100, background: 'var(--color-mist)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#16A34A' : '#1E5FA4', borderRadius: 100 }} />
+              <div style={{ height: '100%', width: `${progress}%`, background: progress === 100 ? '#4A7A55' : '#3F6A8F', borderRadius: 100 }} />
             </div>
           </div>
         )}
@@ -352,7 +352,7 @@ function WOCard({
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={handleSaveSchedule} disabled={saving}
-                  style={{ padding: '7px 16px', borderRadius: 6, background: '#1E5FA4', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  style={{ padding: '7px 16px', borderRadius: 6, background: '#3F6A8F', border: 'none', color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                   {saving ? 'Saving…' : 'Save Schedule'}
                 </button>
                 <button onClick={() => setEditing(false)}
@@ -364,18 +364,18 @@ function WOCard({
           ) : (
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <button onClick={() => setEditing(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 6, background: 'rgba(30,95,164,0.10)', border: '1px solid rgba(30,95,164,0.25)', color: '#1E5FA4', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 6, background: 'rgba(30,95,164,0.10)', border: '1px solid rgba(30,95,164,0.25)', color: '#3F6A8F', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                 <Calendar size={11} /> Edit Schedule
               </button>
               {wo.status === 'scheduled' && (
                 <button onClick={() => handleStatusChange('in_progress')}
-                  style={{ padding: '7px 14px', borderRadius: 6, background: 'rgba(217,119,6,0.10)', border: '1px solid rgba(217,119,6,0.25)', color: '#D97706', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  style={{ padding: '7px 14px', borderRadius: 6, background: 'rgba(217,119,6,0.10)', border: '1px solid rgba(217,119,6,0.25)', color: '#9A6A16', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                   Start Work
                 </button>
               )}
               {(wo.status === 'in_progress' || wo.status === 'scheduled') && (
                 <button onClick={() => handleStatusChange('completed')}
-                  style={{ padding: '7px 14px', borderRadius: 6, background: 'rgba(22,163,74,0.10)', border: '1px solid rgba(22,163,74,0.25)', color: '#16A34A', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  style={{ padding: '7px 14px', borderRadius: 6, background: 'rgba(22,163,74,0.10)', border: '1px solid rgba(22,163,74,0.25)', color: '#4A7A55', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                   ✓ Complete
                 </button>
               )}
@@ -387,7 +387,7 @@ function WOCard({
 </a>
               {wo.status !== 'cancelled' && wo.status !== 'completed' && (
                 <button onClick={() => setCancelling(!cancelling)}
-                  style={{ padding: '7px 14px', borderRadius: 6, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', color: '#DC2626', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', marginLeft: 'auto' }}>
+                  style={{ padding: '7px 14px', borderRadius: 6, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', color: '#A5402F', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', marginLeft: 'auto' }}>
                   Cancel Visit
                 </button>
               )}
@@ -397,13 +397,13 @@ function WOCard({
           {/* Cancellation form */}
           {cancelling && (
             <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(220,38,38,0.04)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 16 }}>
-              <p style={{ fontSize: 11, fontWeight: 700, color: '#DC2626', marginBottom: 8 }}>Reason for cancellation</p>
+              <p style={{ fontSize: 11, fontWeight: 700, color: '#A5402F', marginBottom: 8 }}>Reason for cancellation</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input value={cancelReason} onChange={e => setCancelReason(e.target.value)}
                   placeholder="Homeowner not available, access denied, etc…"
                   style={{ flex: 1, padding: '7px 10px', borderRadius: 6, border: '1px solid rgba(220,38,38,0.3)', background: 'var(--color-panel)', fontSize: 11, color: 'var(--color-text)', fontFamily: 'var(--font-body)', outline: 'none' }} />
                 <button onClick={handleCancel} disabled={!cancelReason.trim()}
-                  style={{ padding: '7px 14px', borderRadius: 6, background: cancelReason.trim() ? '#DC2626' : 'var(--color-mist)', border: 'none', color: cancelReason.trim() ? '#fff' : 'var(--color-muted)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  style={{ padding: '7px 14px', borderRadius: 6, background: cancelReason.trim() ? '#A5402F' : 'var(--color-mist)', border: 'none', color: cancelReason.trim() ? '#fff' : 'var(--color-muted)', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                   Confirm
                 </button>
               </div>
@@ -417,8 +417,8 @@ function WOCard({
             {techItems.length > 0 && (
               <div style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <Wrench size={11} color="#1E5FA4" />
-                  <p style={{ fontSize: 10, fontWeight: 700, color: '#1E5FA4', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Tech Items ({techItems.length})</p>
+                  <Wrench size={11} color="#3F6A8F" />
+                  <p style={{ fontSize: 10, fontWeight: 700, color: '#3F6A8F', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Tech Items ({techItems.length})</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {techItems.map(item => (
@@ -430,7 +430,7 @@ function WOCard({
                         {item.room && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--color-text)' }}>{item.room} · </span>}
                         <span style={{ fontSize: 10, color: 'var(--color-muted)', lineHeight: 1.4 }}>{item.description}</span>
                       </div>
-                      {item.status === 'completed' && <CheckCircle2 size={12} color="#16A34A" style={{ flexShrink: 0, marginTop: 1 }} />}
+                      {item.status === 'completed' && <CheckCircle2 size={12} color="#4A7A55" style={{ flexShrink: 0, marginTop: 1 }} />}
                     </div>
                   ))}
                 </div>
@@ -441,8 +441,8 @@ function WOCard({
             {tradeItems.length > 0 && (
               <div style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--color-panel)', border: '1px solid var(--color-border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <Truck size={11} color="#D97706" />
-                  <p style={{ fontSize: 10, fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Trade Required ({tradeItems.length})</p>
+                  <Truck size={11} color="#9A6A16" />
+                  <p style={{ fontSize: 10, fontWeight: 700, color: '#9A6A16', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Trade Required ({tradeItems.length})</p>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {tradeItems.map(item => (
@@ -455,7 +455,7 @@ function WOCard({
                         <span style={{ fontSize: 10, color: 'var(--color-muted)', lineHeight: 1.4 }}>{item.description}</span>
                       </div>
                       {item.trade_required && (
-                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: `${TRADE_COLORS[item.trade_required] ?? '#6B7280'}15`, color: TRADE_COLORS[item.trade_required] ?? '#6B7280', flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: `${TRADE_COLORS[item.trade_required] ?? '#6C7280'}15`, color: TRADE_COLORS[item.trade_required] ?? '#6C7280', flexShrink: 0 }}>
                           {TRADE_LABELS[item.trade_required] ?? item.trade_required}
                         </span>
                       )}
@@ -468,8 +468,8 @@ function WOCard({
 
           {/* Homeowner confirmation */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, padding: '8px 12px', borderRadius: 7, background: wo.homeowner_confirmed ? 'rgba(22,163,74,0.08)' : 'var(--color-panel)', border: `1px solid ${wo.homeowner_confirmed ? 'rgba(22,163,74,0.2)' : 'var(--color-border)'}` }}>
-            <CheckCircle2 size={13} color={wo.homeowner_confirmed ? '#16A34A' : 'var(--color-muted)'} />
-            <span style={{ fontSize: 11, color: wo.homeowner_confirmed ? '#16A34A' : 'var(--color-muted)', fontWeight: 600 }}>
+            <CheckCircle2 size={13} color={wo.homeowner_confirmed ? '#4A7A55' : 'var(--color-muted)'} />
+            <span style={{ fontSize: 11, color: wo.homeowner_confirmed ? '#4A7A55' : 'var(--color-muted)', fontWeight: 600 }}>
               {wo.homeowner_confirmed ? 'Homeowner confirmed' : 'Awaiting homeowner confirmation'}
             </span>
             {wo.homeowner_phone && (
@@ -481,7 +481,7 @@ function WOCard({
               <button onClick={async () => {
                 await supabase.from('work_orders').update({ homeowner_confirmed: true }).eq('id', wo.id);
                 onUpdate();
-              }} style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: 5, background: 'rgba(22,163,74,0.10)', border: '1px solid rgba(22,163,74,0.25)', color: '#16A34A', fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              }} style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: 5, background: 'rgba(22,163,74,0.10)', border: '1px solid rgba(22,163,74,0.25)', color: '#4A7A55', fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                 Mark Confirmed
               </button>
             )}
@@ -517,16 +517,16 @@ function SuggestionCard({
           <p style={{ fontSize: 10, color: 'var(--color-muted)', marginBottom: 4 }}>
             {s.community} · #{s.case_number}
             {s.brp_end_date && (
-  <span style={{ color: daysUntilBRP(s.brp_end_date)! < 14 ? '#DC2626' : 'inherit', fontWeight: 700 }}>
+  <span style={{ color: daysUntilBRP(s.brp_end_date)! < 14 ? '#A5402F' : 'inherit', fontWeight: 700 }}>
     {` · BRP: ${format(new Date(s.brp_end_date), 'MMM d')} (${daysUntilBRP(s.brp_end_date)}d left)`}
   </span>
 )}
           </p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(30,95,164,0.10)', color: '#1E5FA4' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(30,95,164,0.10)', color: '#3F6A8F' }}>
               👤 {s.tech_name}
             </span>
-            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(217,119,6,0.10)', color: '#D97706' }}>
+            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'rgba(217,119,6,0.10)', color: '#9A6A16' }}>
               {s.priority_items} priority items
             </span>
             <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: 'var(--color-mist)', color: 'var(--color-muted)' }}>
@@ -539,7 +539,7 @@ function SuggestionCard({
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--color-border)', background: 'var(--color-mist)', fontSize: 11, color: 'var(--color-text)', fontFamily: 'var(--font-body)', outline: 'none' }} />
         <button onClick={() => date && onAccept(s, date)} disabled={!date}
-          style={{ padding: '6px 14px', borderRadius: 6, background: date ? '#16A34A' : 'var(--color-mist)', border: 'none', color: date ? '#fff' : 'var(--color-muted)', fontSize: 11, fontWeight: 700, cursor: date ? 'pointer' : 'default', fontFamily: 'var(--font-body)' }}>
+          style={{ padding: '6px 14px', borderRadius: 6, background: date ? '#4A7A55' : 'var(--color-mist)', border: 'none', color: date ? '#fff' : 'var(--color-muted)', fontSize: 11, fontWeight: 700, cursor: date ? 'pointer' : 'default', fontFamily: 'var(--font-body)' }}>
           Schedule
         </button>
         <button onClick={() => onSkip(s)}
@@ -897,11 +897,11 @@ export default function WorkOrdersPage() {
             <RefreshCw size={11} />
           </button>
           <button onClick={handleRunSchedule} disabled={running}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 7, background: running ? 'var(--color-mist)' : 'rgba(217,119,6,0.12)', border: '1px solid rgba(217,119,6,0.3)', color: '#D97706', fontSize: 12, fontWeight: 700, cursor: running ? 'wait' : 'pointer', fontFamily: 'var(--font-body)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 7, background: running ? 'var(--color-mist)' : 'rgba(217,119,6,0.12)', border: '1px solid rgba(217,119,6,0.3)', color: '#9A6A16', fontSize: 12, fontWeight: 700, cursor: running ? 'wait' : 'pointer', fontFamily: 'var(--font-body)' }}>
             {running ? '⏳ Running…' : '🤖 Suggest Schedule'}
           </button>
           <button onClick={() => setShowCreate(!showCreate)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 7, background: '#1E5FA4', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 7, background: '#3F6A8F', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             <Plus size={13} /> New Work Order
           </button>
         </div>
@@ -912,7 +912,7 @@ export default function WorkOrdersPage() {
         <div style={{ padding: '16px 18px', borderRadius: 12, background: 'rgba(217,119,6,0.05)', border: '1px solid rgba(217,119,6,0.2)', marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
             <span style={{ fontSize: 16 }}>🤖</span>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#D97706' }}>Schedule Suggestions — {suggestions.length} lots ranked by priority</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#9A6A16' }}>Schedule Suggestions — {suggestions.length} lots ranked by priority</p>
             <p style={{ fontSize: 11, color: 'var(--color-muted)', marginLeft: 4 }}>Pick a date and confirm or skip each suggestion</p>
             <button onClick={() => setSuggestions([])} style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--color-muted)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               Dismiss all
@@ -970,7 +970,7 @@ export default function WorkOrdersPage() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={handleCreateWO} disabled={creatingWO || !selectedCase || !woIssue.trim()}
-              style={{ padding: '8px 20px', borderRadius: 7, background: selectedCase && woIssue ? '#1E5FA4' : 'var(--color-mist)', border: 'none', color: selectedCase && woIssue ? '#fff' : 'var(--color-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+              style={{ padding: '8px 20px', borderRadius: 7, background: selectedCase && woIssue ? '#3F6A8F' : 'var(--color-mist)', border: 'none', color: selectedCase && woIssue ? '#fff' : 'var(--color-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
               {creatingWO ? 'Creating…' : 'Create Work Order'}
             </button>
             <button onClick={() => setShowCreate(false)}
@@ -994,12 +994,12 @@ export default function WorkOrdersPage() {
             fontFamily: 'var(--font-body)', fontSize: 12,
             fontWeight: activeTab === tab.key ? 700 : 500,
             color: activeTab === tab.key ? 'var(--color-text)' : 'var(--color-muted)',
-            borderBottom: activeTab === tab.key ? '2px solid #1E5FA4' : '2px solid transparent',
+            borderBottom: activeTab === tab.key ? '2px solid #3F6A8F' : '2px solid transparent',
             marginBottom: -1, display: 'flex', alignItems: 'center', gap: 6,
           }}>
             {tab.label}
             {tab.count > 0 && (
-              <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 100, background: activeTab === tab.key ? 'rgba(30,95,164,0.15)' : 'var(--color-mist)', color: activeTab === tab.key ? '#1E5FA4' : 'var(--color-muted)' }}>
+              <span style={{ fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 100, background: activeTab === tab.key ? 'rgba(30,95,164,0.15)' : 'var(--color-mist)', color: activeTab === tab.key ? '#3F6A8F' : 'var(--color-muted)' }}>
                 {tab.count}
               </span>
             )}
@@ -1021,11 +1021,11 @@ export default function WorkOrdersPage() {
       {/* Unscheduled alert */}
       {unscheduledCount > 0 && activeTab === 'all' && (
         <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.2)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <AlertTriangle size={13} color="#D97706" />
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#D97706' }}>
+          <AlertTriangle size={13} color="#9A6A16" />
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#9A6A16' }}>
             {unscheduledCount} work order{unscheduledCount > 1 ? 's' : ''} not yet scheduled
           </p>
-          <button onClick={() => setActiveTab('unscheduled')} style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          <button onClick={() => setActiveTab('unscheduled')} style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#9A6A16', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             View →
           </button>
         </div>
@@ -1053,7 +1053,7 @@ export default function WorkOrdersPage() {
           {activeTab === 'today' && filtered.length > 0 && (
             <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
               {techs.filter(t => filtered.some(w => w.tech_id === t.id)).map(tech => (
-                <div key={tech.id} style={{ padding: '5px 12px', borderRadius: 100, background: 'rgba(30,95,164,0.10)', border: '1px solid rgba(30,95,164,0.2)', fontSize: 11, fontWeight: 600, color: '#1E5FA4' }}>
+                <div key={tech.id} style={{ padding: '5px 12px', borderRadius: 100, background: 'rgba(30,95,164,0.10)', border: '1px solid rgba(30,95,164,0.2)', fontSize: 11, fontWeight: 600, color: '#3F6A8F' }}>
                   👤 {tech.name} — {filtered.filter(w => w.tech_id === tech.id).length} lot{filtered.filter(w => w.tech_id === tech.id).length > 1 ? 's' : ''}
                 </div>
               ))}

@@ -384,18 +384,18 @@ export default function DeficiencyImportPage() {
   const totalImported = entries.reduce((s, e) => s + e.items_created, 0);
 
   const SC: Record<FileStatus, { label: string; color: string; bg: string }> = {
-    pending:      { label: 'Ready',      color: '#1E5FA4', bg: 'rgba(30,95,164,0.10)'   },
-    importing:    { label: 'Importing…', color: '#D97706', bg: 'rgba(217,119,6,0.10)'   },
-    done:         { label: 'Done',       color: '#16A34A', bg: 'rgba(22,163,74,0.10)'   },
-    error:        { label: 'Error',      color: '#DC2626', bg: 'rgba(220,38,38,0.10)'   },
-    unrecognized: { label: 'Unknown',    color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
+    pending:      { label: 'Ready',      color: '#3F6A8F', bg: 'rgba(30,95,164,0.10)'   },
+    importing:    { label: 'Importing…', color: '#9A6A16', bg: 'rgba(217,119,6,0.10)'   },
+    done:         { label: 'Done',       color: '#4A7A55', bg: 'rgba(22,163,74,0.10)'   },
+    error:        { label: 'Error',      color: '#A5402F', bg: 'rgba(220,38,38,0.10)'   },
+    unrecognized: { label: 'Unknown',    color: '#6C7280', bg: 'rgba(107,114,128,0.10)' },
   };
 
   const TYPE_COLOR: Record<string, string> = {
-    warranty:      '#1E5FA4',
-    inspection:    '#7C3AED',
-    field_service: '#D97706',
-    emergency:     '#DC2626',
+    warranty:      '#3F6A8F',
+    inspection:    '#6B5B95',
+    field_service: '#9A6A16',
+    emergency:     '#A5402F',
   };
 
   return (
@@ -412,7 +412,7 @@ export default function DeficiencyImportPage() {
       <div
         onDrop={onDrop} onDragOver={e => e.preventDefault()} onClick={() => fileRef.current?.click()}
         style={{ border: '2px dashed var(--color-border)', borderRadius: 12, padding: entries.length ? '18px 24px' : '44px 24px', textAlign: 'center', cursor: 'pointer', marginBottom: 20, background: 'var(--color-panel)', transition: 'border-color 0.15s' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#4A9EFF'; }}
+        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#5B87AD'; }}
         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--color-border)'; }}
       >
         <Upload size={18} color="var(--color-muted)" style={{ marginBottom: 8 }} />
@@ -432,11 +432,11 @@ export default function DeficiencyImportPage() {
             { label: 'Files',    value: entries.length, color: 'var(--color-text)' },
             { label: 'Cases',    value: totalGroups,    color: 'var(--color-text)' },
             { label: 'Items',    value: totalItems,     color: 'var(--color-text)' },
-            { label: 'Ready',    value: pending,        color: '#1E5FA4'            },
-            { label: 'Done',     value: done,           color: '#16A34A'            },
-            { label: 'Errors',   value: errored,        color: errored ? '#DC2626' : 'var(--color-muted)' },
-            { label: 'Created',  value: totalCases,     color: '#16A34A'            },
-            { label: 'Imported', value: totalImported,  color: '#16A34A'            },
+            { label: 'Ready',    value: pending,        color: '#3F6A8F'            },
+            { label: 'Done',     value: done,           color: '#4A7A55'            },
+            { label: 'Errors',   value: errored,        color: errored ? '#A5402F' : 'var(--color-muted)' },
+            { label: 'Created',  value: totalCases,     color: '#4A7A55'            },
+            { label: 'Imported', value: totalImported,  color: '#4A7A55'            },
           ].map(s => (
             <div key={s.label} style={{ padding: '8px 14px', borderRadius: 8, textAlign: 'center', background: 'var(--color-panel)', border: '1px solid var(--color-border)', minWidth: 68 }}>
               <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 2 }}>{s.label}</p>
@@ -473,8 +473,8 @@ export default function DeficiencyImportPage() {
                       <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)' }}>{entry.filename}</span>
                     </div>
                     {entry.community
-                      ? <span style={{ fontSize: 10, color: '#4A9EFF', fontWeight: 600, display: 'block', marginTop: 2 }}>{entry.community.name}</span>
-                      : <span style={{ fontSize: 10, color: '#DC2626', display: 'block', marginTop: 2 }}>Community not recognised — rename file</span>
+                      ? <span style={{ fontSize: 10, color: '#5B87AD', fontWeight: 600, display: 'block', marginTop: 2 }}>{entry.community.name}</span>
+                      : <span style={{ fontSize: 10, color: '#A5402F', display: 'block', marginTop: 2 }}>Community not recognised — rename file</span>
                     }
                   </div>
 
@@ -492,7 +492,7 @@ export default function DeficiencyImportPage() {
 
                   <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>{entry.groups.length || '—'}</span>
                   <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--color-muted)' }}>{itemCount || '—'}</span>
-                  <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: '#16A34A' }}>{entry.items_created || '—'}</span>
+                  <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: '#4A7A55' }}>{entry.items_created || '—'}</span>
 
                   <button onClick={e => { e.stopPropagation(); removeEntry(entry.filename); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted)', padding: 4, display: 'flex' }}>
                     <X size={13} />
@@ -503,11 +503,11 @@ export default function DeficiencyImportPage() {
                   <div style={{ borderBottom: !isLast ? '1px solid var(--color-border)' : 'none' }}>
                     {(entry.parseError || entry.errors.length > 0) && (
                       <div style={{ display: 'flex', gap: 8, padding: '10px 16px', background: 'rgba(220,38,38,0.04)', borderBottom: '1px solid rgba(220,38,38,0.15)' }}>
-                        <AlertCircle size={13} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} />
+                        <AlertCircle size={13} color="#A5402F" style={{ flexShrink: 0, marginTop: 1 }} />
                         <div>
-                          {entry.parseError && <p style={{ fontSize: 11, color: '#DC2626' }}>{entry.parseError}</p>}
-                          {entry.errors.slice(0, 5).map((e, i) => <p key={i} style={{ fontSize: 11, color: '#DC2626' }}>{e}</p>)}
-                          {entry.errors.length > 5 && <p style={{ fontSize: 11, color: '#DC2626' }}>…and {entry.errors.length - 5} more</p>}
+                          {entry.parseError && <p style={{ fontSize: 11, color: '#A5402F' }}>{entry.parseError}</p>}
+                          {entry.errors.slice(0, 5).map((e, i) => <p key={i} style={{ fontSize: 11, color: '#A5402F' }}>{e}</p>)}
+                          {entry.errors.length > 5 && <p style={{ fontSize: 11, color: '#A5402F' }}>…and {entry.errors.length - 5} more</p>}
                         </div>
                       </div>
                     )}
@@ -539,9 +539,9 @@ export default function DeficiencyImportPage() {
                                 <td style={{ padding: '7px 12px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--color-text)' }}>{g.items.length}</td>
                                 <td style={{ padding: '7px 12px' }}>
                                   <div style={{ display: 'flex', gap: 5 }}>
-                                    {complete > 0    && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(22,163,74,0.1)',   color: '#16A34A', fontWeight: 700 }}>{complete} done</span>}
-                                    {outstanding > 0 && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(217,119,6,0.1)',   color: '#D97706', fontWeight: 700 }}>{outstanding} open</span>}
-                                    {nw > 0          && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(107,114,128,0.1)', color: '#6B7280', fontWeight: 700 }}>{nw} NW</span>}
+                                    {complete > 0    && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(22,163,74,0.1)',   color: '#4A7A55', fontWeight: 700 }}>{complete} done</span>}
+                                    {outstanding > 0 && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(217,119,6,0.1)',   color: '#9A6A16', fontWeight: 700 }}>{outstanding} open</span>}
+                                    {nw > 0          && <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 4, background: 'rgba(107,114,128,0.1)', color: '#6C7280', fontWeight: 700 }}>{nw} NW</span>}
                                   </div>
                                 </td>
                               </tr>
@@ -568,7 +568,7 @@ export default function DeficiencyImportPage() {
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
           <button
             onClick={runAll} disabled={importing}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: importing ? 'default' : 'pointer', fontFamily: 'var(--font-body)', color: '#fff', background: importing ? '#6B7280' : '#1E5FA4', border: `1px solid ${importing ? '#6B7280' : '#1a52a0'}`, opacity: importing ? 0.8 : 1 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: importing ? 'default' : 'pointer', fontFamily: 'var(--font-body)', color: '#fff', background: importing ? '#6C7280' : '#3F6A8F', border: `1px solid ${importing ? '#6C7280' : '#1a52a0'}`, opacity: importing ? 0.8 : 1 }}
           >
             {importing
               ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Importing — this may take a few minutes…</>
@@ -582,16 +582,16 @@ export default function DeficiencyImportPage() {
       {/* Done banner */}
       {entries.length > 0 && pending === 0 && done > 0 && !importing && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderRadius: 10, background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.2)' }}>
-          <CheckCircle2 size={22} color="#16A34A" />
+          <CheckCircle2 size={22} color="#4A7A55" />
           <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#16A34A' }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#4A7A55' }}>
               {done} {done === 1 ? 'file' : 'files'} imported — {totalCases} cases created, {totalImported} items imported
             </p>
             <p style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 2 }}>
               Go to each case and enter the Tarion case number manually.
             </p>
           </div>
-          <button onClick={() => window.location.href = '/warranty/cases'} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.3)', color: '#16A34A', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          <button onClick={() => window.location.href = '/warranty/cases'} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.3)', color: '#4A7A55', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             View cases <ChevronRight size={12} />
           </button>
         </div>

@@ -17,8 +17,8 @@ export function BrandMark({ size = 34 }: { size?: number }) {
 export function Wordmark({ dark = false, size = 15 }: { dark?: boolean; size?: number }) {
   return (
     <div style={{ lineHeight: 1.05 }}>
-      <div style={{ fontSize: size, fontWeight: 800, letterSpacing: '-0.02em', color: dark ? '#0B132B' : '#FFFFFF' }}>Builder Guardian</div>
-      <div style={{ fontSize: Math.max(10, size - 4), fontWeight: 600, color: dark ? '#7B8AA0' : '#8FA3CC', marginTop: 2 }}>Warranty management</div>
+      <div style={{ fontSize: size, fontWeight: 800, letterSpacing: '-0.02em', color: dark ? '#1F2A3C' : '#FFFFFF' }}>Builder Guardian</div>
+      <div style={{ fontSize: Math.max(10, size - 4), fontWeight: 600, color: dark ? '#6C7280' : '#8FA3CC', marginTop: 2 }}>Warranty management</div>
     </div>
   );
 }

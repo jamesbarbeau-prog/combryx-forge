@@ -76,19 +76,19 @@ interface ConciliationLiability {
 // ─── Constants ────────────────────────────────────────────────
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  labor:       { label: 'Labor',       color: '#1E5FA4', bg: 'rgba(30,95,164,0.10)'   },
-  material:    { label: 'Material',    color: '#7C3AED', bg: 'rgba(124,58,237,0.10)'  },
-  subcontract: { label: 'Subcontract', color: '#D97706', bg: 'rgba(217,119,6,0.10)'   },
-  gas:         { label: 'Gas/Travel',  color: '#0891B2', bg: 'rgba(8,145,178,0.10)'   },
-  overhead:    { label: 'Overhead',    color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
-  other:       { label: 'Other',       color: '#9CA3AF', bg: 'rgba(156,163,175,0.10)' },
+  labor:       { label: 'Labor',       color: '#3F6A8F', bg: 'rgba(30,95,164,0.10)'   },
+  material:    { label: 'Material',    color: '#6B5B95', bg: 'rgba(124,58,237,0.10)'  },
+  subcontract: { label: 'Subcontract', color: '#9A6A16', bg: 'rgba(217,119,6,0.10)'   },
+  gas:         { label: 'Gas/Travel',  color: '#3F7A8C', bg: 'rgba(8,145,178,0.10)'   },
+  overhead:    { label: 'Overhead',    color: '#6C7280', bg: 'rgba(107,114,128,0.10)' },
+  other:       { label: 'Other',       color: '#8C919C', bg: 'rgba(156,163,175,0.10)' },
 };
 
 const STAGE_CONFIG: Record<string, { label: string; color: string }> = {
-  rfc:        { label: 'RFC Filed',   color: '#D97706' },
-  inspection: { label: 'Inspection',  color: '#DC2626' },
-  warranted:  { label: 'Warranted',   color: '#7C3AED' },
-  claim:      { label: 'Claim',       color: '#DC2626' },
+  rfc:        { label: 'RFC Filed',   color: '#9A6A16' },
+  inspection: { label: 'Inspection',  color: '#A5402F' },
+  warranted:  { label: 'Warranted',   color: '#6B5B95' },
+  claim:      { label: 'Claim',       color: '#A5402F' },
 };
 
 const FISCAL_MONTHS = [
@@ -192,8 +192,8 @@ function StatTile({
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         {trend !== undefined && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 4, background: trend >= 0 ? 'rgba(220,38,38,0.08)' : 'rgba(22,163,74,0.08)' }}>
-            {trend >= 0 ? <TrendingUp size={10} color="#DC2626" /> : <TrendingDown size={10} color="#16A34A" />}
-            <span style={{ fontSize: 10, fontWeight: 700, color: trend >= 0 ? '#DC2626' : '#16A34A' }}>
+            {trend >= 0 ? <TrendingUp size={10} color="#A5402F" /> : <TrendingDown size={10} color="#4A7A55" />}
+            <span style={{ fontSize: 10, fontWeight: 700, color: trend >= 0 ? '#A5402F' : '#4A7A55' }}>
               {Math.abs(trend)}% vs last FY
             </span>
           </div>
@@ -453,7 +453,7 @@ export default function WarrantyReportsPage() {
               fontFamily: 'var(--font-body)', fontSize: 12,
               fontWeight: activeTab === tab.key ? 700 : 500,
               color: activeTab === tab.key ? 'var(--color-text)' : 'var(--color-muted)',
-              borderBottom: activeTab === tab.key ? '2px solid #1E5FA4' : '2px solid transparent',
+              borderBottom: activeTab === tab.key ? '2px solid #3F6A8F' : '2px solid transparent',
               marginBottom: -1,
             }}>
             {tab.label}
@@ -477,21 +477,21 @@ export default function WarrantyReportsPage() {
                   label="Warranty Spend YTD"
                   value={fmtK(summary?.ytd_total ?? 0)}
                   trend={ytdChange}
-                  color={ytdChange > 20 ? '#DC2626' : 'var(--color-text)'}
+                  color={ytdChange > 20 ? '#A5402F' : 'var(--color-text)'}
                   icon={DollarSign}
                 />
                 <StatTile
                   label="Pending PO Value"
                   value={fmtK(summary?.pending_po_value ?? 0)}
                   sub={`${summary?.pending_po_count ?? 0} POs awaiting approval`}
-                  color={summary?.pending_po_count ?? 0 > 0 ? '#D97706' : 'var(--color-text)'}
+                  color={summary?.pending_po_count ?? 0 > 0 ? '#9A6A16' : 'var(--color-text)'}
                   icon={Clock}
                 />
                 <StatTile
                   label="Conciliation Exposure"
                   value={fmtK(totalLiab)}
                   sub={`${concilLiability.length} active conciliations`}
-                  color={totalLiab > 50000 ? '#DC2626' : totalLiab > 10000 ? '#D97706' : '#16A34A'}
+                  color={totalLiab > 50000 ? '#A5402F' : totalLiab > 10000 ? '#9A6A16' : '#4A7A55'}
                   icon={AlertTriangle}
                 />
                 <StatTile
@@ -512,9 +512,9 @@ export default function WarrantyReportsPage() {
                       return (
                         <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--color-muted)', fontFamily: 'var(--font-mono)' }}>{fmtK(m.total)}</span>
-                          <div style={{ width: '100%', borderRadius: '4px 4px 0 0', background: 'linear-gradient(180deg, #1E5FA4 0%, rgba(30,95,164,0.6) 100%)', height: h, minHeight: 4, position: 'relative' }}>
+                          <div style={{ width: '100%', borderRadius: '4px 4px 0 0', background: 'linear-gradient(180deg, #3F6A8F 0%, rgba(30,95,164,0.6) 100%)', height: h, minHeight: 4, position: 'relative' }}>
                             {/* Stacked breakdown inside bar */}
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${m.labor / m.total * 100}%`, background: '#1E5FA4', borderRadius: '2px 2px 0 0' }} />
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${m.labor / m.total * 100}%`, background: '#3F6A8F', borderRadius: '2px 2px 0 0' }} />
                           </div>
                           <span style={{ fontSize: 8, color: 'var(--color-muted)', textAlign: 'center' }}>{m.month.split(' ')[0]}</span>
                         </div>
@@ -542,7 +542,7 @@ export default function WarrantyReportsPage() {
                       <div key={c.community}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)', width: 140, flexShrink: 0 }}>{c.community}</span>
-                          <MiniBar value={c.total} max={maxComm} color="#1E5FA4" />
+                          <MiniBar value={c.total} max={maxComm} color="#3F6A8F" />
                           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)', fontFamily: 'var(--font-mono)', width: 80, textAlign: 'right', flexShrink: 0 }}>{fmtK(c.total)}</span>
                           <span style={{ fontSize: 10, color: 'var(--color-muted)', width: 60, flexShrink: 0 }}>{c.case_count} cases</span>
                         </div>
@@ -599,7 +599,7 @@ export default function WarrantyReportsPage() {
                         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', flex: 1 }}>{comm.community}</span>
                         <span style={{ fontSize: 10, color: 'var(--color-muted)' }}>{comm.case_count} cases</span>
                         <span style={{ fontSize: 15, fontWeight: 900, color: 'var(--color-text)', fontFamily: 'var(--font-mono)', width: 100, textAlign: 'right' }}>{fmt(comm.total)}</span>
-                        <MiniBar value={comm.total} max={maxComm} color="#1E5FA4" />
+                        <MiniBar value={comm.total} max={maxComm} color="#3F6A8F" />
                         {expandedCommunity === comm.community
                           ? <ChevronUp size={13} color="var(--color-muted)" />
                           : <ChevronDown size={13} color="var(--color-muted)" />
@@ -649,18 +649,18 @@ export default function WarrantyReportsPage() {
                     <div key={trade.vendor_name} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: 12, padding: '14px 16px', borderRadius: 8, background: 'var(--color-panel)', border: '1px solid var(--color-border)', alignItems: 'center' }}>
                       <div>
                         <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)', marginBottom: 4 }}>{trade.vendor_name}</p>
-                        <MiniBar value={trade.total_spend} max={maxTrade} color="#1E5FA4" />
+                        <MiniBar value={trade.total_spend} max={maxTrade} color="#3F6A8F" />
                       </div>
                       <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-text)', fontFamily: 'var(--font-mono)' }}>{fmtK(trade.total_spend)}</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                        <CheckCircle2 size={11} color="#16A34A" />
+                        <CheckCircle2 size={11} color="#4A7A55" />
                         <span style={{ fontSize: 12, color: 'var(--color-text)' }}>{trade.approved_count}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                         {trade.pending_count > 0 && (
                           <>
-                            <Clock size={11} color="#D97706" />
-                            <span style={{ fontSize: 12, color: '#D97706', fontWeight: 600 }}>{trade.pending_count}</span>
+                            <Clock size={11} color="#9A6A16" />
+                            <span style={{ fontSize: 12, color: '#9A6A16', fontWeight: 600 }}>{trade.pending_count}</span>
                           </>
                         )}
                         {trade.pending_count === 0 && <span style={{ fontSize: 12, color: 'var(--color-muted)' }}>—</span>}
@@ -674,13 +674,13 @@ export default function WarrantyReportsPage() {
                   {/* Total row */}
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr', gap: 12, padding: '14px 16px', borderRadius: 8, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>Total — All Vendors</span>
-                    <span style={{ fontSize: 13, fontWeight: 900, color: '#1E5FA4', fontFamily: 'var(--font-mono)' }}>
+                    <span style={{ fontSize: 13, fontWeight: 900, color: '#3F6A8F', fontFamily: 'var(--font-mono)' }}>
                       {fmtK(trades.reduce((s, t) => s + t.total_spend, 0))}
                     </span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>
                       {trades.reduce((s, t) => s + t.approved_count, 0)}
                     </span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#D97706' }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#9A6A16' }}>
                       {trades.reduce((s, t) => s + t.pending_count, 0)}
                     </span>
                     <span />
@@ -700,29 +700,29 @@ export default function WarrantyReportsPage() {
                   label="Total Estimated Exposure"
                   value={fmtK(totalLiab)}
                   sub="worst case if all go to claim"
-                  color={totalLiab > 50000 ? '#DC2626' : '#D97706'}
+                  color={totalLiab > 50000 ? '#A5402F' : '#9A6A16'}
                   icon={AlertTriangle}
                 />
                 <StatTile
                   label="Active Conciliations"
                   value={String(concilLiability.length)}
                   sub={`${concilLiability.filter(c => c.stage === 'claim').length} at claim stage`}
-                  color={concilLiability.filter(c => c.stage === 'claim').length > 0 ? '#DC2626' : 'var(--color-text)'}
+                  color={concilLiability.filter(c => c.stage === 'claim').length > 0 ? '#A5402F' : 'var(--color-text)'}
                   icon={FileText}
                 />
                 <StatTile
                   label="Directory Hits"
                   value={String(concilLiability.filter(c => c.directory_hit).length)}
                   sub="public Tarion builder directory"
-                  color={concilLiability.filter(c => c.directory_hit).length > 0 ? '#DC2626' : '#16A34A'}
+                  color={concilLiability.filter(c => c.directory_hit).length > 0 ? '#A5402F' : '#4A7A55'}
                   icon={AlertTriangle}
                 />
               </div>
 
               {concilLiability.length === 0 ? (
                 <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                  <CheckCircle2 size={36} color="#16A34A" strokeWidth={1} style={{ marginBottom: 12 }} />
-                  <p style={{ fontSize: 13, fontWeight: 600, color: '#16A34A', marginBottom: 6 }}>No active conciliation liability</p>
+                  <CheckCircle2 size={36} color="#4A7A55" strokeWidth={1} style={{ marginBottom: 12 }} />
+                  <p style={{ fontSize: 13, fontWeight: 600, color: '#4A7A55', marginBottom: 6 }}>No active conciliation liability</p>
                   <p style={{ fontSize: 12, color: 'var(--color-muted)' }}>All conciliations resolved or no active RFC filed.</p>
                 </div>
               ) : (
@@ -746,23 +746,23 @@ export default function WarrantyReportsPage() {
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 8px', borderRadius: 100, background: `${stageCfg.color}12`, border: `1px solid ${stageCfg.color}25`, width: 'fit-content' }}>
                           <span style={{ fontSize: 10, fontWeight: 700, color: stageCfg.color }}>{stageCfg.label}</span>
                         </div>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: c.warranted_count > 0 ? '#DC2626' : 'var(--color-muted)', fontFamily: 'var(--font-mono)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: c.warranted_count > 0 ? '#A5402F' : 'var(--color-muted)', fontFamily: 'var(--font-mono)' }}>
                           {c.warranted_count > 0 ? `${c.warranted_count} items` : '—'}
                         </span>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: isClaim ? '#DC2626' : '#D97706', fontFamily: 'var(--font-mono)' }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: isClaim ? '#A5402F' : '#9A6A16', fontFamily: 'var(--font-mono)' }}>
                           {fmt(c.estimated_exposure)}
                         </span>
                         <div>
                           {c.directory_hit && (
-                            <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(220,38,38,0.12)', color: '#DC2626', border: '1px solid rgba(220,38,38,0.25)' }}>
+                            <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(220,38,38,0.12)', color: '#A5402F', border: '1px solid rgba(220,38,38,0.25)' }}>
                               DIR HIT
                             </span>
                           )}
                           {!c.directory_hit && isClaim && (
-                            <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(220,38,38,0.08)', color: '#DC2626' }}>HIGH</span>
+                            <span style={{ fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(220,38,38,0.08)', color: '#A5402F' }}>HIGH</span>
                           )}
                           {!c.directory_hit && !isClaim && (
-                            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(217,119,6,0.08)', color: '#D97706' }}>MED</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(217,119,6,0.08)', color: '#9A6A16' }}>MED</span>
                           )}
                         </div>
                       </div>
@@ -772,7 +772,7 @@ export default function WarrantyReportsPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 100px 120px 100px', gap: 12, padding: '14px 16px', borderRadius: 8, background: 'rgba(220,38,38,0.04)', border: '1px solid rgba(220,38,38,0.15)' }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--color-text)' }}>Total Exposure</span>
                     <span /><span /><span />
-                    <span style={{ fontSize: 15, fontWeight: 900, color: '#DC2626', fontFamily: 'var(--font-mono)' }}>{fmt(totalLiab)}</span>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: '#A5402F', fontFamily: 'var(--font-mono)' }}>{fmt(totalLiab)}</span>
                     <span />
                   </div>
                 </div>
@@ -799,13 +799,13 @@ export default function WarrantyReportsPage() {
                     <label style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 5, display: 'block' }}>To</label>
                     <input type="date" value={exportTo} onChange={e => setExportTo(e.target.value)} style={inputStyle} />
                   </div>
-                  <button onClick={fetchExportData} style={{ padding: '9px 18px', borderRadius: 7, background: '#1E5FA4', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  <button onClick={fetchExportData} style={{ padding: '9px 18px', borderRadius: 7, background: '#3F6A8F', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                     Load Data
                   </button>
                   {exportRows.length > 0 && (
                     <button
                       onClick={() => downloadCSV(exportRows, `warranty-export-${exportFrom}-to-${exportTo}.csv`)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 7, background: '#16A34A', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 18px', borderRadius: 7, background: '#4A7A55', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
                     >
                       <Download size={13} /> Download CSV ({exportRows.length} rows)
                     </button>
@@ -860,7 +860,7 @@ export default function WarrantyReportsPage() {
                         <td colSpan={11} style={{ padding: '10px', textAlign: 'right', fontSize: 11, color: 'var(--color-muted)' }}>Total ({exportRows.length} transactions)</td>
                         <td style={{ padding: '10px', fontFamily: 'var(--font-mono)', textAlign: 'right', fontWeight: 900, color: 'var(--color-text)' }}>{fmt(exportRows.reduce((s, r) => s + r.amount, 0))}</td>
                         <td style={{ padding: '10px', fontFamily: 'var(--font-mono)', textAlign: 'right', color: 'var(--color-muted)' }}>{fmt(exportRows.reduce((s, r) => s + r.tax_amount, 0))}</td>
-                        <td style={{ padding: '10px', fontFamily: 'var(--font-mono)', fontWeight: 900, textAlign: 'right', color: '#1E5FA4' }}>{fmt(exportRows.reduce((s, r) => s + r.total_amount, 0))}</td>
+                        <td style={{ padding: '10px', fontFamily: 'var(--font-mono)', fontWeight: 900, textAlign: 'right', color: '#3F6A8F' }}>{fmt(exportRows.reduce((s, r) => s + r.total_amount, 0))}</td>
                         <td />
                       </tr>
                     </tbody>
@@ -905,7 +905,7 @@ export default function WarrantyReportsPage() {
                 )}
 
                 <button onClick={handleSaveFiscal} disabled={savingFiscal}
-                  style={{ padding: '10px 24px', borderRadius: 7, background: '#1E5FA4', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                  style={{ padding: '10px 24px', borderRadius: 7, background: '#3F6A8F', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
                   {savingFiscal ? 'Saving…' : 'Save Fiscal Settings'}
                 </button>
               </div>
@@ -913,7 +913,7 @@ export default function WarrantyReportsPage() {
               <div style={{ padding: '20px 24px', borderRadius: 12, background: 'var(--color-panel)', border: '1px solid var(--color-border)', marginTop: 16 }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginBottom: 12 }}>ERP Connection Status</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 8, background: 'var(--color-mist)', border: '1px solid var(--color-border)' }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#D97706' }} />
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#9A6A16' }} />
                   <div>
                     <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-text)' }}>No ERP connected</p>
                     <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>Use the CSV export above to import into your accounting system. Native connectors coming soon.</p>

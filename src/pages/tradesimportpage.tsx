@@ -167,7 +167,7 @@ export default function TradesImportPage() {
       <div
         onDrop={onDrop} onDragOver={e => e.preventDefault()} onClick={() => fileRef.current?.click()}
         style={{ border: '2px dashed var(--color-border)', borderRadius: 12, padding: trades.length ? '18px 24px' : '44px 24px', textAlign: 'center', cursor: 'pointer', marginBottom: 20, background: 'var(--color-panel)', transition: 'border-color 0.15s' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#4A9EFF'; }}
+        onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = '#5B87AD'; }}
         onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--color-border)'; }}
       >
         <Upload size={18} color="var(--color-muted)" style={{ marginBottom: 8 }} />
@@ -183,8 +183,8 @@ export default function TradesImportPage() {
       {/* Parse error */}
       {parseError && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 16 }}>
-          <AlertTriangle size={13} color="#DC2626" />
-          <span style={{ fontSize: 12, color: '#DC2626' }}>{parseError}</span>
+          <AlertTriangle size={13} color="#A5402F" />
+          <span style={{ fontSize: 12, color: '#A5402F' }}>{parseError}</span>
         </div>
       )}
 
@@ -194,8 +194,8 @@ export default function TradesImportPage() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
             {[
               { label: 'Total',    value: trades.length, color: 'var(--color-text)' },
-              { label: 'External', value: external,      color: '#1E5FA4'            },
-              { label: 'Internal', value: internal,      color: '#D97706'            },
+              { label: 'External', value: external,      color: '#3F6A8F'            },
+              { label: 'Internal', value: internal,      color: '#9A6A16'            },
             ].map(s => (
               <div key={s.label} style={{ padding: '10px 16px', borderRadius: 8, background: 'var(--color-panel)', border: '1px solid var(--color-border)', textAlign: 'center', minWidth: 90 }}>
                 <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 4 }}>{s.label}</p>
@@ -235,14 +235,14 @@ export default function TradesImportPage() {
           {errors.length > 0 && (
             <div style={{ padding: '12px 16px', borderRadius: 8, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 16 }}>
               {errors.map((e, i) => (
-                <p key={i} style={{ fontSize: 11, color: '#DC2626', marginBottom: 2 }}>{e}</p>
+                <p key={i} style={{ fontSize: 11, color: '#A5402F', marginBottom: 2 }}>{e}</p>
               ))}
             </div>
           )}
 
           <button
             onClick={runImport} disabled={importing}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: importing ? 'default' : 'pointer', fontFamily: 'var(--font-body)', color: '#fff', background: importing ? '#6B7280' : '#1E5FA4', border: 'none', opacity: importing ? 0.8 : 1 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: importing ? 'default' : 'pointer', fontFamily: 'var(--font-body)', color: '#fff', background: importing ? '#6C7280' : '#3F6A8F', border: 'none', opacity: importing ? 0.8 : 1 }}
           >
             {importing
               ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> Importing {trades.length} trades…</>
@@ -255,9 +255,9 @@ export default function TradesImportPage() {
       {/* Done */}
       {done && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px', borderRadius: 10, background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.2)' }}>
-          <CheckCircle2 size={22} color="#16A34A" />
+          <CheckCircle2 size={22} color="#4A7A55" />
           <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#16A34A' }}>{inserted} trades imported successfully</p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#4A7A55' }}>{inserted} trades imported successfully</p>
             <p style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 2 }}>Trades are now available in the trade dropdown on case items.</p>
           </div>
         </div>

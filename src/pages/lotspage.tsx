@@ -163,8 +163,8 @@ export default function LotsPage() {
 
       {error && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, marginBottom: 20, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)' }}>
-          <AlertTriangle size={14} color="#DC2626" />
-          <p style={{ fontSize: 12, color: '#DC2626' }}>{error}</p>
+          <AlertTriangle size={14} color="#A5402F" />
+          <p style={{ fontSize: 12, color: '#A5402F' }}>{error}</p>
         </div>
       )}
 
@@ -182,9 +182,9 @@ export default function LotsPage() {
         {(['all', 'open', 'assigned', 'unassigned'] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)',
-            background: filter === f ? 'rgba(37,99,235,0.12)' : 'var(--color-panel)',
-            border: filter === f ? '1px solid rgba(37,99,235,0.3)' : '1px solid var(--color-border)',
-            color: filter === f ? '#1D4ED8' : 'var(--color-muted)',
+            background: filter === f ? 'rgba(63,106,143,0.12)' : 'var(--color-panel)',
+            border: filter === f ? '1px solid rgba(63,106,143,0.3)' : '1px solid var(--color-border)',
+            color: filter === f ? '#2F5576' : 'var(--color-muted)',
           }}>
             {f === 'all' ? 'All' : f === 'open' ? 'Open cases' : f === 'assigned' ? 'With owners' : 'Unassigned'}
           </button>
@@ -228,7 +228,7 @@ export default function LotsPage() {
                   background: lot.open_cases > 0 ? 'rgba(232,160,64,0.12)' : lot.is_assigned ? 'rgba(92,207,160,0.12)' : 'var(--color-mist)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Home size={12} color={lot.open_cases > 0 ? '#E8A040' : lot.is_assigned ? '#5CCFA0' : 'var(--color-muted)'} strokeWidth={1.5} />
+                  <Home size={12} color={lot.open_cases > 0 ? '#B08D4F' : lot.is_assigned ? '#5CCFA0' : 'var(--color-muted)'} strokeWidth={1.5} />
                 </div>
                 <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>{lot.lot_number}</span>
               </div>
@@ -267,8 +267,8 @@ export default function LotsPage() {
               <div>
                 {lot.total_cases > 0 ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Shield size={10} color={lot.open_cases > 0 ? '#E8A040' : 'var(--color-muted)'} />
-                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: lot.open_cases > 0 ? '#E8A040' : 'var(--color-muted)' }}>
+                    <Shield size={10} color={lot.open_cases > 0 ? '#B08D4F' : 'var(--color-muted)'} />
+                    <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: lot.open_cases > 0 ? '#B08D4F' : 'var(--color-muted)' }}>
                       {lot.open_cases > 0 ? lot.open_cases : lot.total_cases}
                     </span>
                     {lot.open_cases === 0 && <span style={{ fontSize: 9, color: 'var(--color-muted)' }}>done</span>}

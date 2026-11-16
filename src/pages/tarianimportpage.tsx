@@ -64,11 +64,11 @@ const FORM_LABELS: Record<string, string> = {
 };
 
 const FORM_COLORS: Record<string, string> = {
-  initial:     '#1E5FA4',
-  mid_year:    '#0891B2',
-  year_end:    '#D97706',
-  second_year: '#7C3AED',
-  msd:         '#DC2626',
+  initial:     '#3F6A8F',
+  mid_year:    '#3F7A8C',
+  year_end:    '#9A6A16',
+  second_year: '#6B5B95',
+  msd:         '#A5402F',
 };
 
 // ─── PDF Parser ───────────────────────────────────────────────
@@ -381,7 +381,7 @@ export default function TarionImportPage() {
     setStep('done');
   }
 
-  const formColor = FORM_COLORS[parsed?.form_type ?? ''] ?? '#1E5FA4';
+  const formColor = FORM_COLORS[parsed?.form_type ?? ''] ?? '#3F6A8F';
 
   return (
     <div style={{ padding: '24px 28px', maxWidth: 900, margin: '0 auto', fontFamily: 'var(--font-body)', color: 'var(--color-text)' }}>
@@ -416,7 +416,7 @@ export default function TarionImportPage() {
             onDrop={handleDrop}
             onClick={() => document.getElementById('pdf-input')?.click()}
             style={{
-              border: `2px dashed ${dragOver ? '#1E5FA4' : 'var(--color-border)'}`,
+              border: `2px dashed ${dragOver ? '#3F6A8F' : 'var(--color-border)'}`,
               borderRadius: 12,
               padding: '60px 40px',
               textAlign: 'center',
@@ -434,7 +434,7 @@ export default function TarionImportPage() {
             />
             {parsing ? (
               <>
-                <RefreshCw size={36} color="#1E5FA4" style={{ marginBottom: 16, animation: 'spin 1s linear infinite' }} />
+                <RefreshCw size={36} color="#3F6A8F" style={{ marginBottom: 16, animation: 'spin 1s linear infinite' }} />
                 <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>Parsing PDF…</p>
               </>
             ) : (
@@ -456,8 +456,8 @@ export default function TarionImportPage() {
               background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)',
               display: 'flex', alignItems: 'flex-start', gap: 10,
             }}>
-              <AlertTriangle size={14} color="#DC2626" style={{ flexShrink: 0, marginTop: 1 }} />
-              <p style={{ fontSize: 12, color: '#DC2626' }}>{parseError}</p>
+              <AlertTriangle size={14} color="#A5402F" style={{ flexShrink: 0, marginTop: 1 }} />
+              <p style={{ fontSize: 12, color: '#A5402F' }}>{parseError}</p>
             </div>
           )}
 
@@ -516,7 +516,7 @@ export default function TarionImportPage() {
                 <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)' }}>Homeowner</span>
               </div>
               <p style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{parsed.homeowner.name ?? '—'}</p>
-              {parsed.homeowner.email && <p style={{ fontSize: 11, color: '#1E5FA4' }}>{parsed.homeowner.email}</p>}
+              {parsed.homeowner.email && <p style={{ fontSize: 11, color: '#3F6A8F' }}>{parsed.homeowner.email}</p>}
               {parsed.homeowner.phone && <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>{parsed.homeowner.phone}</p>}
             </div>
 
@@ -585,7 +585,7 @@ export default function TarionImportPage() {
                   <span style={{
                     fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
                     background: item.location === 'INTERIOR' ? 'rgba(30,95,164,0.10)' : 'rgba(22,163,74,0.10)',
-                    color: item.location === 'INTERIOR' ? '#1E5FA4' : '#16A34A',
+                    color: item.location === 'INTERIOR' ? '#3F6A8F' : '#4A7A55',
                     alignSelf: 'start',
                   }}>
                     {item.location}
@@ -611,7 +611,7 @@ export default function TarionImportPage() {
 
           {parseError && (
             <div style={{ marginBottom: 16, padding: '12px 16px', borderRadius: 8, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)' }}>
-              <p style={{ fontSize: 12, color: '#DC2626' }}>{parseError}</p>
+              <p style={{ fontSize: 12, color: '#A5402F' }}>{parseError}</p>
             </div>
           )}
 
@@ -646,7 +646,7 @@ export default function TarionImportPage() {
       {/* ── STEP: Importing ───────────────────────────────── */}
       {step === 'importing' && (
         <div style={{ padding: '80px 0', textAlign: 'center' }}>
-          <RefreshCw size={36} color="#1E5FA4" style={{ marginBottom: 16, animation: 'spin 1s linear infinite' }} />
+          <RefreshCw size={36} color="#3F6A8F" style={{ marginBottom: 16, animation: 'spin 1s linear infinite' }} />
           <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text)' }}>Importing warranty form…</p>
           <p style={{ fontSize: 12, color: 'var(--color-muted)', marginTop: 6 }}>Creating case and items in Builder Guardian</p>
           <style>{`@keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }`}</style>
@@ -656,7 +656,7 @@ export default function TarionImportPage() {
       {/* ── STEP: Done ────────────────────────────────────── */}
       {step === 'done' && importResult && (
         <div style={{ padding: '60px 0', textAlign: 'center' }}>
-          <CheckCircle2 size={48} color="#16A34A" strokeWidth={1.5} style={{ marginBottom: 20 }} />
+          <CheckCircle2 size={48} color="#4A7A55" strokeWidth={1.5} style={{ marginBottom: 20 }} />
           <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8, letterSpacing: '-0.02em' }}>
             Import Complete
           </h2>
@@ -671,7 +671,7 @@ export default function TarionImportPage() {
               onClick={() => navigate(`/warranty/cases/${importResult.caseId}`)}
               style={{
                 padding: '12px 24px', borderRadius: 9,
-                background: '#1E5FA4', color: '#fff',
+                background: '#3F6A8F', color: '#fff',
                 border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-body)',
               }}

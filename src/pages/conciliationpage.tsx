@@ -86,8 +86,8 @@ export default function ConciliationPage() {
       b[v.days_left < 0 ? 0 : v.days_left <= 7 ? 1 : v.days_left <= 14 ? 2 : 3]++;
     }
     return [
-      { label: 'Overdue', value: b[0], color: '#DC2626' },
-      { label: '0–7 days', value: b[1], color: '#D97706' },
+      { label: 'Overdue', value: b[0], color: '#A5402F' },
+      { label: '0–7 days', value: b[1], color: '#9A6A16' },
       { label: '8–14 days', value: b[2], color: '#2a78d6' },
       { label: '15–30 days', value: b[3], color: '#2a78d6' },
     ];

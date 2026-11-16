@@ -43,7 +43,7 @@ export default function QuickSearch() {
 
   return (
     <div ref={box} style={{ position: 'relative', width: 'min(460px, 100%)' }}>
-      <Search size={15} style={{ position: 'absolute', left: 12, top: 10.5, color: '#7B8AA0', pointerEvents: 'none' }} />
+      <Search size={15} style={{ position: 'absolute', left: 12, top: 10.5, color: '#6C7280', pointerEvents: 'none' }} />
       <input ref={ref} value={q} onChange={e => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
         onKeyDown={e => {
           if (e.key === 'ArrowDown') { e.preventDefault(); setSel(s => Math.min(s + 1, hits.length - 1)); }
@@ -52,30 +52,30 @@ export default function QuickSearch() {
           else if (e.key === 'Escape') { setOpen(false); ref.current?.blur(); }
         }}
         placeholder="Search lot, civic address, owner, enrolment or case #" aria-label="Search homes"
-        style={{ width: '100%', height: 36, borderRadius: 9, border: '1px solid #D5DBE5', background: '#fff', padding: '0 52px 0 36px', font: '500 13px var(--font-body)', color: '#0F172A', outline: 'none' }} />
-      <kbd style={{ position: 'absolute', right: 10, top: 8, fontSize: 10.5, fontWeight: 700, color: '#7B8AA0', border: '1px solid #E2E8F0', borderRadius: 5, padding: '1px 6px', background: '#F8FAFC' }}>Ctrl K</kbd>
+        style={{ width: '100%', height: 36, borderRadius: 9, border: '1px solid #CFC7B8', background: '#F8F6F1', padding: '0 52px 0 36px', font: '500 13px var(--font-body)', color: '#1F2A3C', outline: 'none' }} />
+      <kbd style={{ position: 'absolute', right: 10, top: 8, fontSize: 10.5, fontWeight: 700, color: '#6C7280', border: '1px solid #D9D2C5', borderRadius: 5, padding: '1px 6px', background: '#F1EDE4' }}>Ctrl K</kbd>
       {open && q.trim().length >= 1 && (
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 46, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 12, boxShadow: '0 18px 44px rgba(11,19,43,0.25)', padding: 6, zIndex: 70, maxHeight: 420, overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 46, background: '#F8F6F1', border: '1px solid #D9D2C5', borderRadius: 12, boxShadow: '0 18px 44px rgba(40,32,18,0.25)', padding: 6, zIndex: 70, maxHeight: 420, overflowY: 'auto' }}>
           {hits.map((h, i) => (
             <button key={h.lot_id} onClick={() => go(h)} onMouseEnter={() => setSel(i)}
-              style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left', border: 0, background: i === sel ? '#EEF4FF' : 'transparent', padding: '9px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
-              <Home size={16} color="#2563EB" style={{ flexShrink: 0 }} />
+              style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', textAlign: 'left', border: 0, background: i === sel ? '#E4EBF2' : 'transparent', padding: '9px 10px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <Home size={16} color="#3F6A8F" style={{ flexShrink: 0 }} />
               <span style={{ minWidth: 0, flex: 1 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {street(h.address) || `Lot ${h.lot_number}`}<span style={{ fontWeight: 500, color: '#475569' }}>{h.lot_number ? ` · Lot ${h.lot_number}` : ''}</span>
+                <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#1F2A3C', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {street(h.address) || `Lot ${h.lot_number}`}<span style={{ fontWeight: 500, color: '#485163' }}>{h.lot_number ? ` · Lot ${h.lot_number}` : ''}</span>
                 </span>
-                <span style={{ display: 'block', fontSize: 11.5, color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ display: 'block', fontSize: 11.5, color: '#485163', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {[h.community, h.owner || 'No purchaser on file', h.enrollment, h.case_hit ? `case ${h.case_hit}` : ''].filter(Boolean).join(' · ')}
                 </span>
               </span>
               <span style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-                {h.open_cases > 0 && <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: '#DBEAFE', color: '#1D4ED8' }}>{h.open_cases} open</span>}
+                {h.open_cases > 0 && <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: '#D5E0EA', color: '#2F5576' }}>{h.open_cases} open</span>}
                 {h.closed_cases > 0 && <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: '#E5E7EB', color: '#374151' }}>{h.closed_cases} closed</span>}
                 {h.conciliations > 0 && <span style={{ fontSize: 10.5, fontWeight: 800, padding: '2px 7px', borderRadius: 999, background: '#FEF3C7', color: '#92400E' }}>conc.</span>}
               </span>
             </button>
           ))}
-          {!hits.length && <div style={{ padding: '12px 10px', fontSize: 12.5, color: '#475569' }}>{busy ? 'Searching…' : 'No match. Try “124 big dipper”, a lot like B04-39, an owner’s name or an H-number.'}</div>}
+          {!hits.length && <div style={{ padding: '12px 10px', fontSize: 12.5, color: '#485163' }}>{busy ? 'Searching…' : 'No match. Try “124 big dipper”, a lot like B04-39, an owner’s name or an H-number.'}</div>}
         </div>
       )}
     </div>

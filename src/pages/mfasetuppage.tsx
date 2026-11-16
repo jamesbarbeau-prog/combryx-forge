@@ -51,7 +51,7 @@ export default function MFASetupPage() {
     padding: '0 14px',
     borderRadius: 10,
     border: '1px solid var(--color-border)',
-    background: '#FAFAF8',
+    background: '#FBFAF7',
     color: 'var(--color-text)',
     fontSize: 28,
     fontFamily: 'var(--font-mono)',
@@ -84,15 +84,15 @@ export default function MFASetupPage() {
         <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
             width: 56, height: 56,
-            background: step === 'done' ? 'rgba(45,122,80,0.15)' : 'rgba(37,99,235,0.15)',
-            border: `2px solid ${step === 'done' ? 'var(--color-success)' : '#2563EB'}`,
+            background: step === 'done' ? 'rgba(45,122,80,0.15)' : 'rgba(63,106,143,0.15)',
+            border: `2px solid ${step === 'done' ? 'var(--color-success)' : '#3F6A8F'}`,
             borderRadius: 14,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 14px',
           }}>
             {step === 'done'
               ? <CheckCircle2 size={26} color="var(--color-success)" strokeWidth={1.5} />
-              : <Shield size={26} color="#1D4ED8" strokeWidth={1.5} />
+              : <Shield size={26} color="#2F5576" strokeWidth={1.5} />
             }
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em' }}>
@@ -125,23 +125,23 @@ export default function MFASetupPage() {
                 disabled={loading}
                 style={{
                   width: '100%', padding: '16px 18px', marginBottom: 12,
-                  background: 'rgba(37,99,235,0.05)',
-                  border: '1px solid rgba(37,99,235,0.25)',
+                  background: 'rgba(63,106,143,0.05)',
+                  border: '1px solid rgba(63,106,143,0.25)',
                   borderRadius: 10, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: 14,
                   textAlign: 'left', transition: 'all 0.12s',
                   fontFamily: 'var(--font-body)',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.10)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(37,99,235,0.05)')}
+                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(63,106,143,0.10)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(63,106,143,0.05)')}
               >
                 <div style={{
                   width: 42, height: 42, borderRadius: 10, flexShrink: 0,
-                  background: 'rgba(37,99,235,0.15)',
-                  border: '1px solid rgba(37,99,235,0.3)',
+                  background: 'rgba(63,106,143,0.15)',
+                  border: '1px solid rgba(63,106,143,0.3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <Smartphone size={18} color="#1D4ED8" strokeWidth={1.5} />
+                  <Smartphone size={18} color="#2F5576" strokeWidth={1.5} />
                 </div>
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)', marginBottom: 3 }}>
@@ -244,8 +244,8 @@ export default function MFASetupPage() {
                 onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
                 onKeyDown={e => e.key === 'Enter' && verifyTOTP()}
                 onFocus={e => {
-                  e.currentTarget.style.borderColor = '#2563EB';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(37,99,235,0.15)';
+                  e.currentTarget.style.borderColor = '#3F6A8F';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(63,106,143,0.15)';
                 }}
                 onBlur={e => {
                   e.currentTarget.style.borderColor = 'var(--color-border)';

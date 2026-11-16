@@ -25,7 +25,7 @@ export default function MailPage() {
             margin: '0 auto 20px',
           }}
         >
-          <Mail size={28} color="#1E5FA4" strokeWidth={1.5} />
+          <Mail size={28} color="#3F6A8F" strokeWidth={1.5} />
         </div>
 
         <h2

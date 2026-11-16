@@ -86,29 +86,29 @@ type ItemFilter = 'ready' | 'nw' | 'all';
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ITEM_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  outstanding:   { label: 'Outstanding',   color: '#DC2626', bg: 'rgba(220,38,38,0.10)'   },
-  in_progress:   { label: 'In Progress',   color: '#D97706', bg: 'rgba(217,119,6,0.10)'   },
-  complete:      { label: 'Complete',      color: '#16A34A', bg: 'rgba(22,163,74,0.10)'   },
-  completed:     { label: 'Complete',      color: '#16A34A', bg: 'rgba(22,163,74,0.10)'   },
-  not_warranted: { label: 'Not Warranted', color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
-  duplicate:     { label: 'Duplicate',     color: '#9CA3AF', bg: 'rgba(156,163,175,0.10)' },
+  outstanding:   { label: 'Outstanding',   color: '#A5402F', bg: 'rgba(220,38,38,0.10)'   },
+  in_progress:   { label: 'In Progress',   color: '#9A6A16', bg: 'rgba(217,119,6,0.10)'   },
+  complete:      { label: 'Complete',      color: '#4A7A55', bg: 'rgba(22,163,74,0.10)'   },
+  completed:     { label: 'Complete',      color: '#4A7A55', bg: 'rgba(22,163,74,0.10)'   },
+  not_warranted: { label: 'Not Warranted', color: '#6C7280', bg: 'rgba(107,114,128,0.10)' },
+  duplicate:     { label: 'Duplicate',     color: '#8C919C', bg: 'rgba(156,163,175,0.10)' },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  open:        { label: 'Open',        color: '#1E5FA4', bg: 'rgba(30,95,164,0.10)',   dot: '#1E5FA4' },
-  in_progress: { label: 'In Progress', color: '#D97706', bg: 'rgba(217,119,6,0.10)',   dot: '#D97706' },
-  resolved:    { label: 'Resolved',    color: '#16A34A', bg: 'rgba(22,163,74,0.10)',   dot: '#16A34A' },
-  closed:      { label: 'Closed',      color: '#6B7280', bg: 'rgba(107,114,128,0.10)', dot: '#6B7280' },
-  voided:      { label: 'Voided',      color: '#9CA3AF', bg: 'rgba(156,163,175,0.10)', dot: '#9CA3AF' },
+  open:        { label: 'Open',        color: '#3F6A8F', bg: 'rgba(30,95,164,0.10)',   dot: '#3F6A8F' },
+  in_progress: { label: 'In Progress', color: '#9A6A16', bg: 'rgba(217,119,6,0.10)',   dot: '#9A6A16' },
+  resolved:    { label: 'Resolved',    color: '#4A7A55', bg: 'rgba(22,163,74,0.10)',   dot: '#4A7A55' },
+  closed:      { label: 'Closed',      color: '#6C7280', bg: 'rgba(107,114,128,0.10)', dot: '#6C7280' },
+  voided:      { label: 'Voided',      color: '#8C919C', bg: 'rgba(156,163,175,0.10)', dot: '#8C919C' },
 };
 
 const CHANNEL_CONFIG: Record<string, { icon: IconType; label: string; color: string }> = {
-  email:      { icon: Mail,          label: 'Email',      color: '#1E5FA4' },
-  phone:      { icon: Phone,         label: 'Phone',      color: '#16A34A' },
-  note:       { icon: StickyNote,    label: 'Note',       color: '#D97706' },
-  site_visit: { icon: Home,          label: 'Site Visit', color: '#7C3AED' },
-  sms:        { icon: MessageSquare, label: 'SMS',        color: '#0891B2' },
-  portal:     { icon: ExternalLink,  label: 'Portal',     color: '#6B7280' },
+  email:      { icon: Mail,          label: 'Email',      color: '#3F6A8F' },
+  phone:      { icon: Phone,         label: 'Phone',      color: '#4A7A55' },
+  note:       { icon: StickyNote,    label: 'Note',       color: '#9A6A16' },
+  site_visit: { icon: Home,          label: 'Site Visit', color: '#6B5B95' },
+  sms:        { icon: MessageSquare, label: 'SMS',        color: '#3F7A8C' },
+  portal:     { icon: ExternalLink,  label: 'Portal',     color: '#6C7280' },
 };
 
 const TABS = [
@@ -121,11 +121,11 @@ const TABS = [
 ];
 
 const CONCIL_STAGE_CONFIG = {
-  rfc:        { label: 'RFC Filed',            color: '#D97706', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)'  },
-  inspection: { label: 'Inspection Scheduled', color: '#DC2626', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.25)'  },
-  warranted:  { label: 'Report Issued',        color: '#7C3AED', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.25)' },
-  claim:      { label: 'Claim Active',         color: '#DC2626', bg: 'rgba(220,38,38,0.12)',  border: 'rgba(220,38,38,0.40)'  },
-  cancelled:  { label: 'Cancelled',            color: '#6B7280', bg: 'rgba(107,114,128,0.08)',border: 'rgba(107,114,128,0.25)' },
+  rfc:        { label: 'RFC Filed',            color: '#9A6A16', bg: 'rgba(217,119,6,0.08)',  border: 'rgba(217,119,6,0.25)'  },
+  inspection: { label: 'Inspection Scheduled', color: '#A5402F', bg: 'rgba(220,38,38,0.08)',  border: 'rgba(220,38,38,0.25)'  },
+  warranted:  { label: 'Report Issued',        color: '#6B5B95', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.25)' },
+  claim:      { label: 'Claim Active',         color: '#A5402F', bg: 'rgba(220,38,38,0.12)',  border: 'rgba(220,38,38,0.40)'  },
+  cancelled:  { label: 'Cancelled',            color: '#6C7280', bg: 'rgba(107,114,128,0.08)',border: 'rgba(107,114,128,0.25)' },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -199,7 +199,7 @@ function PhotoGrid({ photos, label, evidenceType, itemId, caseId, companyId, pro
     <div style={{ padding:10, borderRadius:8, background:'var(--color-panel)', border:'1px solid var(--color-border)' }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
         <span style={{ fontSize:9, fontWeight:700, textTransform:'uppercase' as const, letterSpacing:'0.07em', color:'var(--color-muted)' }}>{label}</span>
-        <label style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 8px', borderRadius:5, background:'rgba(30,95,164,0.10)', border:'1px solid rgba(30,95,164,0.25)', color:'#1E5FA4', fontSize:9, fontWeight:600, cursor: isUploading ? 'wait' : 'pointer' }}>
+        <label style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 8px', borderRadius:5, background:'rgba(30,95,164,0.10)', border:'1px solid rgba(30,95,164,0.25)', color:'#3F6A8F', fontSize:9, fontWeight:600, cursor: isUploading ? 'wait' : 'pointer' }}>
           <Plus size={9} /> Add
           <input type="file" accept="image/*,application/pdf" multiple style={{ display:'none' }} disabled={isUploading}
             onChange={async e => {
@@ -539,9 +539,9 @@ export default function CaseDetailPage() {
   });
 
   const FILTERS: { key: ItemFilter; label: string; count: number; color: string }[] = [
-    { key: 'ready', label: 'Ready to book', count: readyCount,    color: '#16A34A' },
-    { key: 'nw',    label: 'Not warranted', count: nwCount,       color: '#6B7280' },
-    { key: 'all',   label: 'All items',     count: items.length,  color: '#1E5FA4' },
+    { key: 'ready', label: 'Ready to book', count: readyCount,    color: '#4A7A55' },
+    { key: 'nw',    label: 'Not warranted', count: nwCount,       color: '#6C7280' },
+    { key: 'all',   label: 'All items',     count: items.length,  color: '#3F6A8F' },
   ];
 
   return (
@@ -556,7 +556,7 @@ export default function CaseDetailPage() {
         <span style={{ fontSize:12, fontFamily:'var(--font-mono)', color:'var(--color-muted)' }}>
           {caseData.tarion_case_number_normalized ? `#${caseData.tarion_case_number_normalized}` : `#${caseData.case_number}`}
         </span>
-        {isConcilCase && <span style={{ fontSize:9, fontWeight:800, padding:'2px 8px', borderRadius:100, background:'rgba(220,38,38,0.12)', color:'#DC2626', border:'1px solid rgba(220,38,38,0.3)', textTransform:'uppercase' as const, letterSpacing:'0.08em' }}>Conciliation</span>}
+        {isConcilCase && <span style={{ fontSize:9, fontWeight:800, padding:'2px 8px', borderRadius:100, background:'rgba(220,38,38,0.12)', color:'#A5402F', border:'1px solid rgba(220,38,38,0.3)', textTransform:'uppercase' as const, letterSpacing:'0.08em' }}>Conciliation</span>}
         <span style={{ flex:1, fontSize:13, fontWeight:600, color:'var(--color-text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{caseData.display_name ?? caseData.title}</span>
         <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:100, background:status.bg, border:`1px solid ${status.color}30` }}>
           <div style={{ width:6, height:6, borderRadius:'50%', background:status.dot }} />
@@ -573,10 +573,10 @@ export default function CaseDetailPage() {
         <div style={{ width:260, flexShrink:0, borderRight:'1px solid var(--color-border)', overflowY:'auto', padding:'20px 16px', display:'flex', flexDirection:'column', gap:18 }}>
 
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-            <StatPill label="Outstanding" value={outstandingCount} color="#DC2626" />
-            <StatPill label="Complete"    value={completedCount}   color="#16A34A" />
+            <StatPill label="Outstanding" value={outstandingCount} color="#A5402F" />
+            <StatPill label="Complete"    value={completedCount}   color="#4A7A55" />
           </div>
-          {nwCount > 0 && <StatPill label="Not Warranted" value={nwCount} color="#6B7280" />}
+          {nwCount > 0 && <StatPill label="Not Warranted" value={nwCount} color="#6C7280" />}
 
           {items.length > 0 && (
             <div>
@@ -585,7 +585,7 @@ export default function CaseDetailPage() {
                 <span style={{ fontSize:10, fontWeight:700, color:'var(--color-text)', fontFamily:'var(--font-mono)' }}>{completedCount}/{items.length}</span>
               </div>
               <div style={{ height:6, borderRadius:100, background:'var(--color-mist)', overflow:'hidden' }}>
-                <div style={{ height:'100%', width:`${items.length ? Math.round((completedCount/items.length)*100) : 0}%`, borderRadius:100, background: completedCount === items.length ? '#16A34A' : '#1E5FA4', transition:'width 0.3s ease' }} />
+                <div style={{ height:'100%', width:`${items.length ? Math.round((completedCount/items.length)*100) : 0}%`, borderRadius:100, background: completedCount === items.length ? '#4A7A55' : '#3F6A8F', transition:'width 0.3s ease' }} />
               </div>
             </div>
           )}
@@ -595,14 +595,14 @@ export default function CaseDetailPage() {
             <div style={{ padding:'12px 14px', borderRadius:8, background: needsTradeCount > 0 ? 'rgba(217,119,6,0.06)' : 'rgba(22,163,74,0.06)', border:`1px solid ${needsTradeCount > 0 ? 'rgba(217,119,6,0.25)' : 'rgba(22,163,74,0.25)'}` }}>
               {needsTradeCount > 0 ? (
                 <>
-                  <p style={{ fontSize:10, fontWeight:700, color:'#D97706', marginBottom:4 }}>Assessment in progress</p>
+                  <p style={{ fontSize:10, fontWeight:700, color:'#9A6A16', marginBottom:4 }}>Assessment in progress</p>
                   <p style={{ fontSize:10, color:'var(--color-muted)' }}>{needsTradeCount} item{needsTradeCount !== 1 ? 's' : ''} still need a trade assigned</p>
                 </>
               ) : (
                 <>
-                  <p style={{ fontSize:10, fontWeight:700, color:'#16A34A', marginBottom:6 }}>All items assessed</p>
+                  <p style={{ fontSize:10, fontWeight:700, color:'#4A7A55', marginBottom:6 }}>All items assessed</p>
                   <button onClick={handleAssessmentComplete} disabled={lockingAssessment}
-                    style={{ width:'100%', padding:'8px 0', borderRadius:7, background:'#16A34A', border:'none', color:'#fff', fontSize:11, fontWeight:700, cursor: lockingAssessment ? 'default' : 'pointer', fontFamily:'var(--font-body)', opacity: lockingAssessment ? 0.7 : 1 }}>
+                    style={{ width:'100%', padding:'8px 0', borderRadius:7, background:'#4A7A55', border:'none', color:'#fff', fontSize:11, fontWeight:700, cursor: lockingAssessment ? 'default' : 'pointer', fontFamily:'var(--font-body)', opacity: lockingAssessment ? 0.7 : 1 }}>
                     {lockingAssessment ? 'Submitting…' : 'Assessment Complete →'}
                   </button>
                 </>
@@ -612,11 +612,11 @@ export default function CaseDetailPage() {
 
           {readyToSchedule && (
             <div style={{ padding:'12px 14px', borderRadius:8, background:'rgba(30,95,164,0.06)', border:'1px solid rgba(30,95,164,0.25)' }}>
-              <p style={{ fontSize:10, fontWeight:700, color:'#1E5FA4', marginBottom:4 }}>Ready to schedule</p>
+              <p style={{ fontSize:10, fontWeight:700, color:'#3F6A8F', marginBottom:4 }}>Ready to schedule</p>
               <p style={{ fontSize:10, color:'var(--color-muted)', marginBottom:8 }}>
                 {readyCount} item{readyCount !== 1 ? 's' : ''} · {[...new Set(items.filter(i=>i.trade_required).map(i=>i.trade_required))].length} trade{[...new Set(items.filter(i=>i.trade_required).map(i=>i.trade_required))].length !== 1 ? 's' : ''}
               </p>
-              <button style={{ width:'100%', padding:'8px 0', borderRadius:7, background:'#1E5FA4', border:'none', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+              <button style={{ width:'100%', padding:'8px 0', borderRadius:7, background:'#3F6A8F', border:'none', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
                 Schedule all items →
               </button>
             </div>
@@ -632,7 +632,7 @@ export default function CaseDetailPage() {
                 <input value={tarionInput} onChange={e => setTarionInput(e.target.value)} placeholder="e.g. 9874453"
                   style={{ flex:1, padding:'6px 8px', borderRadius:6, border:'1px solid var(--color-border)', background:'var(--color-mist)', fontSize:11, fontFamily:'var(--font-mono)', color:'var(--color-text)', outline:'none' }} />
                 <button onClick={handleSaveTarionCase} disabled={!tarionInput.trim() || savingTarion}
-                  style={{ padding:'6px 10px', borderRadius:6, background:'#1E5FA4', border:'none', color:'#fff', fontSize:10, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                  style={{ padding:'6px 10px', borderRadius:6, background:'#3F6A8F', border:'none', color:'#fff', fontSize:10, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
                   {savingTarion ? '…' : 'Save'}
                 </button>
               </div>
@@ -647,12 +647,12 @@ export default function CaseDetailPage() {
                 <span style={{ fontSize:10, fontWeight:700, color:concilStage.color }}>{concilStage.label}</span>
               </div>
               {conciliation.stage === 'rfc' && inspDeadlineDays !== null && (
-                <p style={{ fontSize:10, color: inspDeadlineDays <= 3 ? '#DC2626' : concilStage.color, fontWeight:600 }}>
+                <p style={{ fontSize:10, color: inspDeadlineDays <= 3 ? '#A5402F' : concilStage.color, fontWeight:600 }}>
                   {inspDeadlineDays <= 0 ? 'Deadline passed' : `${inspDeadlineDays}d to inspection`}
                 </p>
               )}
               {conciliation.stage === 'warranted' && warrantedDeadline !== null && (
-                <p style={{ fontSize:10, color: warrantedDeadline <= 7 ? '#DC2626' : '#7C3AED', fontWeight:600 }}>
+                <p style={{ fontSize:10, color: warrantedDeadline <= 7 ? '#A5402F' : '#6B5B95', fontWeight:600 }}>
                   {warrantedDeadline <= 0 ? '⚠ Deadline passed' : `${warrantedDeadline}d to resolve`}
                 </p>
               )}
@@ -671,7 +671,7 @@ export default function CaseDetailPage() {
               {caseData.brp_end_date && (
                 <div style={{ display:'flex', justifyContent:'space-between' }}>
                   <span style={{ fontSize:11, color:'var(--color-muted)' }}>BRP Ends</span>
-                  <span style={{ fontSize:11, color:'#DC2626', fontFamily:'var(--font-mono)', fontWeight:700 }}>{format(new Date(caseData.brp_end_date), 'MMM d, yyyy')}</span>
+                  <span style={{ fontSize:11, color:'#A5402F', fontFamily:'var(--font-mono)', fontWeight:700 }}>{format(new Date(caseData.brp_end_date), 'MMM d, yyyy')}</span>
                 </div>
               )}
               <div style={{ display:'flex', justifyContent:'space-between' }}>
@@ -698,11 +698,11 @@ export default function CaseDetailPage() {
               if (tab.key === 'notes') count = notes.length;
               if (tab.key === 'conciliation') count = conciliation ? 1 : null;
               return (
-                <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{ display:'flex', alignItems:'center', gap:6, padding:'12px 14px', border:'none', background:'none', cursor:'pointer', fontFamily:'var(--font-body)', fontSize:12, fontWeight: active ? 700 : 500, color: active ? (isCT ? '#DC2626' : 'var(--color-text)') : 'var(--color-muted)', borderBottom: active ? `2px solid ${isCT ? '#DC2626' : '#1E5FA4'}` : '2px solid transparent', marginBottom:-1, transition:'all 0.15s' }}>
+                <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{ display:'flex', alignItems:'center', gap:6, padding:'12px 14px', border:'none', background:'none', cursor:'pointer', fontFamily:'var(--font-body)', fontSize:12, fontWeight: active ? 700 : 500, color: active ? (isCT ? '#A5402F' : 'var(--color-text)') : 'var(--color-muted)', borderBottom: active ? `2px solid ${isCT ? '#A5402F' : '#3F6A8F'}` : '2px solid transparent', marginBottom:-1, transition:'all 0.15s' }}>
                   <Icon size={13} strokeWidth={1.8} />
                   {tab.label}
                   {count !== null && count > 0 && (
-                    <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:100, background: active ? (isCT ? 'rgba(220,38,38,0.15)' : 'rgba(30,95,164,0.15)') : 'var(--color-mist)', color: active ? (isCT ? '#DC2626' : '#1E5FA4') : 'var(--color-muted)' }}>{count}</span>
+                    <span style={{ fontSize:9, fontWeight:700, padding:'1px 5px', borderRadius:100, background: active ? (isCT ? 'rgba(220,38,38,0.15)' : 'rgba(30,95,164,0.15)') : 'var(--color-mist)', color: active ? (isCT ? '#A5402F' : '#3F6A8F') : 'var(--color-muted)' }}>{count}</span>
                   )}
                 </button>
               );
@@ -759,7 +759,7 @@ export default function CaseDetailPage() {
                       const docPhotos    = getPhotos(item.id, 'engineering_doc').concat(getPhotos(item.id, 'other'));
                       const accessLogs   = (evidence[item.id] ?? []).filter(e => e.evidence_type === 'access_log');
                       const score        = evidenceScore(item.id);
-                      const scoreColor   = score >= 75 ? '#16A34A' : score >= 50 ? '#D97706' : '#DC2626';
+                      const scoreColor   = score >= 75 ? '#4A7A55' : score >= 50 ? '#9A6A16' : '#A5402F';
                       const canComplete  = afterPhotos.length > 0;
 
                       return (
@@ -775,16 +775,16 @@ export default function CaseDetailPage() {
                                 {item.room && <span style={{ fontSize:11, fontWeight:600, color:'var(--color-text)' }}>{item.room}</span>}
                                 {item.floor_level && <span style={{ fontSize:10, color:'var(--color-muted)' }}>{item.floor_level}</span>}
                                 {item.trade_required && (
-                                  <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:4, background:'rgba(30,95,164,0.10)', border:'1px solid rgba(30,95,164,0.2)', color:'#1E5FA4' }}>{item.trade_required}</span>
+                                  <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:4, background:'rgba(30,95,164,0.10)', border:'1px solid rgba(30,95,164,0.2)', color:'#3F6A8F' }}>{item.trade_required}</span>
                                 )}
                                 <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:100, background:st.bg, color:st.color, marginLeft:'auto', flexShrink:0 }}>{st.label}</span>
-                                <button onClick={e => { e.stopPropagation(); setPanelItem(item.id); }} style={{ fontSize:11, fontWeight:700, padding:'2px 9px', borderRadius:7, border:'1px solid var(--color-border-hard)', background:'#fff', color:'#1D4ED8', cursor:'pointer', flexShrink:0 }}>Open</button>
+                                <button onClick={e => { e.stopPropagation(); setPanelItem(item.id); }} style={{ fontSize:11, fontWeight:700, padding:'2px 9px', borderRadius:7, border:'1px solid var(--color-border-hard)', background:'#fff', color:'#2F5576', cursor:'pointer', flexShrink:0 }}>Open</button>
                               </div>
                               <p style={{ fontSize:12, lineHeight:1.5, color: isItemDone || isItemNW ? 'var(--color-muted)' : 'var(--color-text)', textDecoration: isItemDone ? 'line-through' : 'none' }}>
                                 {item.description}
                               </p>
                               {item.assessment_notes && (
-                                <p style={{ fontSize:10, color:'#D97706', marginTop:3, fontStyle:'italic' }}>SOW: {item.assessment_notes}</p>
+                                <p style={{ fontSize:10, color:'#9A6A16', marginTop:3, fontStyle:'italic' }}>SOW: {item.assessment_notes}</p>
                               )}
                             </div>
                             <div style={{ flexShrink:0, textAlign:'right' }}>
@@ -822,11 +822,11 @@ export default function CaseDetailPage() {
                               {!isItemDone && !isItemNW && (
                                 <div style={{ marginBottom:14, display:'flex', gap:8 }}>
                                   <button onClick={() => handleItemDecision(item.id, 'repair')}
-                                    style={{ flex:1, padding:'8px 0', borderRadius:7, background: item.warranty_decision === 'warranty_approved' ? '#16A34A' : 'rgba(22,163,74,0.10)', border:`1px solid ${item.warranty_decision === 'warranty_approved' ? '#16A34A' : 'rgba(22,163,74,0.3)'}`, color: item.warranty_decision === 'warranty_approved' ? '#fff' : '#16A34A', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                                    style={{ flex:1, padding:'8px 0', borderRadius:7, background: item.warranty_decision === 'warranty_approved' ? '#4A7A55' : 'rgba(22,163,74,0.10)', border:`1px solid ${item.warranty_decision === 'warranty_approved' ? '#4A7A55' : 'rgba(22,163,74,0.3)'}`, color: item.warranty_decision === 'warranty_approved' ? '#fff' : '#4A7A55', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
                                     {item.warranty_decision === 'warranty_approved' ? '✓ Repair approved' : 'Approve repair'}
                                   </button>
                                   <button onClick={() => handleItemDecision(item.id, 'not_warranted')}
-                                    style={{ flex:1, padding:'8px 0', borderRadius:7, background:'rgba(107,114,128,0.10)', border:'1px solid rgba(107,114,128,0.25)', color:'#6B7280', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                                    style={{ flex:1, padding:'8px 0', borderRadius:7, background:'rgba(107,114,128,0.10)', border:'1px solid rgba(107,114,128,0.25)', color:'#6C7280', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
                                     Not warranted
                                   </button>
                                 </div>
@@ -878,7 +878,7 @@ export default function CaseDetailPage() {
                                   <input value={itemNotes[item.id] ?? ''} onChange={e => setItemNotes(prev => ({ ...prev, [item.id]: e.target.value }))} placeholder="Add tech note or access log entry…"
                                     style={{ flex:1, padding:'7px 10px', borderRadius:6, border:'1px solid var(--color-border)', background:'var(--color-panel)', fontSize:11, color:'var(--color-text)', fontFamily:'var(--font-body)', outline:'none' }} />
                                   <button onClick={() => handleSaveItemNote(item.id)} disabled={!itemNotes[item.id]?.trim()}
-                                    style={{ padding:'7px 14px', borderRadius:6, background: itemNotes[item.id]?.trim() ? '#1E5FA4' : 'var(--color-mist)', border:'none', color: itemNotes[item.id]?.trim() ? '#fff' : 'var(--color-muted)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                                    style={{ padding:'7px 14px', borderRadius:6, background: itemNotes[item.id]?.trim() ? '#3F6A8F' : 'var(--color-mist)', border:'none', color: itemNotes[item.id]?.trim() ? '#fff' : 'var(--color-muted)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'var(--font-body)' }}>
                                     Save
                                   </button>
                                 </div>
@@ -890,12 +890,12 @@ export default function CaseDetailPage() {
                                   <>
                                     <button onClick={() => canComplete && handleItemStatus(item.id, 'complete')} disabled={isUpdating || !canComplete}
                                       title={!canComplete ? 'After repair photo required' : ''}
-                                      style={{ padding:'7px 16px', borderRadius:7, fontSize:11, fontWeight:700, background: canComplete ? '#16A34A' : 'var(--color-mist)', border:`1px solid ${canComplete ? '#16A34A' : 'var(--color-border)'}`, color: canComplete ? '#fff' : 'var(--color-muted)', cursor: canComplete ? 'pointer' : 'not-allowed', fontFamily:'var(--font-body)' }}>
+                                      style={{ padding:'7px 16px', borderRadius:7, fontSize:11, fontWeight:700, background: canComplete ? '#4A7A55' : 'var(--color-mist)', border:`1px solid ${canComplete ? '#4A7A55' : 'var(--color-border)'}`, color: canComplete ? '#fff' : 'var(--color-muted)', cursor: canComplete ? 'pointer' : 'not-allowed', fontFamily:'var(--font-body)' }}>
                                       {canComplete ? '✓ Mark complete' : 'Photo required'}
                                     </button>
                                     {!canComplete && isManager && overrideItemId !== item.id && (
                                       <button onClick={() => setOverrideItemId(item.id)}
-                                        style={{ padding:'7px 14px', borderRadius:7, fontSize:11, fontWeight:600, background:'rgba(220,38,38,0.08)', border:'1px solid rgba(220,38,38,0.2)', color:'#DC2626', cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                                        style={{ padding:'7px 14px', borderRadius:7, fontSize:11, fontWeight:600, background:'rgba(220,38,38,0.08)', border:'1px solid rgba(220,38,38,0.2)', color:'#A5402F', cursor:'pointer', fontFamily:'var(--font-body)' }}>
                                         Manager override
                                       </button>
                                     )}
@@ -904,7 +904,7 @@ export default function CaseDetailPage() {
                                         <input value={overrideReason} onChange={e => setOverrideReason(e.target.value)} placeholder="Reason for override (required)…"
                                           style={{ flex:1, padding:'7px 10px', borderRadius:6, border:'1px solid rgba(220,38,38,0.3)', background:'rgba(220,38,38,0.04)', fontSize:11, color:'var(--color-text)', fontFamily:'var(--font-body)', outline:'none' }} />
                                         <button onClick={() => handleCompleteWithOverride(item.id)} disabled={!overrideReason.trim()}
-                                          style={{ padding:'7px 14px', borderRadius:6, background: overrideReason.trim() ? '#DC2626' : 'var(--color-mist)', border:'none', color: overrideReason.trim() ? '#fff' : 'var(--color-muted)', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
+                                          style={{ padding:'7px 14px', borderRadius:6, background: overrideReason.trim() ? '#A5402F' : 'var(--color-mist)', border:'none', color: overrideReason.trim() ? '#fff' : 'var(--color-muted)', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-body)' }}>
                                           Confirm
                                         </button>
                                         <button onClick={() => { setOverrideItemId(null); setOverrideReason(''); }}
@@ -917,7 +917,7 @@ export default function CaseDetailPage() {
                                 )}
                                 {isItemDone && (
                                   <div style={{ display:'flex', alignItems:'center', gap:8, flex:1 }}>
-                                    <p style={{ fontSize:11, color:'#16A34A', fontWeight:600 }}>✓ Completed {item.completed_at ? format(new Date(item.completed_at), 'MMM d, yyyy') : ''}</p>
+                                    <p style={{ fontSize:11, color:'#4A7A55', fontWeight:600 }}>✓ Completed {item.completed_at ? format(new Date(item.completed_at), 'MMM d, yyyy') : ''}</p>
                                     <button onClick={() => handleItemStatus(item.id, 'outstanding')} disabled={isUpdating}
                                       style={{ marginLeft:'auto', padding:'5px 12px', borderRadius:6, fontSize:10, fontWeight:600, background:'var(--color-mist)', border:'1px solid var(--color-border)', color:'var(--color-muted)', cursor:'pointer', fontFamily:'var(--font-body)' }}>
                                       Reopen
@@ -926,7 +926,7 @@ export default function CaseDetailPage() {
                                 )}
                                 {isItemNW && (
                                   <div style={{ display:'flex', alignItems:'center', gap:8, flex:1 }}>
-                                    <p style={{ fontSize:11, color:'#6B7280', fontWeight:600 }}>Not warranted — closed</p>
+                                    <p style={{ fontSize:11, color:'#6C7280', fontWeight:600 }}>Not warranted — closed</p>
                                     <button onClick={() => handleItemStatus(item.id, 'outstanding')} disabled={isUpdating}
                                       style={{ marginLeft:'auto', padding:'5px 12px', borderRadius:6, fontSize:10, fontWeight:600, background:'var(--color-mist)', border:'1px solid var(--color-border)', color:'var(--color-muted)', cursor:'pointer', fontFamily:'var(--font-body)' }}>
                                       Reopen
@@ -959,7 +959,7 @@ export default function CaseDetailPage() {
                       if (!p) return;
                       const { error } = await supabase.rpc('open_conciliation', { p_company_id: p.company_id, p_case_id: caseId, p_user_id: user.id, p_rfc_requested_at: new Date().toISOString(), p_rfc_received_at: new Date().toISOString() });
                       if (!error) { await fetchConciliation(); await fetchCase(); await fetchAudit(); }
-                    }} style={{ padding:'10px 24px', borderRadius:8, background:'#DC2626', color:'#fff', border:'none', cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:'var(--font-body)' }}>
+                    }} style={{ padding:'10px 24px', borderRadius:8, background:'#A5402F', color:'#fff', border:'none', cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:'var(--font-body)' }}>
                       ⚖️ Record RFC Filed
                     </button>
                   </div>
@@ -977,13 +977,13 @@ export default function CaseDetailPage() {
                     <div style={{ padding:'16px 18px', borderRadius:10, background:'var(--color-panel)', border:'1px solid var(--color-border)' }}>
                       <p style={{ fontSize:11, fontWeight:700, color:'var(--color-text)', marginBottom:10 }}>💰 Builder Settlement Offer</p>
                       {conciliation.builder_settlement_offer ? (
-                        <p style={{ fontSize:18, fontWeight:900, color:'#16A34A', fontFamily:'var(--font-mono)' }}>${conciliation.builder_settlement_offer.toLocaleString('en-CA', { minimumFractionDigits:2 })}</p>
+                        <p style={{ fontSize:18, fontWeight:900, color:'#4A7A55', fontFamily:'var(--font-mono)' }}>${conciliation.builder_settlement_offer.toLocaleString('en-CA', { minimumFractionDigits:2 })}</p>
                       ) : (
                         <div style={{ display:'flex', gap:8 }}>
                           <input type="number" value={offerAmount} onChange={e => setOfferAmount(e.target.value)} placeholder="Enter offer amount"
                             style={{ flex:1, padding:'8px 10px', borderRadius:6, border:'1px solid var(--color-border)', background:'var(--color-mist)', fontSize:12, fontFamily:'var(--font-mono)', color:'var(--color-text)', outline:'none' }} />
                           <button onClick={handleSaveOffer} disabled={!offerAmount || savingOffer}
-                            style={{ padding:'8px 16px', borderRadius:6, background: offerAmount ? '#16A34A' : 'var(--color-mist)', border:'none', color: offerAmount ? '#fff' : 'var(--color-muted)', fontSize:11, fontWeight:700, cursor: offerAmount ? 'pointer' : 'default', fontFamily:'var(--font-body)' }}>
+                            style={{ padding:'8px 16px', borderRadius:6, background: offerAmount ? '#4A7A55' : 'var(--color-mist)', border:'none', color: offerAmount ? '#fff' : 'var(--color-muted)', fontSize:11, fontWeight:700, cursor: offerAmount ? 'pointer' : 'default', fontFamily:'var(--font-body)' }}>
                             {savingOffer ? 'Saving…' : 'Record offer'}
                           </button>
                         </div>
@@ -1007,14 +1007,14 @@ export default function CaseDetailPage() {
                     )}
                     {warrantedItems.length > 0 && conciliation.stage === 'warranted' && (
                       <div style={{ padding:'16px 18px', borderRadius:10, background:'rgba(124,58,237,0.06)', border:'1px solid rgba(124,58,237,0.25)' }}>
-                        <p style={{ fontSize:12, fontWeight:700, color:'#7C3AED', marginBottom:6 }}>🔨 Create Conciliation Work Case</p>
+                        <p style={{ fontSize:12, fontWeight:700, color:'#6B5B95', marginBottom:6 }}>🔨 Create Conciliation Work Case</p>
                         {!caseData.tarion_case_number_normalized ? (
                           <p style={{ fontSize:11, color:'var(--color-muted)' }}>Enter the Tarion case number in the sidebar first.</p>
                         ) : (
                           <>
-                            <p style={{ fontSize:11, color:'var(--color-muted)', marginBottom:12 }}>Creates case <strong style={{ fontFamily:'var(--font-mono)', color:'#7C3AED' }}>{workCaseNumber}</strong> with {warrantedItems.length} warranted item{warrantedItems.length > 1 ? 's' : ''}.</p>
+                            <p style={{ fontSize:11, color:'var(--color-muted)', marginBottom:12 }}>Creates case <strong style={{ fontFamily:'var(--font-mono)', color:'#6B5B95' }}>{workCaseNumber}</strong> with {warrantedItems.length} warranted item{warrantedItems.length > 1 ? 's' : ''}.</p>
                             <button onClick={handleCreateWorkCase} disabled={creatingWorkCase}
-                              style={{ padding:'10px 24px', borderRadius:8, background:'#7C3AED', color:'#fff', border:'none', cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:'var(--font-body)' }}>
+                              style={{ padding:'10px 24px', borderRadius:8, background:'#6B5B95', color:'#fff', border:'none', cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:'var(--font-body)' }}>
                               {creatingWorkCase ? 'Creating…' : `Create ${workCaseNumber}`}
                             </button>
                           </>
@@ -1051,7 +1051,7 @@ export default function CaseDetailPage() {
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
                             <span style={{ fontSize:9, fontWeight:700, padding:'2px 7px', borderRadius:100, color:ch.color, background:`${ch.color}18`, textTransform:'uppercase' as const, letterSpacing:'0.07em' }}>{ch.label}</span>
-                            <span style={{ fontSize:9, fontWeight:600, padding:'2px 7px', borderRadius:100, color: item.direction === 'inbound' ? '#059669' : '#1E5FA4', background: item.direction === 'inbound' ? 'rgba(5,150,105,0.10)' : 'rgba(30,95,164,0.10)' }}>{item.direction === 'inbound' ? '↓ Inbound' : '↑ Outbound'}</span>
+                            <span style={{ fontSize:9, fontWeight:600, padding:'2px 7px', borderRadius:100, color: item.direction === 'inbound' ? '#059669' : '#3F6A8F', background: item.direction === 'inbound' ? 'rgba(5,150,105,0.10)' : 'rgba(30,95,164,0.10)' }}>{item.direction === 'inbound' ? '↓ Inbound' : '↑ Outbound'}</span>
                             <span style={{ fontSize:10, color:'var(--color-muted)', marginLeft:'auto' }}>{formatDistanceToNow(new Date(item.occurred_at), { addSuffix:true })}</span>
                           </div>
                           {item.subject && <p style={{ fontSize:12, fontWeight:600, color:'var(--color-text)', marginBottom:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.subject}</p>}
@@ -1115,7 +1115,7 @@ export default function CaseDetailPage() {
                       <span style={{ fontSize:10, color:'var(--color-muted)' }}>Internal only</span>
                     </div>
                     <button onClick={handleAddNote} disabled={!noteBody.trim() || savingNote}
-                      style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:6, background: noteBody.trim() ? '#1E5FA4' : 'var(--color-mist)', border:'none', cursor: noteBody.trim() ? 'pointer' : 'default', color: noteBody.trim() ? '#fff' : 'var(--color-muted)', fontSize:11, fontWeight:600, fontFamily:'var(--font-body)' }}>
+                      style={{ display:'flex', alignItems:'center', gap:5, padding:'6px 12px', borderRadius:6, background: noteBody.trim() ? '#3F6A8F' : 'var(--color-mist)', border:'none', cursor: noteBody.trim() ? 'pointer' : 'default', color: noteBody.trim() ? '#fff' : 'var(--color-muted)', fontSize:11, fontWeight:600, fontFamily:'var(--font-body)' }}>
                       <Send size={11} />{savingNote ? 'Saving…' : 'Add Note'}
                     </button>
                   </div>
@@ -1148,7 +1148,7 @@ export default function CaseDetailPage() {
                             {entry.source_app && <span style={{ fontSize:9, padding:'1px 6px', borderRadius:100, background:'var(--color-mist)', color:'var(--color-muted)', border:'1px solid var(--color-border)', textTransform:'capitalize' as const }}>{entry.source_app}</span>}
                           </div>
                           {entry.old_value && entry.new_value && (
-                            <p style={{ fontSize:11, color:'var(--color-muted)', marginTop:2 }}><span style={{ textDecoration:'line-through' }}>{entry.old_value}</span> → <span style={{ color:'#16A34A' }}>{entry.new_value}</span></p>
+                            <p style={{ fontSize:11, color:'var(--color-muted)', marginTop:2 }}><span style={{ textDecoration:'line-through' }}>{entry.old_value}</span> → <span style={{ color:'#4A7A55' }}>{entry.new_value}</span></p>
                           )}
                           <p style={{ fontSize:10, color:'var(--color-muted)', marginTop:3 }}>
                             {entry.user_name ? `${entry.user_name} · ` : ''}{format(new Date(entry.created_at), 'MMM d, yyyy h:mm a')}

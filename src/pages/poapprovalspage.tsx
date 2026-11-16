@@ -62,13 +62,13 @@ interface PurchaseOrder {
 // ─── Constants ────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  draft:            { label: 'Draft',            color: '#6B7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)'  },
-  submitted:        { label: 'Submitted',        color: '#1E5FA4', bg: 'rgba(30,95,164,0.08)',   border: 'rgba(30,95,164,0.2)'    },
-  pending_approval: { label: 'Pending Approval', color: '#D97706', bg: 'rgba(217,119,6,0.08)',   border: 'rgba(217,119,6,0.25)'   },
-  approved:         { label: 'Approved',         color: '#16A34A', bg: 'rgba(22,163,74,0.08)',   border: 'rgba(22,163,74,0.2)'    },
-  rejected:         { label: 'Rejected',         color: '#DC2626', bg: 'rgba(220,38,38,0.08)',   border: 'rgba(220,38,38,0.2)'    },
-  cancelled:        { label: 'Cancelled',        color: '#9CA3AF', bg: 'rgba(156,163,175,0.08)', border: 'rgba(156,163,175,0.2)'  },
-  paid:             { label: 'Paid',             color: '#7C3AED', bg: 'rgba(124,58,237,0.08)',  border: 'rgba(124,58,237,0.2)'   },
+  draft:            { label: 'Draft',            color: '#6C7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)'  },
+  submitted:        { label: 'Submitted',        color: '#3F6A8F', bg: 'rgba(30,95,164,0.08)',   border: 'rgba(30,95,164,0.2)'    },
+  pending_approval: { label: 'Pending Approval', color: '#9A6A16', bg: 'rgba(217,119,6,0.08)',   border: 'rgba(217,119,6,0.25)'   },
+  approved:         { label: 'Approved',         color: '#4A7A55', bg: 'rgba(22,163,74,0.08)',   border: 'rgba(22,163,74,0.2)'    },
+  rejected:         { label: 'Rejected',         color: '#A5402F', bg: 'rgba(220,38,38,0.08)',   border: 'rgba(220,38,38,0.2)'    },
+  cancelled:        { label: 'Cancelled',        color: '#8C919C', bg: 'rgba(156,163,175,0.08)', border: 'rgba(156,163,175,0.2)'  },
+  paid:             { label: 'Paid',             color: '#6B5B95', bg: 'rgba(124,58,237,0.08)',  border: 'rgba(124,58,237,0.2)'   },
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -143,7 +143,7 @@ function POCard({
       >
         {/* Urgency dot */}
         {isMyApproval && (
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#D97706', boxShadow: '0 0 8px rgba(217,119,6,0.7)', flexShrink: 0 }} />
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#9A6A16', boxShadow: '0 0 8px rgba(217,119,6,0.7)', flexShrink: 0 }} />
         )}
 
         {/* PO number */}
@@ -168,7 +168,7 @@ function POCard({
 
         {/* Required approver */}
         {po.required_approver_role && isPending && (
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#D97706', flexShrink: 0 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#9A6A16', flexShrink: 0 }}>
             → {ROLE_LABELS[po.required_approver_role] ?? po.required_approver_role}
           </span>
         )}
@@ -215,19 +215,19 @@ function POCard({
 
           {po.approved_at && (
             <div style={{ padding: '8px 12px', borderRadius: 7, background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)', marginBottom: 10 }}>
-              <p style={{ fontSize: 11, color: '#16A34A', fontWeight: 600 }}>
+              <p style={{ fontSize: 11, color: '#4A7A55', fontWeight: 600 }}>
                 ✓ Approved by {po.approved_by_name} · {format(new Date(po.approved_at), 'MMM d, yyyy h:mm a')}
               </p>
-              {po.approval_notes && <p style={{ fontSize: 11, color: '#16A34A', marginTop: 3 }}>{po.approval_notes}</p>}
+              {po.approval_notes && <p style={{ fontSize: 11, color: '#4A7A55', marginTop: 3 }}>{po.approval_notes}</p>}
             </div>
           )}
 
           {po.rejected_at && (
             <div style={{ padding: '8px 12px', borderRadius: 7, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 10 }}>
-              <p style={{ fontSize: 11, color: '#DC2626', fontWeight: 600 }}>
+              <p style={{ fontSize: 11, color: '#A5402F', fontWeight: 600 }}>
                 ✕ Rejected by {po.approved_by_name ?? '—'} · {format(new Date(po.rejected_at), 'MMM d, yyyy h:mm a')}
               </p>
-              {po.rejection_reason && <p style={{ fontSize: 11, color: '#DC2626', marginTop: 3 }}>{po.rejection_reason}</p>}
+              {po.rejection_reason && <p style={{ fontSize: 11, color: '#A5402F', marginTop: 3 }}>{po.rejection_reason}</p>}
             </div>
           )}
 
@@ -236,13 +236,13 @@ function POCard({
             <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button
                 onClick={e => { e.stopPropagation(); onApprove(po); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 7, background: '#16A34A', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 7, background: '#4A7A55', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
               >
                 <CheckCircle2 size={13} /> Approve
               </button>
               <button
                 onClick={e => { e.stopPropagation(); onReject(po); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 7, background: 'rgba(220,38,38,0.10)', border: '1px solid rgba(220,38,38,0.25)', color: '#DC2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 7, background: 'rgba(220,38,38,0.10)', border: '1px solid rgba(220,38,38,0.25)', color: '#A5402F', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}
               >
                 <XCircle size={13} /> Reject
               </button>
@@ -368,7 +368,7 @@ function CreatePOModal({
         <div style={{ padding: '20px' }}>
           {error && (
             <div style={{ padding: '10px 14px', borderRadius: 7, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 16 }}>
-              <p style={{ fontSize: 11, color: '#DC2626', fontWeight: 600 }}>{error}</p>
+              <p style={{ fontSize: 11, color: '#A5402F', fontWeight: 600 }}>{error}</p>
             </div>
           )}
 
@@ -431,7 +431,7 @@ function CreatePOModal({
                 </div>
                 <p style={{ fontSize: 10, color: 'var(--color-muted)' }}>
                   Required approval: {' '}
-                  <span style={{ fontWeight: 700, color: '#D97706' }}>
+                  <span style={{ fontWeight: 700, color: '#9A6A16' }}>
                     {total <= 5000  ? 'Manager'
                     : total <= 15000 ? 'Sr. Manager'
                     : total <= 25000 ? 'Director'
@@ -450,7 +450,7 @@ function CreatePOModal({
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving || !vendorName.trim() || !description.trim() || !amount}
-            style={{ padding: '8px 24px', borderRadius: 7, background: vendorName && description && amount ? '#1E5FA4' : 'var(--color-mist)', border: 'none', color: vendorName && description && amount ? '#fff' : 'var(--color-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+            style={{ padding: '8px 24px', borderRadius: 7, background: vendorName && description && amount ? '#3F6A8F' : 'var(--color-mist)', border: 'none', color: vendorName && description && amount ? '#fff' : 'var(--color-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             {saving ? 'Submitting…' : 'Submit for Approval'}
           </button>
         </div>
@@ -493,7 +493,7 @@ function RejectModal({
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: 24 }}>
       <div style={{ background: 'var(--color-panel)', borderRadius: 14, border: '1px solid var(--color-border)', width: '100%', maxWidth: 420 }}>
         <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--color-border)' }}>
-          <p style={{ fontSize: 14, fontWeight: 800, color: '#DC2626' }}>Reject PO</p>
+          <p style={{ fontSize: 14, fontWeight: 800, color: '#A5402F' }}>Reject PO</p>
           <p style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 3 }}>{po.po_number} · {po.vendor_name} · ${po.total_amount.toLocaleString()}</p>
         </div>
         <div style={{ padding: '20px' }}>
@@ -506,7 +506,7 @@ function RejectModal({
         <div style={{ padding: '14px 20px', borderTop: '1px solid var(--color-border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 7, background: 'var(--color-mist)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Cancel</button>
           <button onClick={handleReject} disabled={!reason.trim() || saving}
-            style={{ padding: '8px 24px', borderRadius: 7, background: reason.trim() ? '#DC2626' : 'var(--color-mist)', border: 'none', color: reason.trim() ? '#fff' : 'var(--color-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+            style={{ padding: '8px 24px', borderRadius: 7, background: reason.trim() ? '#A5402F' : 'var(--color-mist)', border: 'none', color: reason.trim() ? '#fff' : 'var(--color-muted)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             {saving ? 'Rejecting…' : 'Reject PO'}
           </button>
         </div>
@@ -690,7 +690,7 @@ export default function POApprovalsPage() {
             <h1 style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--color-text)', marginBottom: 2 }}>PO Approvals</h1>
             {isApprover && (
               <p style={{ fontSize: 11, color: 'var(--color-muted)' }}>
-                Your approval authority: <span style={{ fontWeight: 700, color: '#16A34A' }}>{approvalLimitLabel(profile)}</span>
+                Your approval authority: <span style={{ fontWeight: 700, color: '#4A7A55' }}>{approvalLimitLabel(profile)}</span>
               </p>
             )}
           </div>
@@ -699,7 +699,7 @@ export default function POApprovalsPage() {
           <button onClick={fetchPOs} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '8px 12px', borderRadius: 7, background: 'none', border: '1px solid var(--color-border)', cursor: 'pointer', color: 'var(--color-muted)', fontSize: 11, fontFamily: 'var(--font-body)' }}>
             <RefreshCw size={11} />
           </button>
-          <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 7, background: '#1E5FA4', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', borderRadius: 7, background: '#3F6A8F', border: 'none', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             <Plus size={13} /> New PO
           </button>
         </div>
@@ -708,11 +708,11 @@ export default function POApprovalsPage() {
       {/* Pending alert banner */}
       {pendingPOs.length > 0 && (
         <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.25)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#D97706', boxShadow: '0 0 8px rgba(217,119,6,0.7)', flexShrink: 0 }} />
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#D97706' }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#9A6A16', boxShadow: '0 0 8px rgba(217,119,6,0.7)', flexShrink: 0 }} />
+          <p style={{ fontSize: 12, fontWeight: 700, color: '#9A6A16' }}>
             {pendingPOs.length} PO{pendingPOs.length > 1 ? 's' : ''} waiting for your approval
           </p>
-          <button onClick={() => setActiveTab('pending')} style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#D97706', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+          <button onClick={() => setActiveTab('pending')} style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: '#9A6A16', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
             Review now →
           </button>
         </div>
@@ -727,7 +727,7 @@ export default function POApprovalsPage() {
               fontFamily: 'var(--font-body)', fontSize: 12,
               fontWeight: activeTab === tab.key ? 700 : 500,
               color: activeTab === tab.key ? 'var(--color-text)' : 'var(--color-muted)',
-              borderBottom: activeTab === tab.key ? '2px solid #1E5FA4' : '2px solid transparent',
+              borderBottom: activeTab === tab.key ? '2px solid #3F6A8F' : '2px solid transparent',
               marginBottom: -1, display: 'flex', alignItems: 'center', gap: 6,
             }}>
             {tab.label}
@@ -735,7 +735,7 @@ export default function POApprovalsPage() {
               <span style={{
                 fontSize: 9, fontWeight: 800, padding: '1px 6px', borderRadius: 100,
                 background: activeTab === tab.key ? 'rgba(30,95,164,0.15)' : 'var(--color-mist)',
-                color: activeTab === tab.key ? '#1E5FA4' : 'var(--color-muted)',
+                color: activeTab === tab.key ? '#3F6A8F' : 'var(--color-muted)',
               }}>{tab.count}</span>
             )}
           </button>

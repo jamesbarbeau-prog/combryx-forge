@@ -14,7 +14,7 @@ export function Donut({ data, size = 176, thickness = 26, centerLabel = 'total',
     <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap' }}>
       <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
         <svg width={size} height={size} role="img" aria-label={data.map(d => `${d.label} ${d.value}`).join(', ')}>
-          <circle cx={cx} cy={cx} r={r} fill="none" stroke="#EEF2F8" strokeWidth={thickness} />
+          <circle cx={cx} cy={cx} r={r} fill="none" stroke="#EFEBE2" strokeWidth={thickness} />
           {total > 0 && data.map((d, i) => {
             const len = (d.value / total) * c; const seg = Math.max(0, len - gap); const o = offset; offset += len;
             if (d.value <= 0) return null;
@@ -24,17 +24,17 @@ export function Donut({ data, size = 176, thickness = 26, centerLabel = 'total',
           })}
         </svg>
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', color: '#0F172A', lineHeight: 1 }}>{active ? active.value : total}</div>
-          <div style={{ fontSize: 11, color: '#475569', marginTop: 4, maxWidth: size - thickness * 2 - 8, textAlign: 'center' }}>{active ? active.label : centerLabel}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.03em', color: '#1F2A3C', lineHeight: 1 }}>{active ? active.value : total}</div>
+          <div style={{ fontSize: 11, color: '#485163', marginTop: 4, maxWidth: size - thickness * 2 - 8, textAlign: 'center' }}>{active ? active.label : centerLabel}</div>
         </div>
       </div>
       <div style={{ display: 'grid', gap: 8, minWidth: 150, flex: 1 }}>
         {data.map((d, i) => (
-          <div key={d.label} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)} onClick={() => onSlice?.(d.label)} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: '#0F172A', cursor: onSlice ? 'pointer' : 'default', opacity: hi === null || hi === i ? 1 : 0.5 }}>
+          <div key={d.label} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)} onClick={() => onSlice?.(d.label)} style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12.5, color: '#1F2A3C', cursor: onSlice ? 'pointer' : 'default', opacity: hi === null || hi === i ? 1 : 0.5 }}>
             <span style={{ width: 10, height: 10, borderRadius: 3, background: d.color, flexShrink: 0 }} />
-            <span style={{ flex: 1, color: '#475569' }}>{d.label}</span>
+            <span style={{ flex: 1, color: '#485163' }}>{d.label}</span>
             <b style={{ fontVariantNumeric: 'tabular-nums' }}>{d.value}</b>
-            <span style={{ width: 38, textAlign: 'right', color: '#7B8AA0', fontVariantNumeric: 'tabular-nums' }}>{total ? Math.round((d.value / total) * 100) : 0}%</span>
+            <span style={{ width: 38, textAlign: 'right', color: '#6C7280', fontVariantNumeric: 'tabular-nums' }}>{total ? Math.round((d.value / total) * 100) : 0}%</span>
           </div>
         ))}
       </div>
@@ -49,19 +49,19 @@ export function Columns({ data, height = 150 }: { data: Col[]; height?: number }
   const max = Math.max(1, ...data.map(d => d.value));
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, height, borderBottom: '1px solid #E2E8F0', padding: '0 6px' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, height, borderBottom: '1px solid #D9D2C5', padding: '0 6px' }}>
         {data.map((d, i) => (
           <div key={d.label} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
             style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', height: '100%', opacity: hi === null || hi === i ? 1 : 0.5, transition: 'opacity .12s' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 5, fontVariantNumeric: 'tabular-nums' }}>{d.value}</div>
-            <div title={`${d.label}: ${d.value}`} style={{ width: '100%', maxWidth: 54, height: `${Math.max(d.value ? 4 : 2, (d.value / max) * (height - 34))}px`, background: d.value ? d.color : '#E2E8F0', borderRadius: '4px 4px 0 0' }} />
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2A3C', marginBottom: 5, fontVariantNumeric: 'tabular-nums' }}>{d.value}</div>
+            <div title={`${d.label}: ${d.value}`} style={{ width: '100%', maxWidth: 54, height: `${Math.max(d.value ? 4 : 2, (d.value / max) * (height - 34))}px`, background: d.value ? d.color : '#D9D2C5', borderRadius: '4px 4px 0 0' }} />
           </div>
         ))}
       </div>
       <div style={{ display: 'flex', gap: 14, padding: '7px 6px 0' }}>
         {data.map(d => (
-          <div key={d.label} style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: '#475569', lineHeight: 1.25 }}>
-            {d.label}{d.hint && <div style={{ color: '#7B8AA0', fontSize: 10.5 }}>{d.hint}</div>}
+          <div key={d.label} style={{ flex: 1, textAlign: 'center', fontSize: 11.5, color: '#485163', lineHeight: 1.25 }}>
+            {d.label}{d.hint && <div style={{ color: '#6C7280', fontSize: 10.5 }}>{d.hint}</div>}
           </div>
         ))}
       </div>
@@ -72,17 +72,17 @@ export function Columns({ data, height = 150 }: { data: Col[]; height?: number }
 export function HBars({ data, color = '#2a78d6', empty = 'Nothing to show yet.' }: { data: { label: string; value: number }[]; color?: string; empty?: string }) {
   const [hi, setHi] = useState<number | null>(null);
   const max = Math.max(1, ...data.map(d => d.value));
-  if (!data.length) return <div style={{ fontSize: 12.5, color: '#475569' }}>{empty}</div>;
+  if (!data.length) return <div style={{ fontSize: 12.5, color: '#485163' }}>{empty}</div>;
   return (
     <div style={{ display: 'grid', gap: 9 }}>
       {data.map((d, i) => (
         <div key={d.label} onMouseEnter={() => setHi(i)} onMouseLeave={() => setHi(null)}
           style={{ display: 'grid', gridTemplateColumns: 'minmax(90px, 38%) 1fr 34px', alignItems: 'center', gap: 10, opacity: hi === null || hi === i ? 1 : 0.55, transition: 'opacity .12s' }}>
-          <div style={{ fontSize: 12.5, color: '#475569', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.label}>{d.label}</div>
-          <div style={{ background: '#EEF2F8', borderRadius: 4, height: 10 }}>
+          <div style={{ fontSize: 12.5, color: '#485163', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.label}>{d.label}</div>
+          <div style={{ background: '#EFEBE2', borderRadius: 4, height: 10 }}>
             <div style={{ width: `${(d.value / max) * 100}%`, minWidth: d.value ? 4 : 0, height: '100%', background: color, borderRadius: 4 }} />
           </div>
-          <div style={{ fontSize: 12.5, fontWeight: 700, textAlign: 'right', color: '#0F172A', fontVariantNumeric: 'tabular-nums' }}>{d.value}</div>
+          <div style={{ fontSize: 12.5, fontWeight: 700, textAlign: 'right', color: '#1F2A3C', fontVariantNumeric: 'tabular-nums' }}>{d.value}</div>
         </div>
       ))}
     </div>

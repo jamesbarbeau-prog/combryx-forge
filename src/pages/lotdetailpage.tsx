@@ -70,14 +70,14 @@ type Tab = 'owner' | 'cases' | 'work-orders';
 // ─── Status configs ───────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  open:          { label: 'Open',        color: '#1E5FA4', bg: 'rgba(30,95,164,0.10)'   },
-  in_progress:   { label: 'In Progress', color: '#D97706', bg: 'rgba(217,119,6,0.10)'   },
-  pending_parts: { label: 'Pending',     color: '#7C3AED', bg: 'rgba(124,58,237,0.10)'  },
-  resolved:      { label: 'Resolved',    color: '#16A34A', bg: 'rgba(22,163,74,0.10)'   },
-  closed:        { label: 'Closed',      color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
-  scheduled:     { label: 'Scheduled',   color: '#1E5FA4', bg: 'rgba(30,95,164,0.10)'   },
-  complete:      { label: 'Complete',    color: '#16A34A', bg: 'rgba(22,163,74,0.10)'   },
-  cancelled:     { label: 'Cancelled',   color: '#6B7280', bg: 'rgba(107,114,128,0.10)' },
+  open:          { label: 'Open',        color: '#3F6A8F', bg: 'rgba(30,95,164,0.10)'   },
+  in_progress:   { label: 'In Progress', color: '#9A6A16', bg: 'rgba(217,119,6,0.10)'   },
+  pending_parts: { label: 'Pending',     color: '#6B5B95', bg: 'rgba(124,58,237,0.10)'  },
+  resolved:      { label: 'Resolved',    color: '#4A7A55', bg: 'rgba(22,163,74,0.10)'   },
+  closed:        { label: 'Closed',      color: '#6C7280', bg: 'rgba(107,114,128,0.10)' },
+  scheduled:     { label: 'Scheduled',   color: '#3F6A8F', bg: 'rgba(30,95,164,0.10)'   },
+  complete:      { label: 'Complete',    color: '#4A7A55', bg: 'rgba(22,163,74,0.10)'   },
+  cancelled:     { label: 'Cancelled',   color: '#6C7280', bg: 'rgba(107,114,128,0.10)' },
 };
 
 const PERIOD_LABELS: Record<string, string> = {
@@ -172,9 +172,9 @@ export default function LotDetailPage() {
   if (error || !lot) return (
     <div style={{ padding: 40 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderRadius: 10, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', maxWidth: 500 }}>
-        <AlertTriangle size={16} color="#DC2626" />
-        <p style={{ fontSize: 13, color: '#DC2626' }}>{error || 'Lot not found'}</p>
-        <button onClick={load} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 6, background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.2)', color: '#DC2626', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Retry</button>
+        <AlertTriangle size={16} color="#A5402F" />
+        <p style={{ fontSize: 13, color: '#A5402F' }}>{error || 'Lot not found'}</p>
+        <button onClick={load} style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 6, background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.2)', color: '#A5402F', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Retry</button>
       </div>
     </div>
   );
@@ -214,7 +214,7 @@ export default function LotDetailPage() {
       <div style={{ background: 'var(--color-panel)', border: '1px solid var(--color-border)', borderRadius: 12, padding: '20px 24px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 44, height: 44, borderRadius: 10, background: openCases.length > 0 ? 'rgba(232,160,64,0.12)' : 'rgba(92,207,160,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Home size={20} color={openCases.length > 0 ? '#E8A040' : '#5CCFA0'} strokeWidth={1.5} />
+            <Home size={20} color={openCases.length > 0 ? '#B08D4F' : '#5CCFA0'} strokeWidth={1.5} />
           </div>
           <div>
             <h1 style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1 }}>
@@ -228,9 +228,9 @@ export default function LotDetailPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <StatPill label="Open Cases"   value={openCases.length}   color={openCases.length > 0 ? '#E8A040' : '#5CCFA0'} />
-          <StatPill label="Total Cases"  value={cases.length}       color="#4A9EFF" />
-          <StatPill label="Work Orders"  value={workOrders.length}  color="#7C3AED" />
+          <StatPill label="Open Cases"   value={openCases.length}   color={openCases.length > 0 ? '#B08D4F' : '#5CCFA0'} />
+          <StatPill label="Total Cases"  value={cases.length}       color="#5B87AD" />
+          <StatPill label="Work Orders"  value={workOrders.length}  color="#6B5B95" />
         </div>
       </div>
 
@@ -250,7 +250,7 @@ export default function LotDetailPage() {
             <t.icon size={12} strokeWidth={1.5} />
             {t.label}
             {t.count !== undefined && t.count > 0 && (
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: tab === t.id ? 'rgba(37,99,235,0.15)' : 'var(--color-border)', color: tab === t.id ? '#1D4ED8' : 'var(--color-muted)' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 10, background: tab === t.id ? 'rgba(63,106,143,0.15)' : 'var(--color-border)', color: tab === t.id ? '#2F5576' : 'var(--color-muted)' }}>
                 {t.count}
               </span>
             )}
@@ -279,8 +279,8 @@ export default function LotDetailPage() {
               </div>
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 8, background: 'rgba(232,160,64,0.06)', border: '1px solid rgba(232,160,64,0.2)' }}>
-                <AlertTriangle size={14} color="#E8A040" />
-                <p style={{ fontSize: 13, color: '#E8A040' }}>This lot has not been assigned to an owner yet</p>
+                <AlertTriangle size={14} color="#B08D4F" />
+                <p style={{ fontSize: 13, color: '#B08D4F' }}>This lot has not been assigned to an owner yet</p>
               </div>
             )}
           </div>
@@ -306,7 +306,7 @@ export default function LotDetailPage() {
           {/* Quick action */}
           <button
             onClick={() => { setTab('cases'); }}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', color: '#1D4ED8', cursor: 'pointer', fontFamily: 'var(--font-body)', width: 'fit-content' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 8, fontSize: 12, fontWeight: 700, background: 'rgba(63,106,143,0.1)', border: '1px solid rgba(63,106,143,0.3)', color: '#2F5576', cursor: 'pointer', fontFamily: 'var(--font-body)', width: 'fit-content' }}
           >
             <Shield size={13} /> View warranty cases <ChevronRight size={12} />
           </button>
@@ -322,14 +322,14 @@ export default function LotDetailPage() {
             </p>
             <button
               onClick={() => navigate('/warranty/cases')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', color: '#1D4ED8', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(63,106,143,0.1)', border: '1px solid rgba(63,106,143,0.3)', color: '#2F5576', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
             >
               <Plus size={12} /> New case
             </button>
           </div>
 
           {cases.length === 0 ? (
-            <Empty icon={Shield} message="No warranty cases for this lot yet" color="#4A9EFF" />
+            <Empty icon={Shield} message="No warranty cases for this lot yet" color="#5B87AD" />
           ) : (
             <div style={{ background: 'var(--color-panel)', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '130px 1fr 130px 110px 90px 36px', padding: '9px 16px', background: 'var(--color-mist)', borderBottom: '1px solid var(--color-border)' }}>
@@ -340,7 +340,7 @@ export default function LotDetailPage() {
               {cases.map((c, i) => {
                 const sc  = STATUS_CONFIG[c.status] ?? STATUS_CONFIG.open;
                 const brpDays = c.brp_end_date ? Math.ceil((new Date(c.brp_end_date).getTime() - Date.now()) / 86400000) : null;
-                const brpColor = brpDays === null ? 'var(--color-muted)' : brpDays < 0 ? '#DC2626' : brpDays <= 14 ? '#D97706' : '#16A34A';
+                const brpColor = brpDays === null ? 'var(--color-muted)' : brpDays < 0 ? '#A5402F' : brpDays <= 14 ? '#9A6A16' : '#4A7A55';
                 return (
                   <div key={c.id}
                     onClick={() => navigate(`/warranty/cases/${c.id}`)}
@@ -350,7 +350,7 @@ export default function LotDetailPage() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>{c.case_number}</span>
-                      {c.has_conciliation && <Shield size={10} color="#DC2626" />}
+                      {c.has_conciliation && <Shield size={10} color="#A5402F" />}
                     </div>
                     <span style={{ fontSize: 12, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 12 }}>{c.title}</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 100, background: sc.bg, fontSize: 10, fontWeight: 700, color: sc.color, width: 'fit-content' }}>{sc.label}</span>
@@ -374,14 +374,14 @@ export default function LotDetailPage() {
             <p style={{ fontSize: 13, fontWeight: 700 }}>{workOrders.length} work order{workOrders.length !== 1 ? 's' : ''}</p>
             <button
               onClick={() => navigate('/warranty/work-orders')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', color: '#1D4ED8', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, fontSize: 12, fontWeight: 700, background: 'rgba(63,106,143,0.1)', border: '1px solid rgba(63,106,143,0.3)', color: '#2F5576', cursor: 'pointer', fontFamily: 'var(--font-body)' }}
             >
               <Plus size={12} /> New work order
             </button>
           </div>
 
           {workOrders.length === 0 ? (
-            <Empty icon={Wrench} message="No work orders for this lot yet" color="#7C3AED" />
+            <Empty icon={Wrench} message="No work orders for this lot yet" color="#6B5B95" />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {workOrders.map(wo => {
@@ -389,7 +389,7 @@ export default function LotDetailPage() {
                 return (
                   <div key={wo.id} style={{ background: 'var(--color-panel)', border: '1px solid var(--color-border)', borderRadius: 9, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
                     <div style={{ width: 36, height: 36, borderRadius: 8, background: 'rgba(124,58,237,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Wrench size={16} color="#7C3AED" strokeWidth={1.5} />
+                      <Wrench size={16} color="#6B5B95" strokeWidth={1.5} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>

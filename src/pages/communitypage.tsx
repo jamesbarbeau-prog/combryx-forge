@@ -7,7 +7,7 @@ import { FORMS, FORM_BY_ID, currentForm, stagesFor, parseDay, addDays, daysBetwe
 interface Row { lot_id: string; lot_number: string; address: string | null; owner: string | null; enrollment: string | null; model: string | null; start_date: string | null; forms: FormCase[]; conciliations: number }
 interface Enriched extends Row { start: Date | null; stage: FormId | 'pre' | 'msd' | null; stages: StageInfo[]; open: number; total: number; nextBrp: StageInfo | null }
 const FILTERS: { id: string; label: string }[] = [{ id: 'pre', label: 'Before Initial' }, ...FORMS.map(f => ({ id: f.id, label: f.short })), { id: 'msd', label: '3–7 year' }];
-const RAMP: Record<FormId, string> = { initial: '#1E3A8A', mid_year: '#2563EB', year_end: '#5B8DEF', second_year: '#93B4F5' };
+const RAMP: Record<FormId, string> = { initial: '#1F3A5A', mid_year: '#3F7CAC', year_end: '#B8903F', second_year: '#A9C4DB' };
 const MONTH = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
 export default function CommunityPage() {
@@ -88,7 +88,7 @@ export default function CommunityPage() {
       <div className="cp-kpis">
         {[{ l: 'Homes', n: homes.length, h: 'in this community' }, { l: 'Open cases', n: kpi.cases, h: 'across all forms' }, { l: 'Open items', n: kpi.items, h: 'still outstanding' },
           { l: 'Repair period ends ≤ 30 days', n: kpi.due30, h: 'homes', c: '#B45309' }, { l: 'Repair period passed', n: kpi.expired, h: 'with items still open', c: '#B42318' }].map(k => (
-          <div className="cp-kpi" key={k.l}><div className="l">{k.l}</div><div className="n" style={{ color: k.c ?? '#0B132B' }}>{rows ? k.n.toLocaleString() : '—'}</div><div className="h">{k.h}</div></div>))}
+          <div className="cp-kpi" key={k.l}><div className="l">{k.l}</div><div className="n" style={{ color: k.c ?? '#1F2A3C' }}>{rows ? k.n.toLocaleString() : '—'}</div><div className="h">{k.h}</div></div>))}
       </div>
 
       <div className="cp-card">
@@ -100,20 +100,20 @@ export default function CommunityPage() {
           return <div className="cp-tip" style={{ left: `${((L + i * bw + bw / 2) / W) * 100}%` }}><b>{m.label} {m.year}</b>{FORMS.map(f => <div key={f.id}><i style={{ background: RAMP[f.id] }} />{f.short}<span>{v[f.id]}</span></div>)}<div className="t">Total<span>{tot}</span></div><small>Click to list these homes</small></div>;
         })()}
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', marginTop: 8 }} role="img" aria-label="Deadline timeline">
-          {[0, 0.25, 0.5, 0.75, 1].map(f => { const y = T + (H - T - B) * (1 - f); return <g key={f}><line x1={L} x2={W} y1={y} y2={y} stroke="#E8EDF5" /><text x={L - 6} y={y + 4} textAnchor="end" fontSize="10" fill="#7B8AA0">{Math.round(max * f)}</text></g>; })}
+          {[0, 0.25, 0.5, 0.75, 1].map(f => { const y = T + (H - T - B) * (1 - f); return <g key={f}><line x1={L} x2={W} y1={y} y2={y} stroke="#E8EDF5" /><text x={L - 6} y={y + 4} textAnchor="end" fontSize="10" fill="#6C7280">{Math.round(max * f)}</text></g>; })}
           {months.map((m, i) => {
             const v = series.get(m.key)!; let y = H - B; const x = L + i * bw + 5, w = bw - 10, sel = month === m.key;
             const total = v.initial + v.mid_year + v.year_end + v.second_year;
             return (
               <g key={m.key} style={{ cursor: total ? 'pointer' : 'default' }} onClick={() => total && setMonth(sel ? '' : m.key)} onMouseEnter={() => setHover(m.key)} onMouseLeave={() => setHover(null)} opacity={month && !sel ? 0.45 : 1}>
-                <rect x={x - 3} y={T} width={w + 6} height={H - T - B} fill={hover === m.key || sel ? 'rgba(37,99,235,0.06)' : 'transparent'} rx="6" />
+                <rect x={x - 3} y={T} width={w + 6} height={H - T - B} fill={hover === m.key || sel ? 'rgba(63,106,143,0.06)' : 'transparent'} rx="6" />
                 {FORMS.map(f => { const n = v[f.id]; if (!n) return null; const h = (n / max) * (H - T - B - 6); y -= h; return <rect key={f.id} x={x} y={y} width={w} height={Math.max(h - 2, 1)} fill={RAMP[f.id]} rx="2" />; })}
-                {total > 0 && <text x={x + w / 2} y={y - 5} textAnchor="middle" fontSize="11" fontWeight="700" fill="#0F172A">{total}</text>}
-                <text x={x + w / 2} y={H - 16} textAnchor="middle" fontSize="11" fontWeight={m.isNow ? 800 : 500} fill={m.isNow ? '#1D4ED8' : '#475569'}>{m.label}</text>
-                {(m.label === 'Jan' || i === 0) && <text x={x + w / 2} y={H - 3} textAnchor="middle" fontSize="9.5" fill="#7B8AA0">{m.year}</text>}
+                {total > 0 && <text x={x + w / 2} y={y - 5} textAnchor="middle" fontSize="11" fontWeight="700" fill="#1F2A3C">{total}</text>}
+                <text x={x + w / 2} y={H - 16} textAnchor="middle" fontSize="11" fontWeight={m.isNow ? 800 : 500} fill={m.isNow ? '#2F5576' : '#485163'}>{m.label}</text>
+                {(m.label === 'Jan' || i === 0) && <text x={x + w / 2} y={H - 3} textAnchor="middle" fontSize="9.5" fill="#6C7280">{m.year}</text>}
               </g>);
           })}
-          {nowIdx >= 0 && <g><line x1={L + nowIdx * bw + bw / 2} x2={L + nowIdx * bw + bw / 2} y1={T} y2={H - B} stroke="#0B132B" strokeWidth="1.5" strokeDasharray="4 3" /><text x={L + nowIdx * bw + bw / 2 + 5} y={T + 8} fontSize="10" fontWeight="700" fill="#0B132B">Today</text></g>}
+          {nowIdx >= 0 && <g><line x1={L + nowIdx * bw + bw / 2} x2={L + nowIdx * bw + bw / 2} y1={T} y2={H - B} stroke="#1F2A3C" strokeWidth="1.5" strokeDasharray="4 3" /><text x={L + nowIdx * bw + bw / 2 + 5} y={T + 8} fontSize="10" fontWeight="700" fill="#1F2A3C">Today</text></g>}
         </svg></div>
         <div className="cp-legend">{FORMS.map(f => <button key={f.id} className={off.includes(f.id) ? 'off' : ''} onClick={() => setOff(o => o.includes(f.id) ? o.filter(x => x !== f.id) : [...o, f.id])} title="Click to show or hide"><i style={{ background: RAMP[f.id] }} />{f.short}</button>)}</div>
       </div>
@@ -157,29 +157,29 @@ export default function CommunityPage() {
 
 const CSS = `
 .cp{max-width:1480px;margin:0 auto;padding:22px 28px 60px;font-family:var(--font-body)}
-.cp h1{margin:2px 0 0;font:800 26px var(--font-body);color:#0B132B;letter-spacing:-.01em}.cp h2{margin:0;font:800 15px var(--font-body);color:#0B132B}
+.cp h1{margin:2px 0 0;font:800 26px var(--font-body);color:#1F2A3C;letter-spacing:-.01em}.cp h2{margin:0;font:800 15px var(--font-body);color:#1F2A3C}
 .cp-head{display:flex;align-items:flex-end;gap:16px;margin-bottom:16px}.cp-head>div:last-child{margin-left:auto}
-.cp-sub{font-size:12.5px;color:#475569}.cp-err{padding:14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;color:#991B1B}
+.cp-sub{font-size:12.5px;color:#485163}.cp-err{padding:14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;color:#991B1B}
 .cp-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
-.cp-kpi{position:relative;background:#fff;border:1px solid #E5E8EE;border-radius:12px;padding:14px 16px 12px}
-.cp-kpi .l{font:700 11.5px var(--font-body);color:#475569}.cp-kpi .n{font:700 28px var(--font-body);margin-top:4px;font-variant-numeric:tabular-nums}.cp-kpi .h{font-size:11.5px;color:#7B8AA0}
-.cp-card{background:#fff;border:1px solid #E5E8EE;border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.cp-kpi{position:relative;background:#F8F6F1;border:1px solid #D9D2C5;border-radius:12px;padding:14px 16px 12px}
+.cp-kpi .l{font:700 11.5px var(--font-body);color:#485163}.cp-kpi .n{font:700 28px var(--font-body);margin-top:4px;font-variant-numeric:tabular-nums}.cp-kpi .h{font-size:11.5px;color:#6C7280}
+.cp-card{background:#F8F6F1;border:1px solid #D9D2C5;border-radius:12px;padding:16px 18px;margin-bottom:14px}
 .cp-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.cp-seg{display:flex;background:#EEF2F8;border-radius:10px;padding:3px}.cp-seg button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font:700 12px var(--font-body);color:#475569;cursor:pointer}.cp-seg button.on{background:#fff;color:#1D4ED8;box-shadow:0 1px 3px rgba(11,19,43,.12)}
-.cp-legend{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}.cp-legend button{display:inline-flex;align-items:center;gap:6px;border:1px solid #E5E8EE;background:#fff;border-radius:999px;padding:3px 10px;font:600 12px var(--font-body);color:#334155;cursor:pointer}.cp-legend button:hover{border-color:#B9C6DD}.cp-legend button.off{opacity:.45;text-decoration:line-through}.cp-legend i{display:inline-block;width:9px;height:9px;border-radius:3px}
-.cp-tip{position:absolute;top:6px;transform:translateX(-50%);z-index:5;background:#0B132B;color:#fff;border-radius:10px;padding:9px 12px;font:600 12px var(--font-body);min-width:150px;pointer-events:none;box-shadow:0 10px 26px rgba(11,19,43,.28)}.cp-tip b{display:block;margin-bottom:5px;font-weight:800}.cp-tip div{display:flex;align-items:center;gap:7px;padding:1px 0}.cp-tip div span{margin-left:auto;font-variant-numeric:tabular-nums}.cp-tip i{width:8px;height:8px;border-radius:2px}.cp-tip .t{border-top:1px solid rgba(255,255,255,.2);margin-top:4px;padding-top:4px}.cp-tip small{display:block;margin-top:6px;color:#9FB0D0;font-weight:500}
+.cp-seg{display:flex;background:#EFEBE2;border-radius:10px;padding:3px}.cp-seg button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font:700 12px var(--font-body);color:#485163;cursor:pointer}.cp-seg button.on{background:#F8F6F1;color:#2F5576;box-shadow:0 1px 3px rgba(40,32,18,.12)}
+.cp-legend{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}.cp-legend button{display:inline-flex;align-items:center;gap:6px;border:1px solid #D9D2C5;background:#F8F6F1;border-radius:999px;padding:3px 10px;font:600 12px var(--font-body);color:#2F394A;cursor:pointer}.cp-legend button:hover{border-color:#B9C6DD}.cp-legend button.off{opacity:.45;text-decoration:line-through}.cp-legend i{display:inline-block;width:9px;height:9px;border-radius:3px}
+.cp-tip{position:absolute;top:6px;transform:translateX(-50%);z-index:5;background:#FBFAF7;color:#1F2A3C;border:1px solid #C6BDAC;border-radius:8px;padding:9px 12px;font:600 12px var(--font-body);min-width:150px;pointer-events:none;box-shadow:0 8px 22px rgba(40,32,18,.18)}.cp-tip b{display:block;margin-bottom:5px;font-weight:800}.cp-tip div{display:flex;align-items:center;gap:7px;padding:1px 0}.cp-tip div span{margin-left:auto;font-variant-numeric:tabular-nums}.cp-tip i{width:8px;height:8px;border-radius:2px}.cp-tip .t{border-top:1px solid #DDD6C9;margin-top:4px;padding-top:4px}.cp-tip small{display:block;margin-top:6px;color:#6C7280;font-weight:500}
 .cp-stages{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px}
-.cp-stage{display:flex;flex-direction:column;justify-content:flex-start;text-align:left;font-family:var(--font-body);background:#fff;border:1px solid #E5E8EE;border-radius:12px;padding:13px 15px;cursor:pointer;transition:border-color .12s,background .12s}
-.cp-stage:hover{border-color:#B9C6DD}.cp-stage.on{border-color:#2563EB;background:#F5F9FF;box-shadow:0 0 0 1px #2563EB}
-.cp-stage .t{font:800 12.5px var(--font-body);color:#0B132B}.cp-stage .n{font:700 26px var(--font-body);color:#0B132B;margin-top:2px}.cp-stage .h{font-size:11px;color:#7B8AA0}
-.cp-stage .m{display:flex;flex-direction:column;gap:2px;margin-top:8px;font-size:11.5px;color:#475569}
-.cp input{height:34px;border:1px solid #D5DBE5;border-radius:9px;padding:0 11px;font:500 13px var(--font-body);width:240px}
-.cp-clear{border:1px solid #CBD5E1;background:#fff;border-radius:9px;padding:6px 11px;font:700 12px var(--font-body);cursor:pointer}
+.cp-stage{display:flex;flex-direction:column;justify-content:flex-start;text-align:left;font-family:var(--font-body);background:#F8F6F1;border:1px solid #D9D2C5;border-radius:12px;padding:13px 15px;cursor:pointer;transition:border-color .12s,background .12s}
+.cp-stage:hover{border-color:#B9C6DD}.cp-stage.on{border-color:#3F6A8F;background:#EDF2F6;box-shadow:0 0 0 1px #3F6A8F}
+.cp-stage .t{font:800 12.5px var(--font-body);color:#1F2A3C}.cp-stage .n{font:700 26px var(--font-body);color:#1F2A3C;margin-top:2px}.cp-stage .h{font-size:11px;color:#6C7280}
+.cp-stage .m{display:flex;flex-direction:column;gap:2px;margin-top:8px;font-size:11.5px;color:#485163}
+.cp input{height:34px;border:1px solid #CFC7B8;border-radius:9px;padding:0 11px;font:500 13px var(--font-body);width:240px}
+.cp-clear{border:1px solid #CBD5E1;background:#F8F6F1;border-radius:9px;padding:6px 11px;font:700 12px var(--font-body);cursor:pointer}
 .cp-scroll{overflow:auto;margin-top:10px;max-height:640px}.cp table{width:100%;border-collapse:collapse;font-size:13px}
-.cp th{position:sticky;top:0;background:#F8F9FB;text-align:left;font:700 12px var(--font-body);color:#64748B;padding:9px 10px;border-bottom:1px solid #E5E8EE}
+.cp th{position:sticky;top:0;background:#F1EDE4;text-align:left;font:700 12px var(--font-body);color:#5E6575;padding:9px 10px;border-bottom:1px solid #D9D2C5}
 .cp td{padding:9px 10px;border-bottom:1px solid #EDF1F8;vertical-align:top}.cp tbody tr{cursor:pointer}.cp tbody tr:hover{background:#F4F8FF}
-.cp .r{text-align:right}.cp .s{font-size:11.5px;color:#7B8AA0;font-weight:500}.cp .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
-.cp .pill{display:inline-block;padding:2px 9px;border-radius:999px;font:700 11.5px var(--font-body);background:#EEF2F8;color:#334155}.cp .pill.a{background:#FFF4D6;color:#8A4B0B}.cp .pill.r{background:#FDE4E0;color:#B42318}
+.cp .r{text-align:right}.cp .s{font-size:11.5px;color:#6C7280;font-weight:500}.cp .mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+.cp .pill{display:inline-block;padding:2px 9px;border-radius:999px;font:700 11.5px var(--font-body);background:#EFEBE2;color:#2F394A}.cp .pill.a{background:#FFF4D6;color:#8A4B0B}.cp .pill.r{background:#FDE4E0;color:#B42318}
 @media(max-width:1100px){.cp-kpis{grid-template-columns:repeat(2,1fr)}.cp-stages{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:640px){.cp{padding:14px}.cp-stages{grid-template-columns:repeat(2,1fr)}}
 `;

@@ -1,60 +1,64 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  /* Canvas */
-  --color-canvas:       #F6F7F9;
-  --color-panel:        #FFFFFF;
-  --color-panel-raised: #F8FAFD;
-  --color-border:       #E5E8EE;
-  --color-border-hard:  #CBD5E1;
+  /* Warm architectural identity: stone canvas, greige panels, slate navy, brass, steel blue */
+  --color-canvas:       #E8E3DA;
+  --color-panel:        #F8F6F1;
+  --color-panel-raised: #FBFAF7;
+  --color-border:       #D9D2C5;
+  --color-border-hard:  #C6BDAC;
 
-  /* Text */
-  --color-text:         #0F172A;
-  --color-text-sub:     #475569;
-  --color-muted:        #7B8AA0;
+  /* Text (warm slate, never pure black) */
+  --color-text:         #1F2A3C;
+  --color-text-sub:     #485163;
+  --color-muted:        #6C7280;
 
-  /* Brand — navy ink, signal blue, amber accent */
-  --color-navy:         #0B132B;
-  --color-brand:        #2563EB;
-  --color-brand-dark:   #1D4ED8;
-  --color-amber:        #F59E0B;
-  --color-gold:         #2563EB;
-  --color-gold-light:   #3B82F6;
-  --color-gold-soft:    rgba(37,99,235,0.14);
-  --color-gold-tint:    rgba(37,99,235,0.07);
+  /* Brand: slate navy, brass, steel blue */
+  --color-navy:         #1B2A41;
+  --color-brand:        #3F6A8F;
+  --color-brand-dark:   #2F5576;
+  --color-amber:        #B08D4F;
+  --color-gold:         #B08D4F;
+  --color-gold-light:   #C9A96A;
+  --color-gold-soft:    rgba(176,141,79,0.22);
+  --color-gold-tint:    rgba(176,141,79,0.10);
+  --color-brass:        #B08D4F;
 
-  /* Status */
-  --color-success:      #15803D;
-  --color-success-bg:   #ECFDF3;
-  --color-warning:      #B45309;
-  --color-warning-bg:   #FFF7E6;
-  --color-danger:       #B91C1C;
-  --color-danger-bg:    #FEF2F2;
-  --color-info:         #1D4ED8;
-  --color-info-bg:      #EFF4FF;
+  /* Status (restrained) */
+  --color-success:      #4A7A55;
+  --color-success-bg:   #E8F0E7;
+  --color-warning:      #9A6A16;
+  --color-warning-bg:   #F6ECD3;
+  --color-danger:       #A5402F;
+  --color-danger-bg:    #F4E1DB;
+  --color-info:         #2F5576;
+  --color-info-bg:      #E2EAF1;
 
   /* Surface */
-  --color-mist:         #EEF2F8;
-  --color-ink:          #0B132B;
+  --color-mist:         #EFEBE2;
+  --color-ink:          #1F2A3C;
 
   /* Radius */
-  --radius-sm:  6px;
-  --radius-md:  8px;
-  --radius-lg:  12px;
+  --radius-sm:  4px;
+  --radius-md:  6px;
+  --radius-lg:  8px;
 
   /* Shadow */
-  --shadow-sm:  0 1px 2px rgba(15,23,42,0.05);
-  --shadow-md:  0 4px 14px rgba(15,23,42,0.08);
-  --shadow-lg:  0 12px 32px rgba(15,23,42,0.12);
+  --shadow-sm:  0 1px 1px rgba(60,48,28,0.05), 0 1px 2px rgba(60,48,28,0.04);
+  --shadow-md:  0 3px 10px rgba(60,48,28,0.08);
+  --shadow-lg:  0 12px 30px rgba(40,32,18,0.16);
 
   /* Type */
   --font-body:  'Plus Jakarta Sans', system-ui, sans-serif;
   --font-mono:  'JetBrains Mono', monospace;
+
+  /* Mineral texture: fine grain, a few percent opacity so text never competes with it */
+  --texture: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n' x='0' y='0' width='100%' height='100%'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' seed='7' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.36  0 0 0 0 0.30  0 0 0 0 0.20  0 0 0 0.075 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; -webkit-font-smoothing: antialiased; }
-body { font-family: var(--font-body); font-variant-numeric: tabular-nums; background: var(--color-canvas); color: var(--color-text); line-height: 1.5; }
+body { font-family: var(--font-body); font-variant-numeric: tabular-nums; background-color: var(--color-canvas); background-image: var(--texture), linear-gradient(180deg, #ECE8DF 0%, #E4DFD5 100%); background-attachment: fixed; color: var(--color-text); line-height: 1.5; }
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; }
@@ -74,11 +78,11 @@ input, select, textarea { font-family: inherit; }
   background: var(--color-brand);
   border: 1px solid var(--color-brand-dark);
   color: #FFFFFF;
-  box-shadow: 0 1px 2px rgba(37,99,235,0.25);
+  box-shadow: 0 1px 2px rgba(63,106,143,0.28);
 }
 .forge-button--primary:hover {
   background: var(--color-brand-dark);
-  box-shadow: 0 4px 12px rgba(37,99,235,0.28);
+  box-shadow: 0 4px 12px rgba(63,106,143,0.28);
 }
 .forge-button--primary:active {
   transform: translateY(0);
@@ -107,7 +111,7 @@ input, select, textarea { font-family: inherit; }
   display: inline-flex; align-items: center; justify-content: center;
   transition: all 0.15s ease; color: var(--color-muted); flex-shrink: 0;
 }
-.forge-icon-button:hover { border-color: rgba(37,99,235,0.4); background: rgba(37,99,235,0.08); color: var(--color-text); }
+.forge-icon-button:hover { border-color: rgba(63,106,143,0.45); background: rgba(63,106,143,0.08); color: var(--color-text); }
 
 /* CARDS */
 .forge-card {
@@ -121,7 +125,7 @@ input, select, textarea { font-family: inherit; }
 .forge-card-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(37,99,235,0.08);
+  border-bottom: 1px solid rgba(63,106,143,0.08);
 }
 .forge-card-body { padding: 18px; }
 
@@ -137,7 +141,7 @@ input, select, textarea { font-family: inherit; }
 .forge-badge--danger  { background: var(--color-danger-bg);  color: var(--color-danger);  border-color: #DDB0B0; }
 .forge-badge--info    { background: var(--color-info-bg);    color: var(--color-info);    border-color: #A8C8E8; }
 .forge-badge--neutral { background: var(--color-mist);       color: var(--color-text-sub); border-color: var(--color-border); }
-.forge-badge--gold    { background: rgba(37,99,235,0.12);    color: #1D4ED8; border-color: rgba(37,99,235,0.3); }
+.forge-badge--gold    { background: rgba(63,106,143,0.12);    color: #1D4ED8; border-color: rgba(63,106,143,0.32); }
 
 /* INPUTS */
 .forge-input {
@@ -148,8 +152,8 @@ input, select, textarea { font-family: inherit; }
 .forge-input:focus {
   outline: none;
   border-color: #2563EB;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
-  background: rgba(37,99,235,0.02);
+  box-shadow: 0 0 0 3px rgba(63,106,143,0.18);
+  background: rgba(63,106,143,0.03);
 }
 .forge-input::placeholder { color: var(--color-muted); }
 
@@ -162,7 +166,7 @@ input, select, textarea { font-family: inherit; }
 }
 .forge-table td { padding: 11px 14px; border-bottom: 1px solid var(--color-border); color: var(--color-text); }
 .forge-table tbody tr:last-child td { border-bottom: none; }
-.forge-table tbody tr:hover td { background: rgba(37,99,235,0.05); }
+.forge-table tbody tr:hover td { background: rgba(63,106,143,0.06); }
 
 /* TYPOGRAPHY */
 .forge-label    { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-muted); }
@@ -182,7 +186,7 @@ input, select, textarea { font-family: inherit; }
   font-weight: 500; color: var(--color-text-sub); transition: all 0.1s ease; cursor: pointer;
 }
 .forge-nav-item:hover { background: var(--color-mist); color: var(--color-text); }
-.forge-nav-item.active { background: rgba(37,99,235,0.12); color: #1D4ED8; border: 1px solid rgba(37,99,235,0.25); }
+.forge-nav-item.active { background: rgba(63,106,143,0.12); color: #2F5576; border: 1px solid rgba(63,106,143,0.28); }
 .forge-nav-section { padding: 10px 16px 4px; font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-muted); }
 
 /* TOPBAR */

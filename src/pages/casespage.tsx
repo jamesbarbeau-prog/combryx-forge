@@ -32,13 +32,13 @@ interface CaseRow {
 // ─── Constants ────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  open:          { label: 'Open',          color: '#1E5FA4', bg: 'rgba(30,95,164,0.10)',   border: 'rgba(30,95,164,0.25)'   },
-  in_progress:   { label: 'In Progress',   color: '#D97706', bg: 'rgba(217,119,6,0.10)',   border: 'rgba(217,119,6,0.25)'   },
-  pending_parts: { label: 'Pending Parts', color: '#7C3AED', bg: 'rgba(124,58,237,0.10)',  border: 'rgba(124,58,237,0.25)'  },
-  pending_owner: { label: 'Pending Owner', color: '#DC2626', bg: 'rgba(220,38,38,0.10)',   border: 'rgba(220,38,38,0.25)'   },
-  resolved:      { label: 'Resolved',      color: '#16A34A', bg: 'rgba(22,163,74,0.10)',   border: 'rgba(22,163,74,0.25)'   },
-  closed:        { label: 'Closed',        color: '#6B7280', bg: 'rgba(107,114,128,0.10)', border: 'rgba(107,114,128,0.25)' },
-  voided:        { label: 'Voided',        color: '#9CA3AF', bg: 'rgba(156,163,175,0.10)', border: 'rgba(156,163,175,0.25)' },
+  open:          { label: 'Open',          color: '#3F6A8F', bg: 'rgba(30,95,164,0.10)',   border: 'rgba(30,95,164,0.25)'   },
+  in_progress:   { label: 'In Progress',   color: '#9A6A16', bg: 'rgba(217,119,6,0.10)',   border: 'rgba(217,119,6,0.25)'   },
+  pending_parts: { label: 'Pending Parts', color: '#6B5B95', bg: 'rgba(124,58,237,0.10)',  border: 'rgba(124,58,237,0.25)'  },
+  pending_owner: { label: 'Pending Owner', color: '#A5402F', bg: 'rgba(220,38,38,0.10)',   border: 'rgba(220,38,38,0.25)'   },
+  resolved:      { label: 'Resolved',      color: '#4A7A55', bg: 'rgba(22,163,74,0.10)',   border: 'rgba(22,163,74,0.25)'   },
+  closed:        { label: 'Closed',        color: '#6C7280', bg: 'rgba(107,114,128,0.10)', border: 'rgba(107,114,128,0.25)' },
+  voided:        { label: 'Voided',        color: '#8C919C', bg: 'rgba(156,163,175,0.10)', border: 'rgba(156,163,175,0.25)' },
 };
 
 const CASE_TYPE_LABELS: Record<string, string> = {
@@ -60,10 +60,10 @@ const PERIOD_LABELS: Record<string, string> = {
 function brpColor(date: string | null | undefined): string {
   if (!date) return 'var(--color-muted)';
   const days = differenceInDays(new Date(date), new Date());
-  if (days < 0)  return '#DC2626';
-  if (days < 14) return '#DC2626';
-  if (days < 30) return '#D97706';
-  return '#16A34A';
+  if (days < 0)  return '#A5402F';
+  if (days < 14) return '#A5402F';
+  if (days < 30) return '#9A6A16';
+  return '#4A7A55';
 }
 
 function brpLabel(date: string | null | undefined): string {
@@ -265,10 +265,10 @@ export default function CasesPage() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
         {[
           { label: 'Total Cases',   value: cases.length, color: 'var(--color-text)' },
-          { label: 'Open',          value: openCount,    color: '#1E5FA4'            },
-          { label: 'In Progress',   value: activeCount,  color: '#D97706'            },
-          { label: 'Conciliation',  value: concilCount,  color: '#DC2626'            },
-          { label: 'BRP ≤ 14 Days', value: urgentBRP,    color: '#DC2626'            },
+          { label: 'Open',          value: openCount,    color: '#3F6A8F'            },
+          { label: 'In Progress',   value: activeCount,  color: '#9A6A16'            },
+          { label: 'Conciliation',  value: concilCount,  color: '#A5402F'            },
+          { label: 'BRP ≤ 14 Days', value: urgentBRP,    color: '#A5402F'            },
         ].map(s => (
           <div key={s.label} style={{ padding: '10px 16px', borderRadius: 9, background: 'var(--color-panel)', border: '1px solid var(--color-border)', minWidth: 100 }}>
             <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted)', marginBottom: 3 }}>{s.label}</p>
@@ -357,7 +357,7 @@ export default function CasesPage() {
                     <p style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--color-text)' }}>
                       {c.tarion_case_number_normalized ?? c.case_number}
                     </p>
-                    {c.has_conciliation && <Shield size={10} color="#DC2626" />}
+                    {c.has_conciliation && <Shield size={10} color="#A5402F" />}
                   </div>
                   {c.period_type && (
                     <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--color-muted)' }}>
@@ -398,7 +398,7 @@ export default function CasesPage() {
 
                 {/* Type */}
                 <div>
-                  <span style={{ fontSize: 10, fontWeight: 600, color: isConcil ? '#DC2626' : 'var(--color-muted)' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: isConcil ? '#A5402F' : 'var(--color-muted)' }}>
                     {CASE_TYPE_LABELS[c.case_type] ?? c.case_type}
                   </span>
                 </div>

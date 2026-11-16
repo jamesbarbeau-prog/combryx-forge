@@ -6,10 +6,10 @@
 export type FormId = 'initial' | 'mid_year' | 'year_end' | 'second_year';
 export const BRP_DAYS = 120;
 export const FORMS: { id: FormId; label: string; short: string; submitDay: number; color: string }[] = [
-  { id: 'initial',     label: 'Initial form',     short: 'Initial',     submitDay: 41,  color: '#1E5FC8' },
-  { id: 'mid_year',    label: 'Mid-Year form',    short: 'Mid-Year',    submitDay: 183, color: '#7AAEF0' },
-  { id: 'year_end',    label: 'Year-End form',    short: 'Year-End',    submitDay: 365, color: '#F2B134' },
-  { id: 'second_year', label: 'Second-Year form', short: 'Second-Year', submitDay: 730, color: '#16A34A' },
+  { id: 'initial',     label: 'Initial form',     short: 'Initial',     submitDay: 41,  color: '#1F3A5A' },
+  { id: 'mid_year',    label: 'Mid-Year form',    short: 'Mid-Year',    submitDay: 183, color: '#3F7CAC' },
+  { id: 'year_end',    label: 'Year-End form',    short: 'Year-End',    submitDay: 365, color: '#B8903F' },
+  { id: 'second_year', label: 'Second-Year form', short: 'Second-Year', submitDay: 730, color: '#A9C4DB' },
 ];
 export const FORM_BY_ID = Object.fromEntries(FORMS.map(f => [f.id, f])) as Record<FormId, (typeof FORMS)[number]>;
 const DAY = 86400000;
