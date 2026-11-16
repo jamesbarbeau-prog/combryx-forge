@@ -10,8 +10,9 @@ import { supabase } from '@/lib/supabase';
 import {
   Home, ChevronLeft, RefreshCw, AlertTriangle, CheckCircle2,
   Mail, Phone, Shield, ChevronRight, Plus, Wrench,
-  Calendar, FileText, User, Hash,
+  Calendar, FileText, User, Hash, ClipboardCheck,
 } from 'lucide-react';
+import LotInspections from '@/components/lotinspections';
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -65,7 +66,7 @@ interface WorkOrderRow {
   created_at: string;
 }
 
-type Tab = 'owner' | 'cases' | 'work-orders';
+type Tab = 'owner' | 'inspections' | 'cases' | 'work-orders';
 
 // ─── Status configs ───────────────────────────────────────────
 
@@ -97,6 +98,7 @@ export default function LotDetailPage() {
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState('');
   const [tab,        setTab]        = useState<Tab>('owner');
+  const [inspCount,  setInspCount]  = useState(0);
 
   useEffect(() => { if (lotId) load(); }, [lotId]);
 
@@ -134,6 +136,9 @@ export default function LotDetailPage() {
         .order('opened_at', { ascending: false });
 
       setCases((casesData ?? []) as CaseRow[]);
+
+      const { count: ic } = await supabase.from('inspections').select('id', { count: 'exact', head: true }).eq('lot_id', lotId!).neq('status', 'cancelled');
+      setInspCount(ic ?? 0);
 
       // Load work orders for this lot
       const { data: woData } = await supabase
@@ -182,6 +187,7 @@ export default function LotDetailPage() {
   const openCases  = cases.filter(c => !['closed', 'voided', 'resolved'].includes(c.status));
   const TABS: { id: Tab; label: string; count?: number; icon: any }[] = [
     { id: 'owner',       label: 'Owner & Details', icon: User },
+    { id: 'inspections', label: 'QCI & PDI',       icon: ClipboardCheck, count: inspCount  },
     { id: 'cases',       label: 'Warranty Cases',  icon: Shield,  count: cases.length      },
     { id: 'work-orders', label: 'Work Orders',     icon: Wrench,  count: workOrders.length },
   ];
@@ -230,6 +236,7 @@ export default function LotDetailPage() {
         <div style={{ display: 'flex', gap: 10 }}>
           <StatPill label="Open Cases"   value={openCases.length}   color={openCases.length > 0 ? '#B08D4F' : '#5CCFA0'} />
           <StatPill label="Total Cases"  value={cases.length}       color="#5B87AD" />
+          <StatPill label="QCI & PDI"    value={inspCount}          color="#8D7140" />
           <StatPill label="Work Orders"  value={workOrders.length}  color="#6B5B95" />
         </div>
       </div>
@@ -312,6 +319,9 @@ export default function LotDetailPage() {
           </button>
         </div>
       )}
+
+      {/* Tab: QCI & PDI */}
+      {tab === 'inspections' && <LotInspections lotId={lot.id} />}
 
       {/* Tab: Cases */}
       {tab === 'cases' && (

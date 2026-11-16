@@ -3,7 +3,7 @@
 // Owner (PDI): read-only status of the items on their form.
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Camera, Check, ShieldQuestion, Clock, XCircle, Loader2 } from 'lucide-react';
+import { Camera, Check, ShieldQuestion, Clock, XCircle, Loader2, FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { compressImage } from '@/lib/inspections';
 import { BrandShield } from '@/components/identity';
@@ -27,6 +27,7 @@ export default function InspectionPortalPage() {
   const { token } = useParams();
   const [d, setD] = useState<Portal | null | undefined>(undefined);
   const [photos, setPhotos] = useState<Ph[]>([]);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [name, setName] = useState(() => { try { return localStorage.getItem('bg-portal-name') ?? ''; } catch { return ''; } });
   const [busy, setBusy] = useState<string | null>(null); const [err, setErr] = useState<Record<string, string>>({});
   const [ask, setAsk] = useState<string | null>(null); const [reason, setReason] = useState('');
@@ -36,6 +37,7 @@ export default function InspectionPortalPage() {
     const { data, error } = await supabase.rpc('insp_portal_get', { p_token: token });
     setD(error ? null : ((data ?? null) as Portal | null));
     supabase.functions.invoke('inspection-portal', { body: { action: 'photos', token } }).then(({ data: r }) => setPhotos(((r as { photos?: Ph[] } | null)?.photos) ?? []));
+    supabase.functions.invoke('inspection-portal', { body: { action: 'pdf', token } }).then(({ data: r }) => setPdfUrl(((r as { url?: string | null } | null)?.url) ?? null));
   }, [token]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => { try { localStorage.setItem('bg-portal-name', name); } catch { /* ignore */ } }, [name]);
@@ -79,6 +81,7 @@ export default function InspectionPortalPage() {
         <div style={{ marginTop: 8, fontSize: 15, fontWeight: 700, color: open.length ? '#9A6A16' : '#4A7A55' }}>
           {open.length ? `${open.length} item${open.length === 1 ? '' : 's'} still open` : 'Every item is closed'} <span style={{ color: '#485163', fontWeight: 500 }}>({done.length} of {rows.length} closed)</span>
         </div>
+        {pdfUrl && <a href={pdfUrl} target="_blank" rel="noreferrer" style={{ ...btn('#1B2A41'), textDecoration: 'none', marginTop: 12 }}><FileText size={18} /> {d.kind === 'pdi' ? 'Open the signed PDI form (PDF)' : 'Open the QCI report (PDF)'}</a>}
       </div>
 
       {isSuper && (

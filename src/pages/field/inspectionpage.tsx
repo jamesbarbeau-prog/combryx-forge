@@ -10,7 +10,7 @@ import {
 import { SignaturePad } from '@/components/signaturepad';
 import LotSource from '@/components/lotsource';
 import {
-  LIST_LABEL, PDI_CHECKLIST, ROOMS, SRC_LABEL, appOrigin, fmtDate, loadLotSource,
+  LIST_LABEL, ROOMS, SRC_LABEL, appOrigin, fmtDate, loadLotSource,
   type InspItem, type Inspection, type ListKey, type SiLine,
 } from '@/lib/inspections';
 
@@ -19,7 +19,7 @@ const card: React.CSSProperties = { background: '#F8F6F1', border: '1px solid #D
 const inp: React.CSSProperties = { width: '100%', minHeight: 48, borderRadius: 10, border: '1px solid #B9AF9B', background: '#fff', padding: '0 12px', font: '500 16px var(--font-body)', color: '#1F2A3C', boxSizing: 'border-box' };
 const big = (bg: string, fg = '#fff', border = 'none'): React.CSSProperties => ({ minHeight: 48, borderRadius: 10, border, background: bg, color: fg, fontWeight: 800, fontSize: 15, padding: '0 16px', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 });
 
-type Tab = 'lines' | 'checklist' | 'findings' | 'finish';
+type Tab = 'lines' | 'findings' | 'finish';
 
 /** One inspection item per source line, written to the phone (works with no signal). */
 async function seedLocal(insp: Inspection, lines: SiLine[]) {
@@ -61,7 +61,7 @@ export default function InspectionPage() {
     seeding.current = true; seedLocal(insp, lines).catch((e: any) => setErr(e.message ?? 'Could not add the lines')).finally(() => { seeding.current = false; });
   }, [insp?.id, insp?.status, lines, itemsL?.length]);
 
-  useEffect(() => { if (insp && tab === null) setTab(insp.status !== 'in_progress' ? 'finish' : insp.kind === 'qci' ? 'lines' : 'checklist'); }, [insp, tab]);
+  useEffect(() => { if (insp && tab === null) setTab(insp.status !== 'in_progress' ? 'finish' : insp.kind === 'qci' ? 'lines' : 'findings'); }, [insp, tab]);
 
   if (!ready || (insp && tab === null)) return <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center' }}><Loader2 size={16} className="spin" /> Loading…<style>{`.spin{animation:sp .9s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}`}</style></div>;
   if (!insp) return <div style={{ ...card, color: '#A5402F' }}>{err || (sync.online ? 'Inspection not found.' : 'This inspection is not saved on this phone. Connect to the internet once to open it.')}</div>;
@@ -71,11 +71,10 @@ export default function InspectionPage() {
   const siItems = items.filter(i => i.list === 'si_check');
   const findings = items.filter(i => i.list !== 'si_check');
   const answeredSi = siItems.filter(i => i.result).length;
-  const answeredCk = Object.keys(insp.checklist ?? {}).length;
   const tabs: { id: Tab; label: string; n?: string }[] = [
-    isQci ? { id: 'lines', label: 'Lines', n: siItems.length ? `${answeredSi}/${siItems.length}` : '' } : { id: 'checklist', label: 'Checklist', n: `${answeredCk}/${PDI_CHECKLIST.length}` },
-    { id: 'findings', label: 'Findings', n: String(findings.length) },
-    { id: 'finish', label: editable ? 'Finish' : 'Signed' },
+    ...(isQci ? [{ id: 'lines' as Tab, label: 'Lines', n: siItems.length ? `${answeredSi}/${siItems.length}` : '' }] : []),
+    { id: 'findings', label: isQci ? 'Findings' : 'Items', n: String(findings.length) },
+    { id: 'finish', label: editable ? (isQci ? 'Finish' : 'Sign') : 'Signed' },
   ];
 
   const photosOf = (itemId: string) => photos.filter(p => p.item_id === itemId && p.kind !== 'closing');
@@ -106,13 +105,10 @@ export default function InspectionPage() {
       {tab === 'lines' && isQci && (
         <LinesTab insp={insp} items={siItems} photosOf={photosOf} urls={urls} editable={editable} online={sync.online} setErr={setErr} lines={lines} onLines={setLines} />
       )}
-      {tab === 'checklist' && !isQci && (
-        <ChecklistTab insp={insp} editable={editable} addIssue={(name) => setSheet({ list: 'deficiency', room: undefined, description: name + ': ' })} />
-      )}
       {tab === 'findings' && (
         <FindingsTab insp={insp} items={findings} photosOf={photosOf} urls={urls} editable={editable} setErr={setErr} add={(list) => setSheet({ list })} />
       )}
-      {tab === 'finish' && <FinishTab insp={insp} items={items} photos={photos} editable={editable} online={sync.online} answeredSi={answeredSi} totalSi={siItems.length} answeredCk={answeredCk} />}
+      {tab === 'finish' && <FinishTab insp={insp} items={items} photos={photos} editable={editable} online={sync.online} answeredSi={answeredSi} totalSi={siItems.length} />}
 
       {sheet && editable && (
         <FindingSheet insp={insp} init={sheet} nextSeq={(l: ListKey) => items.filter(i => i.list === l).length + 1} onClose={() => setSheet(null)} onSaved={() => { setSheet(null); setErr(''); setTab('findings'); }} />
@@ -200,52 +196,23 @@ function LinesTab({ insp, items, photosOf, urls, editable, online, setErr, lines
   );
 }
 
-// ───────── PDI: Tarion minimum checklist ─────────
-function ChecklistTab({ insp, editable, addIssue }: { insp: Inspection; editable: boolean; addIssue: (name: string) => void }) {
-  async function set(n: number, v: 'ok' | 'issue' | 'na', name: string) {
-    const cur = insp.checklist?.[String(n)]; const next = { ...(insp.checklist ?? {}) } as Record<string, string>;
-    if (cur === v) delete next[String(n)]; else next[String(n)] = v;
-    await patchInsp(insp.id, { checklist: next as Inspection['checklist'] });
-    if (v === 'issue' && cur !== 'issue') addIssue(name);
-  }
-  return (
-    <div style={{ display: 'grid', gap: 10 }}>
-      <div style={{ fontSize: 13.5, color: '#485163' }}>Tarion's minimum checklist. Mark each item OK or Issue (an Issue opens the defect form), or N/A if the home does not have it.</div>
-      {PDI_CHECKLIST.map((name, i) => {
-        const v = insp.checklist?.[String(i + 1)];
-        return (
-          <div key={i} style={{ ...card, padding: 12, borderLeft: `4px solid ${v === 'ok' ? '#4A7A55' : v === 'issue' ? '#A5402F' : '#C6BDAC'}` }}>
-            <div style={{ fontSize: 14.5, fontWeight: 600, lineHeight: 1.35 }}><span style={{ color: BRASS, fontWeight: 800 }}>{i + 1}.</span> {name}</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginTop: 8 }}>
-              {([['ok', 'OK', '#4A7A55'], ['issue', 'Issue', '#A5402F'], ['na', 'N/A', '#6C7280']] as const).map(([k, label, color]) => (
-                <button key={k} disabled={!editable} onClick={() => set(i + 1, k, name)} aria-pressed={v === k}
-                  style={{ minHeight: 46, borderRadius: 9, border: `2px solid ${color}`, background: v === k ? color : 'transparent', color: v === k ? '#fff' : color, fontWeight: 800, fontSize: 14, cursor: editable ? 'pointer' : 'default', fontFamily: 'inherit' }}>{label}</button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 // ───────── Findings: defects, substitutions, items not assessed ─────────
 function FindingsTab({ insp, items, photosOf, urls, editable, setErr, add }: { insp: Inspection; items: InspItem[]; photosOf: (id: string) => LocalPhoto[]; urls: Record<string, string>; editable: boolean; setErr: (s: string) => void; add: (l: ListKey) => void }) {
-  const lists: ListKey[] = insp.kind === 'qci' ? ['deficiency'] : ['deficiency', 'substitution', 'not_assessed'];
+  const lists: ListKey[] = ['deficiency'];
   async function del(it: InspItem) { if (!confirm('Remove this finding and its photos?')) return; await removeItem(it.id); }
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       {editable && (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${lists.length},1fr)`, gap: 8 }}>
-          {lists.map(l => <button key={l} onClick={() => add(l)} style={big(l === 'deficiency' ? NAVY : '#F8F6F1', l === 'deficiency' ? '#fff' : '#1B2A41', l === 'deficiency' ? 'none' : '1px solid #B9AF9B')}><Plus size={17} />{l === 'deficiency' ? (insp.kind === 'qci' ? 'Add defect' : 'Add defect') : l === 'substitution' ? 'Substitution' : 'Not assessed'}</button>)}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+          {lists.map(l => <button key={l} onClick={() => add(l)} style={{ ...big(NAVY), minHeight: 56, fontSize: 16 }}><Plus size={18} />{insp.kind === 'qci' ? 'Add defect' : 'Add item'}</button>)}
         </div>
       )}
       {lists.map(l => {
         const rows = items.filter(i => i.list === l); if (!rows.length && l !== 'deficiency') return null;
         return (
           <div key={l}>
-            <div style={{ fontWeight: 800, fontSize: 14, color: NAVY, margin: '4px 2px 8px' }}>{LIST_LABEL[l]} ({rows.length})</div>
-            {!rows.length && <div style={{ ...card, color: '#485163', fontSize: 14 }}>Nothing recorded yet.</div>}
+            <div style={{ fontWeight: 800, fontSize: 14, color: NAVY, margin: '4px 2px 8px' }}>{insp.kind === 'qci' ? LIST_LABEL[l] : 'Items to be completed'} ({rows.length})</div>
+            {!rows.length && <div style={{ ...card, color: '#485163', fontSize: 14 }}>{insp.kind === 'qci' ? 'Nothing recorded yet.' : 'Walk the home with the owner. When they point out something, tap Add item, choose the room, describe it and take the photo.'}</div>}
             <div style={{ display: 'grid', gap: 8 }}>
               {rows.map((it, n) => (
                 <div key={it.id} style={card}>
@@ -278,7 +245,7 @@ function FindingSheet({ insp, init, nextSeq, onClose, onSaved }: { insp: Inspect
   useEffect(() => { ta.current?.focus(); const l = ta.current?.value.length ?? 0; ta.current?.setSelectionRange(l, l); }, []);
 
   async function save() {
-    if (!desc.trim()) { setErr('Describe what you found.'); return; }
+    if (!desc.trim()) { setErr('Describe the item.'); return; }
     setBusy(true); setErr('');
     try {
       const item = await putItem({ company_id: insp.company_id, inspection_id: insp.id, seq: nextSeq(list), list, source: 'observed', room: room || null, description: desc.trim() });
@@ -286,11 +253,11 @@ function FindingSheet({ insp, init, nextSeq, onClose, onSaved }: { insp: Inspect
       onSaved();
     } catch (e: any) { setErr(e.message ?? 'Could not save'); setBusy(false); }
   }
-  const lists: ListKey[] = insp.kind === 'qci' ? ['deficiency'] : ['deficiency', 'substitution', 'not_assessed'];
+  const lists: ListKey[] = ['deficiency'];
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(20,28,44,0.55)', display: 'flex', alignItems: 'flex-end' }} onClick={onClose}>
       <div onClick={e => e.stopPropagation()} style={{ background: '#F8F6F1', width: '100%', maxWidth: 640, margin: '0 auto', borderRadius: '18px 18px 0 0', padding: '16px 14px calc(16px + env(safe-area-inset-bottom))', maxHeight: '92dvh', overflowY: 'auto', display: 'grid', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center' }}><div style={{ fontWeight: 800, fontSize: 17, flex: 1 }}>{list === 'deficiency' ? 'Add a defect' : list === 'substitution' ? 'Add a substitution' : 'Add an item not assessed'}</div><button onClick={onClose} aria-label="Close" style={{ border: 'none', background: 'none', padding: 8 }}><X size={20} /></button></div>
+        <div style={{ display: 'flex', alignItems: 'center' }}><div style={{ fontWeight: 800, fontSize: 17, flex: 1 }}>{insp.kind === 'qci' ? 'Add a defect' : 'Add an item'}</div><button onClick={onClose} aria-label="Close" style={{ border: 'none', background: 'none', padding: 8 }}><X size={20} /></button></div>
         {lists.length > 1 && (
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${lists.length},1fr)`, gap: 6 }}>
             {lists.map(l => <button key={l} onClick={() => setList(l)} style={{ minHeight: 44, borderRadius: 9, border: '1px solid #B9AF9B', background: list === l ? NAVY : '#fff', color: list === l ? '#fff' : '#1F2A3C', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>{LIST_LABEL[l]}</button>)}
@@ -300,21 +267,21 @@ function FindingSheet({ insp, init, nextSeq, onClose, onSaved }: { insp: Inspect
           {ROOMS.map(r => <button key={r} onClick={() => setRoom(room === r ? '' : r)} style={{ flex: '0 0 auto', minHeight: 40, borderRadius: 20, border: '1px solid #B9AF9B', background: room === r ? '#2F5576' : '#fff', color: room === r ? '#fff' : '#1F2A3C', fontWeight: 600, fontSize: 13.5, padding: '0 14px', cursor: 'pointer', fontFamily: 'inherit' }}>{r}</button>)}
         </div>
         <input value={room} onChange={e => setRoom(e.target.value)} placeholder="Room or location" style={inp} />
-        <textarea ref={ta} value={desc} onChange={e => setDesc(e.target.value)} placeholder="What did you find?" style={{ ...inp, minHeight: 100, padding: 12 }} />
+        <textarea ref={ta} value={desc} onChange={e => setDesc(e.target.value)} placeholder={insp.kind === 'qci' ? 'What did you find?' : 'What needs to be done?'} style={{ ...inp, minHeight: 100, padding: 12 }} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           {previews.map((u, i) => <div key={u} style={{ position: 'relative' }}><img src={u} alt="" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }} /><button onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label="Remove" style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 11, border: 'none', background: '#A5402F', color: '#fff' }}><X size={12} /></button></div>)}
           <label style={{ ...big('#fff', NAVY, '1px solid #B9AF9B'), minHeight: 64, width: 64, padding: 0, borderRadius: 8, flexDirection: 'column', gap: 2, fontSize: 11 }}><Camera size={22} />Photo<input type="file" accept="image/*" capture="environment" hidden onChange={e => { setFiles([...files, ...Array.from(e.target.files ?? [])]); e.target.value = ''; }} /></label>
           <label style={{ ...big('#fff', NAVY, '1px solid #B9AF9B'), minHeight: 64, width: 48, padding: 0, borderRadius: 8 }} aria-label="Choose from gallery"><ImageIcon size={18} /><input type="file" accept="image/*" multiple hidden onChange={e => { setFiles([...files, ...Array.from(e.target.files ?? [])]); e.target.value = ''; }} /></label>
         </div>
         {err && <div style={{ color: '#A5402F', fontSize: 14 }}>{err}</div>}
-        <button onClick={save} disabled={busy} style={big(NAVY)}>{busy ? 'Saving…' : 'Save finding'}</button>
+        <button onClick={save} disabled={busy} style={big(NAVY)}>{busy ? 'Saving…' : (insp.kind === 'qci' ? 'Save finding' : 'Save item')}</button>
       </div>
     </div>
   );
 }
 
 // ───────── Finish: details, signatures, lock ─────────
-function FinishTab({ insp, items, photos, editable, online, answeredSi, totalSi, answeredCk }: { insp: Inspection; items: InspItem[]; photos: LocalPhoto[]; editable: boolean; online: boolean; answeredSi: number; totalSi: number; answeredCk: number }) {
+function FinishTab({ insp, items, photos, editable, online, answeredSi, totalSi }: { insp: Inspection; items: InspItem[]; photos: LocalPhoto[]; editable: boolean; online: boolean; answeredSi: number; totalSi: number }) {
   const isQci = insp.kind === 'qci';
   const [superName, setSuperName] = useState(insp.super_name ?? ''); const [superEmail, setSuperEmail] = useState(insp.super_email ?? '');
   const [inspector, setInspector] = useState(insp.inspector_name ?? '');
@@ -322,23 +289,24 @@ function FinishTab({ insp, items, photos, editable, online, answeredSi, totalSi,
   const [absent, setAbsent] = useState(insp.absent_note ?? ''); const [notes, setNotes] = useState(insp.notes ?? '');
   const [pName, setPName] = useState(insp.owner_names ?? ''); const [p2Name, setP2Name] = useState(''); const [dName, setDName] = useState(''); const [useDesignate, setUseDesignate] = useState(false); const [two, setTwo] = useState(false);
   const [sigB, setSigB] = useState<string | null>(null); const [sigP, setSigP] = useState<string | null>(null); const [sigP2, setSigP2] = useState<string | null>(null); const [sigD, setSigD] = useState<string | null>(null);
+  const [hub, setHub] = useState(false);
   const [busy, setBusy] = useState(false); const [err, setErr] = useState(''); const [note, setNote] = useState('');
   const [sigsL] = useLocal(() => listSigs(insp.id), [insp.id]); const sigs = sigsL ?? [];
 
-  const defects = items.filter(i => i.list === 'deficiency').length, subs = items.filter(i => i.list === 'substitution').length, na = items.filter(i => i.list === 'not_assessed').length;
+  const defects = items.filter(i => i.list === 'deficiency').length;
   const siBad = items.filter(i => i.list === 'si_check' && (i.result === 'wrong' || i.result === 'missing')).length;
   const base = `${appOrigin()}/portal/inspection/`;
 
   async function finish() {
     setErr('');
     if (isQci && answeredSi < totalSi) return setErr(`${totalSi - answeredSi} line${totalSi - answeredSi === 1 ? ' is' : 's are'} not answered yet. Mark each OK, Wrong, Missing or N/A.`);
-    if (!isQci && answeredCk < PDI_CHECKLIST.length) return setErr(`${PDI_CHECKLIST.length - answeredCk} checklist item${PDI_CHECKLIST.length - answeredCk === 1 ? ' is' : 's are'} not answered yet.`);
     if (!inspector.trim()) return setErr('Enter the builder representative name.');
     if (!sigB) return setErr('The builder representative needs to sign.');
     if (!superName.trim() || !/.+@.+\..+/.test(superEmail)) return setErr('Enter the superintendent name and email so the findings reach construction.');
     if (!isQci) {
       if (!poss) return setErr('Confirm the date of possession.');
       if (present) {
+        if (!hub) return setErr('Tick the box to confirm the home was inspected and the Learning Hub was explained.');
         if (!useDesignate && (!pName.trim() || !sigP)) return setErr('The purchaser needs to enter their name and sign.');
         if (useDesignate && (!dName.trim() || !sigD)) return setErr('The designate needs to enter their name and sign.');
         if (two && (!p2Name.trim() || !sigP2)) return setErr('The second purchaser needs to enter their name and sign.');
@@ -372,7 +340,7 @@ function FinishTab({ insp, items, photos, editable, online, answeredSi, totalSi,
         <div style={{ fontWeight: 800, marginBottom: 6 }}>Summary</div>
         <div style={{ fontSize: 14.5, lineHeight: 1.6 }}>
           {isQci ? <>Lines checked: <b>{answeredSi}/{totalSi}</b> · Not as specified: <b>{siBad}</b> · Observed defects: <b>{defects}</b></>
-            : <>Checklist: <b>{answeredCk}/{PDI_CHECKLIST.length}</b> · Defects: <b>{defects}</b> · Substitutions: <b>{subs}</b> · Not assessed: <b>{na}</b></>}
+            : <>Items to be completed: <b>{defects}</b></>}
           <br />Photos: <b>{photos.length}</b>
         </div>
       </div>
@@ -401,6 +369,7 @@ function FinishTab({ insp, items, photos, editable, online, answeredSi, totalSi,
               {present ? (
                 <>
                   <div style={{ fontSize: 13.5, color: '#485163', fontStyle: 'italic' }}>“I have inspected my new home and I agree that the descriptions of the items listed on this form are accurate.”</div>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, minHeight: 40, fontSize: 13.5, lineHeight: 1.4 }}><input type="checkbox" checked={hub} onChange={e => setHub(e.target.checked)} style={{ width: 22, height: 22, flex: '0 0 auto' }} /> I / We the undersigned Purchaser(s) certify that the above referenced unit has been physically inspected by myself / ourselves and the builder has advised that the Tarion Homeowner's Learning Hub can be accessed at tarion.com/homeowners/learning-hub</label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 40, fontSize: 14 }}><input type="checkbox" checked={useDesignate} onChange={e => setUseDesignate(e.target.checked)} style={{ width: 20, height: 20 }} /> A designate is signing (needs the owner's written authority)</label>
                   {!useDesignate ? (<><input style={inp} value={pName} onChange={e => setPName(e.target.value)} placeholder="Purchaser name" /><SignaturePad onChange={setSigP} /></>)
                     : (<><input style={inp} value={dName} onChange={e => setDName(e.target.value)} placeholder="Designate name" /><SignaturePad onChange={setSigD} /></>)}

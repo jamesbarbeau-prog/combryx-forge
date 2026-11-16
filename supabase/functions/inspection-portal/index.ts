@@ -1,5 +1,6 @@
 // inspection-portal: photo links and closing-photo upload for the superintendent / owner link (no login; the private token is the key).
 //   JSON  { action: 'photos', token }                   -> { photos: [{ item_id, kind, url }] }
+//   JSON  { action: 'pdf', token }                      -> { url } signed link to the official signed PDF
 //   multipart { token, item_id, name, file }             -> uploads a CLOSING photo for an item (superintendent link only)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -53,6 +54,14 @@ Deno.serve(async req => {
         if (s?.signedUrl) out.push({ item_id: p.item_id, kind: p.kind, url: s.signedUrl });
       }
       return json({ photos: out });
+    }
+    if (body.action === 'pdf') {
+      const insp = await find(String(body.token ?? ''), false);
+      if (!insp) return json({ url: null });
+      const { data: r } = await admin.from('inspections').select('pdf_path').eq('id', insp.id).single();
+      if (!r?.pdf_path) return json({ url: null });
+      const { data: sg } = await admin.storage.from('inspection-photos').createSignedUrl(r.pdf_path, 3600);
+      return json({ url: sg?.signedUrl ?? null });
     }
     return json({ error: 'Unknown request.' }, 400);
   } catch (e) { return json({ error: (e as Error).message }, 500); }
