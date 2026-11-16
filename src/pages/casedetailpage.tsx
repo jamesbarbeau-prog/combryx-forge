@@ -157,6 +157,35 @@ function StatPill({ label, value, color }: { label: string; value: string | numb
 
 // ─── PhotoGrid — multiple uploads per evidence type ───────────────────────────
 
+/** Photos the homeowner submitted through Tarion. They live in a private bucket, so each one is opened with a short-lived link. */
+function OwnerPhotos({ photos }: { photos: { id: string; file_name: string | null; storage_path: string | null }[] }) {
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const next: Record<string, string> = {};
+      for (const p of photos) {
+        if (!p.storage_path) continue;
+        const { data } = await supabase.storage.from('warranty-photos').createSignedUrl(p.storage_path, 3600);
+        if (data?.signedUrl) next[p.id] = data.signedUrl;
+      }
+      if (alive) setUrls(next);
+    })();
+    return () => { alive = false; };
+  }, [photos.map(p => p.id).join(',')]);
+  if (!photos.length) return null;
+  return (
+    <div style={{ marginBottom:14 }}>
+      <p style={{ fontSize:9, fontWeight:800, textTransform:'uppercase' as const, letterSpacing:'0.1em', color:'var(--color-muted)', marginBottom:8 }}>Homeowner photos ({photos.length})</p>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(84px, 1fr))', gap:6 }}>
+        {photos.map(p => urls[p.id]
+          ? <a key={p.id} href={urls[p.id]} target="_blank" rel="noreferrer"><img src={urls[p.id]} alt={p.file_name ?? 'Homeowner photo'} style={{ width:'100%', height:72, objectFit:'cover', borderRadius:6, display:'block' }} /></a>
+          : <div key={p.id} style={{ height:72, borderRadius:6, background:'var(--color-mist)' }} />)}
+      </div>
+    </div>
+  );
+}
+
 function PhotoGrid({ photos, label, evidenceType, itemId, caseId, companyId, profileId, isUploading, onUpload, onRefresh }: {
   photos: ItemEvidence[]; label: string; evidenceType: string;
   itemId: string; caseId: string; companyId: string; profileId: string;
@@ -720,6 +749,7 @@ export default function CaseDetailPage() {
                       const isExpanded   = expandedItem === item.id;
                       const isUpdating   = updatingItem === item.id;
                       const isUploading  = uploadingEvidence === item.id;
+                      const ownerPhotos  = getPhotos(item.id, 'owner_photo');
                       const assessPhotos = getPhotos(item.id, 'assessment_photo');
                       const afterPhotos  = getPhotos(item.id, 'completion_photo_after');
                       const sigPhotos    = getPhotos(item.id, 'homeowner_signature');
@@ -795,6 +825,8 @@ export default function CaseDetailPage() {
                                   </button>
                                 </div>
                               )}
+
+                              <OwnerPhotos photos={ownerPhotos} />
 
                               {/* Phase 1 */}
                               <div style={{ marginBottom:16 }}>
