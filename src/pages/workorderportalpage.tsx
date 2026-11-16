@@ -2,14 +2,16 @@
 // They see the site and the proposed visit time, can print the work order, accept the time or ask for another, and mark the job complete.
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Printer, Check, CalendarClock, MapPin, Phone, Wrench } from 'lucide-react';
+import { Printer, Check, CalendarClock, MapPin, Wrench, PenLine } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { SignaturePad } from '@/components/signaturepad';
 
 interface WO {
   ref: string; company: string | null; logo: string | null; company_phone: string | null; audience: string; for: string | null;
-  issue: string; description: string | null; notes: string | null; priority: string | null;
-  address: string | null; lot: string | null; community: string | null; homeowner: string | null; homeowner_phone: string | null;
-  items: { number: number | null; room: string | null; location: string | null; description: string }[];
+  issue: string;
+  address: string | null; lot: string | null; community: string | null; homeowner: string | null;
+  items: { id: string; number: number | null; room: string | null; location: string | null; description: string }[];
+  signature: string | null; signed_name: string | null; signed_at: string | null;
   proposed_at: string | null; proposed_window: string | null; status: string | null;
   response: string | null; response_at: string | null; requested_time: string | null; response_note: string | null;
   completed_at: string | null; completion_note: string | null;
@@ -27,6 +29,10 @@ export default function WorkOrderPortalPage() {
   const [time, setTime] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [photos, setPhotos] = useState<{ item_id: string; url: string; name: string }[]>([]);
+  const [sig, setSig] = useState<string | null>(null);
+  const [sigName, setSigName] = useState('');
+  const [noOwner, setNoOwner] = useState(false);
 
   const load = useCallback(async () => {
     const { data, error } = await supabase.rpc('wo_portal_get', { p_token: token });
@@ -34,13 +40,18 @@ export default function WorkOrderPortalPage() {
     setWo((data ?? null) as WO | null);
   }, [token]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!token) return;
+    supabase.functions.invoke('wo-portal-photos', { body: { token } }).then(({ data }) => setPhotos(((data as { photos?: typeof photos } | null)?.photos) ?? []));
+  }, [token]);
+  useEffect(() => { if (wo && !sigName) setSigName(wo.homeowner ?? ''); }, [wo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function act(action: 'accept' | 'reschedule' | 'complete' | 'attended' | 'no_show') {
     setBusy(true); setErr('');
-    const { error } = await supabase.rpc('wo_portal_respond', { p_token: token, p_action: action, p_note: note || null, p_time: time || null });
+    const { error } = await supabase.rpc('wo_portal_respond', { p_token: token, p_action: action, p_note: note || null, p_time: time || null, p_sig: action === 'complete' ? sig : null, p_sig_name: action === 'complete' && sig ? sigName.trim() || null : null });
     setBusy(false);
     if (error) { setErr(error.message); return; }
-    setMode(''); setNote(''); setTime(''); await load();
+    setMode(''); setNote(''); setTime(''); setSig(null); setNoOwner(false); await load();
   }
 
   if (wo === undefined) return <div className="wp"><style>{CSS}</style><p className="wp-m">Loading…</p></div>;
@@ -67,20 +78,26 @@ export default function WorkOrderPortalPage() {
             <h1>{wo.issue}</h1>
             {wo.for && <div className="wp-m">For {wo.for}{wo.audience === 'tech' ? ' (in-house technician)' : ''}</div>}
           </div>
-          {wo.priority && wo.priority !== 'normal' && <span className="wp-tag">{wo.priority}</span>}
         </div>
 
         <section className="wp-sec">
           <div className="wp-row"><MapPin size={16} /><div><b>{wo.address ?? 'Address not on file'}</b><span>{[wo.community, wo.lot ? `Lot ${wo.lot}` : ''].filter(Boolean).join(' · ')}</span></div></div>
-          {(wo.homeowner || wo.homeowner_phone) && <div className="wp-row"><Phone size={16} /><div><b>{wo.homeowner ?? 'Homeowner'}</b><span>{wo.homeowner_phone ?? ''}{wo.homeowner_phone ? ' · call to arrange access' : ''}</span></div></div>}
         </section>
 
         <section className="wp-sec">
-          <h2><Wrench size={15} /> Work to be done</h2>
+          <h2><Wrench size={15} /> Scope of work</h2>
           {wo.items.length ? (
-            <ol className="wp-items">{wo.items.map((i, k) => <li key={k}><b>{[i.number != null ? `Item ${i.number}` : '', i.room, i.location].filter(Boolean).join(' · ')}</b><p>{i.description}</p></li>)}</ol>
-          ) : <p>{wo.description ?? wo.issue}</p>}
-          {wo.notes && <p className="wp-m">{wo.notes}</p>}
+            <ol className="wp-items">{wo.items.map((i, k) => {
+              const ph = photos.filter(x => x.item_id === i.id);
+              return (
+                <li key={k}>
+                  <b>{[i.number != null ? `Item ${i.number}` : '', i.room, i.location].filter(Boolean).join(' · ')}</b>
+                  <p>{i.description}</p>
+                  {ph.length > 0 && <div className="wp-photos">{ph.map((x, n) => <a key={n} href={x.url} target="_blank" rel="noreferrer"><img src={x.url} alt={`Photo ${n + 1} for item ${i.number ?? ''}`} loading="lazy" /></a>)}</div>}
+                </li>
+              );
+            })}</ol>
+          ) : <p>{wo.issue}</p>}
         </section>
 
         <section className="wp-sec wp-visit">
@@ -140,12 +157,28 @@ export default function WorkOrderPortalPage() {
                 <div className="wp-form">
                   <label>What was done? (optional)</label>
                   <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="Short note for the office" />
-                  <div className="wp-actions"><button className="wp-btn primary" disabled={busy} onClick={() => act('complete')}>Mark complete</button><button className="wp-btn ghost" onClick={() => setMode('')}>Cancel</button></div>
+                  <label>Owner sign-off: the owner signs below to confirm the work</label>
+                  <input value={sigName} onChange={e => setSigName(e.target.value)} placeholder="Owner's name" />
+                  <SignaturePad onChange={setSig} />
+                  <label className="wp-check"><input type="checkbox" checked={noOwner} onChange={e => setNoOwner(e.target.checked)} /> The owner was not home or did not sign</label>
+                  <div className="wp-actions"><button className="wp-btn primary" disabled={busy || (!sig && !noOwner)} onClick={() => act('complete')}>Mark complete</button><button className="wp-btn ghost" onClick={() => setMode('')}>Cancel</button></div>
                 </div>
               )}
               {err && <p className="wp-err">{err}</p>}
             </div>
           )}
+        </section>
+
+        <section className={`wp-sec wp-sign${wo.signature ? '' : ' wp-printonly'}`}>
+          <h2><PenLine size={15} /> Owner sign-off</h2>
+          {wo.signature ? (
+            <div className="wp-signed"><img src={wo.signature} alt="Owner signature" /><span>{wo.signed_name ?? 'Owner'}{wo.signed_at ? ` · ${when(wo.signed_at)}` : ''}</span></div>
+          ) : (
+            <div className="wp-blank">
+              <div><i /><span>Owner name</span></div><div><i /><span>Signature</span></div><div><i /><span>Date</span></div>
+            </div>
+          )}
+          <p className="wp-m">I confirm the work listed above has been completed.</p>
         </section>
 
         {wo.company_phone && <p className="wp-m wp-foot">Questions? Call {wo.company} at {wo.company_phone}.</p>}
@@ -177,5 +210,13 @@ const CSS = `
 .wp-form{display:flex;flex-direction:column;gap:6px;margin-top:10px}.wp-form label{font-size:12px;font-weight:700;color:#485163;margin-top:6px}
 .wp-form input,.wp-form textarea{font:inherit;font-size:15px;padding:10px 12px;border:1px solid #C9C0AE;border-radius:6px;background:#fff;color:#1F2A3C}
 .wp-err{color:#A5402F;font-size:13px;margin-top:10px}.wp-foot{margin-top:18px}
-@media print{.wp{background:#fff;padding:0}.wp-noprint{display:none!important}.wp-card{border:none;box-shadow:none;padding:0;max-width:none}}
+
+.wp-photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.wp-photos img{height:120px;width:auto;max-width:200px;object-fit:cover;border-radius:5px;border:1px solid #D9D2C5;display:block}
+.wp-items li{break-inside:avoid}
+.wp-check{display:flex;align-items:center;gap:8px;font-weight:600;color:#485163;margin-top:10px}.wp-check input{width:auto}
+.wp-sign{break-inside:avoid}
+.wp-blank{display:grid;grid-template-columns:1.4fr 2fr .9fr;gap:18px;margin:26px 0 10px}.wp-blank div{display:flex;flex-direction:column;gap:5px}.wp-blank i{display:block;height:34px;border-bottom:1.5px solid #1F2A3C}.wp-blank span{font-size:11.5px;color:#6C7280}
+.wp-signed{display:flex;flex-direction:column;gap:4px;margin:8px 0}.wp-signed img{height:70px;width:auto;max-width:280px;object-fit:contain;align-self:flex-start;border-bottom:1.5px solid #1F2A3C}.wp-signed span{font-size:12.5px;color:#485163}
+@media screen{.wp-printonly{display:none}}
+@media print{.wp-photos img{height:105px}.wp{background:#fff;padding:0}.wp-noprint{display:none!important}.wp-card{border:none;box-shadow:none;padding:0;max-width:none}}
 `;
