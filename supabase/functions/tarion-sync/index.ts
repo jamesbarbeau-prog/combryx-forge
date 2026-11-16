@@ -229,7 +229,7 @@ async function runForms(s: Session, admin: any, companyId: string, backfillDays?
    Tarion's photo download: GET https://formattachments.tarion.com/download/{enrolment}/{case}[/{line item}]  (header sessionId)
    returns a zip laid out {enrolment}/{case}/{lineItem}/{file}. 204 = no photos. Same login as everything else. */
 const PHOTO_HOST = 'https://formattachments.tarion.com';
-async function servicePhotos(s: Session, enrolment: string, caseNumber: string): Promise<{ code: number; files: { item: string; name: string; bytes: Uint8Array }[] }> {
+async function servicePhotos(s: Session, enrolment: string, caseNumber: string): Promise<{ code: number; files: { item: string; name: string; extract: () => Uint8Array }[] }> {
   const plain = caseNumber.replace(/\D/g, '').replace(/^0+/, '');
   const forms = plain.length < 8 ? [('00000000' + plain).slice(-8), plain] : [plain];
   let code = 0;
@@ -237,11 +237,14 @@ async function servicePhotos(s: Session, enrolment: string, caseNumber: string):
     const res = await fetch(`${PHOTO_HOST}/download/${encodeURIComponent(enrolment)}/${encodeURIComponent(cn)}`, { headers: { sessionId: s.sessionId } });
     code = res.status;
     if (code === 200) {
-      const zip = unzipSync(new Uint8Array(await res.arrayBuffer())), files: { item: string; name: string; bytes: Uint8Array }[] = [];
-      for (const [path, bytes] of Object.entries(zip)) {
+      // Keep only the compressed zip in memory and unpack one photo at a time. Unpacking the whole zip at once ran the function out of memory.
+      const zip = new Uint8Array(await res.arrayBuffer()), files: { item: string; name: string; extract: () => Uint8Array }[] = [];
+      const names: string[] = [];
+      unzipSync(zip, { filter: f => { if (f.originalSize > 0) names.push(f.name); return false; } });
+      for (const path of names) {
         const parts = path.split('/').filter(Boolean), name = parts[parts.length - 1] ?? '';
-        if (!bytes.length || !name || !IMG.test(name.split('.').pop() ?? '')) continue;
-        files.push({ item: parts.length >= 3 ? parts[parts.length - 2] : '', name, bytes });
+        if (!name || !IMG.test(name.split('.').pop() ?? '')) continue;
+        files.push({ item: parts.length >= 3 ? parts[parts.length - 2] : '', name, extract: () => unzipSync(zip, { filter: f => f.name === path })[path] });
       }
       return { code, files };
     }
@@ -255,14 +258,14 @@ async function runPhotos(s: Session, admin: any, companyId: string, deadline: nu
   const out = { downloaded: 0, forms: 0, remaining: 0, notes: [] as string[], errors: [] as string[] };
   if (recheck) await admin.from('tarion_form_imports').update({ photos_complete: false }).eq('company_id', companyId).eq('status', 'imported').not('case_id', 'is', null);
   const { data: pend } = await admin.from('tarion_form_imports').select('id, tarion_case_id, tarion_case_number, enrolment, case_id, photos_done, created_at')
-    .eq('company_id', companyId).eq('status', 'imported').eq('photos_complete', false).not('case_id', 'is', null).order('created_at', { ascending: false }).limit(25);
+    .eq('company_id', companyId).eq('status', 'imported').eq('photos_complete', false).not('case_id', 'is', null).order('created_at', { ascending: false }).limit(10);
   for (const imp of pend ?? []) {
     if (Date.now() > deadline) break;
     try {
       const { data: items } = await admin.from('warranty_items').select('id, item_number, tarion_deficiency_id').eq('case_id', imp.case_id).not('tarion_deficiency_id', 'is', null);
       const byDef = new Map<string, Rec>((items ?? []).map((i: Rec) => [i.tarion_deficiency_id, i]));
       const byNo = new Map<string, Rec>((items ?? []).map((i: Rec) => [String(i.item_number), i]));
-      const cand = new Map<string, { id: string; kind: 'cv' | 'att' | 'zip'; title: string; ext: string; created: string; item: Rec | undefined; bytes?: Uint8Array }>();
+      const cand = new Map<string, { id: string; kind: 'cv' | 'att' | 'zip'; title: string; ext: string; created: string; item: Rec | undefined; extract?: () => Uint8Array }>();
       const strat: Record<string, number> = { service: 0, links: 0, caseFiles: 0, attachments: 0 };
       let svc = 'service not asked';
 
@@ -271,7 +274,7 @@ async function runPhotos(s: Session, admin: any, companyId: string, deadline: nu
         try {
           const r = await servicePhotos(s, imp.enrolment, imp.tarion_case_number);
           svc = r.code === 200 ? `service ${r.files.length} file(s)` : r.code === 204 ? 'service: no photos' : `service HTTP ${r.code}`;
-          for (const f of r.files) { const base = f.name.replace(/[^A-Za-z0-9._-]/g, '_'); cand.set('z-' + f.item + '-' + base, { id: f.item + '-' + base, kind: 'zip', title: f.name.replace(/\.[^.]+$/, ''), ext: f.name.split('.').pop() ?? 'jpg', created: new Date().toISOString(), item: byNo.get(f.item.replace(/\D/g, '')), bytes: f.bytes }); strat.service++; }
+          for (const f of r.files) { const base = f.name.replace(/[^A-Za-z0-9._-]/g, '_'); cand.set('z-' + f.item + '-' + base, { id: f.item + '-' + base, kind: 'zip', title: f.name.replace(/\.[^.]+$/, ''), ext: f.name.split('.').pop() ?? 'jpg', created: new Date().toISOString(), item: byNo.get(f.item.replace(/\D/g, '')), extract: f.extract }); strat.service++; }
         } catch (e) { svc = 'service error: ' + (e as Error).message.slice(0, 80); }
       } else svc = 'no enrolment on the form';
       const viaService = strat.service > 0;
@@ -305,7 +308,7 @@ async function runPhotos(s: Session, admin: any, companyId: string, deadline: nu
         if (haveSet.has(path)) continue;
         if (Date.now() > deadline) { hitDeadline = true; break; }
         let body: ArrayBuffer | Uint8Array, ctype = 'image/jpeg';
-        if (c.kind === 'zip') { body = c.bytes!; ctype = /^png$/i.test(ext) ? 'image/png' : /^gif$/i.test(ext) ? 'image/gif' : /^webp$/i.test(ext) ? 'image/webp' : /^hei[cf]$/i.test(ext) ? 'image/heic' : 'image/jpeg'; }
+        if (c.kind === 'zip') { body = c.extract!(); ctype = /^png$/i.test(ext) ? 'image/png' : /^gif$/i.test(ext) ? 'image/gif' : /^webp$/i.test(ext) ? 'image/webp' : /^hei[cf]$/i.test(ext) ? 'image/heic' : 'image/jpeg'; }
         else {
           const res = await fetch(c.kind === 'cv' ? `${s.instance}/services/data/v${API}/sobjects/ContentVersion/${c.id}/VersionData` : `${s.instance}/services/data/v${API}/sobjects/Attachment/${c.id}/Body`, { headers: { Authorization: 'Bearer ' + s.sessionId } });
           if (!res.ok) { out.errors.push(`${imp.tarion_case_number} photo ${c.title}: HTTP ${res.status}`); continue; }
