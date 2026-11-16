@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ClipboardCheck, Search, Home, ChevronRight, ShieldCheck, Loader2, WifiOff, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { getCompanyId, getMe } from '@/lib/company';
@@ -13,7 +13,9 @@ const card: React.CSSProperties = { background: '#F8F6F1', border: '1px solid #D
 const street = (a: string | null) => (a ?? '').replace(/,\s*Ottawa.*$/i, '');
 
 export default function FieldHome() {
-  const nav = useNavigate(); const sync = useSyncStatus();
+  const nav = useNavigate(); const sync = useSyncStatus(); const [sp] = useSearchParams();
+  const wantKind = (sp.get('start') === 'qci' || sp.get('start') === 'pdi') ? sp.get('start') as Kind : null;
+  const wantLot = sp.get('lot');
   const [q, setQ] = useState(''); const [hits, setHits] = useState<Hit[]>([]); const [busy, setBusy] = useState(false);
   const [lot, setLot] = useState<Hit | null>(null);
   const [starting, setStarting] = useState<Kind | null>(null); const [err, setErr] = useState('');
@@ -48,6 +50,18 @@ export default function FieldHome() {
     const c = await cacheLot(h as any); if (c) setLineCount(c.lines.length); else setLineCount((await getCachedLot(h.lot_id))?.lines.length ?? 0);
   }
 
+  // Arriving from the full app with a home already chosen: load it, then start straight away.
+  useEffect(() => {
+    if (!wantLot) return;
+    (async () => {
+      const { data } = await supabase.from('warranty_lots').select('id,lot_number,address,homeowner_name,enrollment_number,warranty_communities(name)').eq('id', wantLot).maybeSingle();
+      const h = data as any; if (!h) return;
+      await pick({ lot_id: h.id, lot_number: h.lot_number, address: h.address, community: h.warranty_communities?.name ?? null, owner: h.homeowner_name, enrollment: h.enrollment_number });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantLot]);
+  useEffect(() => { if (wantLot && wantKind && lot && lot.lot_id === wantLot && !starting) start(wantKind); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [lot]);
+
   async function start(kind: Kind) {
     if (!lot) return; setStarting(kind); setErr('');
     try {
@@ -74,7 +88,7 @@ export default function FieldHome() {
   return (
     <div style={{ display: 'grid', gap: 14 }}>
       <div>
-        <h1 style={{ margin: '4px 0 2px', fontSize: 22, fontWeight: 800, color: '#1B2A41' }}>Start an inspection</h1>
+        <h1 style={{ margin: '4px 0 2px', fontSize: 22, fontWeight: 800, color: '#1B2A41' }}>{wantKind ? `Start a ${wantKind.toUpperCase()}` : 'Start an inspection'}</h1>
         <div style={{ fontSize: 13.5, color: '#485163' }}>Find the home by lot, block-lot (B04-39), street or owner.</div>
       </div>
 

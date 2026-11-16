@@ -30,9 +30,9 @@ export default function FieldLayout() {
     signOut();
   }
   return (
-    <div style={{ minHeight: '100dvh', background: 'var(--color-canvas)', color: 'var(--color-text)', fontFamily: 'var(--font-body)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--color-canvas)', color: 'var(--color-text)', fontFamily: 'var(--font-body)', paddingBottom: 'var(--sab)' }}>
       <header style={{ position: 'sticky', top: 0, zIndex: 30 }}>
-        <div style={{ background: 'linear-gradient(180deg,#1B2A41,#16233A)', color: '#fff', display: 'flex', alignItems: 'center', gap: 10, padding: 'calc(env(safe-area-inset-top) + 10px) 14px 10px', borderBottom: '2px solid #B08D4F' }}>
+        <div style={{ background: 'linear-gradient(180deg,#1B2A41,#16233A)', color: '#fff', display: 'flex', alignItems: 'center', gap: 10, padding: 'calc(var(--sat) + 10px) 14px 10px', borderBottom: '2px solid #B08D4F' }}>
           <Link to="/field" style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff', textDecoration: 'none', flex: 1 }}>
             <BrandShield size={34} />
             <span style={{ fontWeight: 800, fontSize: 16, letterSpacing: '0.01em' }}>Field{pathname.includes('/inspection/') ? ' inspection' : ''}</span>

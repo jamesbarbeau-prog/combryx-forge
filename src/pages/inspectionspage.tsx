@@ -1,6 +1,7 @@
 // Inspections (desk): every QCI and PDI, which items construction still has open, and the override requests the warranty manager decides.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, ChevronDown, ChevronRight, Copy, FileText, ShieldQuestion, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 interface Insp { id: string; kind: 'qci' | 'pdi'; status: string; address: string | null; inspector_name: string | null; super_name: string | null; completed_at: string | null; started_at: string; pdf_path: string | null; super_token: string; owner_token: string; possession_date: string | null }
@@ -46,6 +47,7 @@ export default function InspectionsPage() {
   return (
     <div style={{ padding: '24px 28px', maxWidth: 1100 }}>
       <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--color-navy)', margin: 0 }}>Inspections</h1>
+      <StartInspectionCard />
       <p style={{ color: 'var(--color-text-sub)', fontSize: 14, margin: '4px 0 18px' }}>QCI and PDI items stay open with construction until each has a closing photo or you approve an override.</p>
       {msg && <div style={{ ...card, marginBottom: 12, color: '#2F5576', fontSize: 14 }}>{msg}</div>}
 
@@ -111,6 +113,23 @@ export default function InspectionsPage() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+
+/** Find a home and start a QCI or PDI. Opens the field flow, which saves the home on the device so it works without signal. */
+function StartInspectionCard() {
+  const nav = useNavigate();
+  const b: React.CSSProperties = { minHeight: 46, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 15, padding: '0 18px', cursor: 'pointer', fontFamily: 'inherit', color: '#fff' };
+  return (
+    <div style={{ margin: '14px 0 16px', padding: 16, borderRadius: 12, background: 'var(--color-panel)', border: '1px solid var(--color-border)', borderLeft: '4px solid #B08D4F', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+      <div style={{ flex: '1 1 220px' }}>
+        <div style={{ fontWeight: 800, fontSize: 15 }}>Start an inspection</div>
+        <div style={{ fontSize: 13, color: 'var(--color-text-sub)' }}>Find the home by lot, street or owner, then start a QCI or a PDI.</div>
+      </div>
+      <button style={{ ...b, background: '#1B2A41' }} onClick={() => nav('/field?start=qci')}>Find lot, start QCI</button>
+      <button style={{ ...b, background: 'linear-gradient(180deg,#B8975A,#8D7140)' }} onClick={() => nav('/field?start=pdi')}>Find lot, start PDI</button>
     </div>
   );
 }

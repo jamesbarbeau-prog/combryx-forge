@@ -1,6 +1,7 @@
 // QCI and PDI inspections for one home, with each item's status, photos and the signed PDF. Used on the desk lot page.
 import { useCallback, useEffect, useState } from 'react';
 import { ClipboardCheck, Copy, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 interface Insp { id: string; kind: 'qci' | 'pdi'; status: string; inspector_name: string | null; super_name: string | null; super_email: string | null; owner_names: string | null; started_at: string; completed_at: string | null; pdf_path: string | null; super_token: string; owner_token: string; purchaser_present: boolean }
@@ -37,18 +38,27 @@ export default function LotInspections({ lotId }: { lotId: string }) {
   }
   async function pdf(path: string) { const { data } = await supabase.storage.from('inspection-photos').createSignedUrl(path, 600); if (data?.signedUrl) window.open(data.signedUrl, '_blank'); }
   const copy = (tok: string) => navigator.clipboard?.writeText(`${window.location.origin}/portal/inspection/${tok}`).then(() => setMsg('Link copied.'));
+  const nav = useNavigate();
+  const startBtns = (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      <button onClick={() => nav(`/field?lot=${lotId}&start=qci`)} style={{ height: 40, borderRadius: 8, border: 'none', background: '#1B2A41', color: '#fff', fontWeight: 800, fontSize: 14, padding: '0 16px', cursor: 'pointer', fontFamily: 'inherit' }}>Start QCI</button>
+      <button onClick={() => nav(`/field?lot=${lotId}&start=pdi`)} style={{ height: 40, borderRadius: 8, border: 'none', background: 'linear-gradient(180deg,#B8975A,#8D7140)', color: '#fff', fontWeight: 800, fontSize: 14, padding: '0 16px', cursor: 'pointer', fontFamily: 'inherit' }}>Start PDI</button>
+    </div>
+  );
   const btn: React.CSSProperties = { height: 34, borderRadius: 8, border: '1px solid var(--color-border-hard)', background: '#fff', fontWeight: 700, fontSize: 13, padding: '0 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-body)' };
 
   if (!rows) return <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>Loading…</div>;
   if (!rows.length) return (
     <div style={{ padding: 40, textAlign: 'center', background: 'var(--color-panel)', borderRadius: 10, border: '1px solid var(--color-border)' }}>
       <ClipboardCheck size={28} color="#8D7140" strokeWidth={1} style={{ marginBottom: 10, opacity: 0.6 }} />
-      <p style={{ color: 'var(--color-muted)', fontSize: 13 }}>No QCI or PDI has been done on this home yet. Start one from the Field app on a phone.</p>
+      <p style={{ color: 'var(--color-muted)', fontSize: 13, margin: '0 0 14px' }}>No QCI or PDI has been done on this home yet.</p>
+      <div style={{ display: 'flex', justifyContent: 'center' }}>{startBtns}</div>
     </div>
   );
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
+      {startBtns}
       {msg && <div style={{ fontSize: 13, color: '#2F5576' }}>{msg}</div>}
       {rows.map(r => {
         const its = items.filter(i => i.inspection_id === r.id && needsClose(i)); const openN = its.filter(i => i.res_status === 'open').length;

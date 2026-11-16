@@ -212,7 +212,7 @@ export default function ItemPanel({ itemId, onClose, onChanged }: { itemId: stri
 
 const CSS = `
 .ip-scrim{position:fixed;inset:0;background:rgba(40,32,18,.28);z-index:80}
-.ip{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:#F8F6F1;z-index:81;display:flex;flex-direction:column;box-shadow:-18px 0 44px rgba(40,32,18,.16);font-family:var(--font-body);animation:ipin .16s ease-out}
+.ip{padding-top:var(--sat);padding-bottom:var(--sab);box-sizing:border-box;position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);background:#F8F6F1;z-index:81;display:flex;flex-direction:column;box-shadow:-18px 0 44px rgba(40,32,18,.16);font-family:var(--font-body);animation:ipin .16s ease-out}
 @keyframes ipin{from{transform:translateX(24px);opacity:.6}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.ip{animation:none}}
 .ip-h{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 12px;border-bottom:1px solid #D9D2C5}

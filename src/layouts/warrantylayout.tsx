@@ -187,7 +187,7 @@ const CSS = `
 .bg-app.is-collapsed .bg-nav{justify-content:center;padding-left:0;padding-right:0}
 .bg-app.is-collapsed .bg-rail__brand{justify-content:center;padding:18px 0 14px}.bg-app.is-collapsed .bg-collapse{position:static;margin:8px auto}
 .bg-col{flex:1;min-width:0;display:flex;flex-direction:column}
-.bg-top{position:sticky;top:0;z-index:30;height:62px;display:flex;align-items:center;gap:16px;padding:0 24px;background:rgba(232,227,218,.8);backdrop-filter:blur(8px);border-bottom:1px solid rgba(190,180,160,.55)}
+.bg-top{position:sticky;top:0;z-index:30;height:calc(62px + var(--sat));display:flex;align-items:center;gap:16px;padding:var(--sat) 24px 0;box-sizing:border-box;background:rgba(232,227,218,.8);backdrop-filter:blur(8px);border-bottom:1px solid rgba(190,180,160,.55)}
 .bg-main{flex:1;min-width:0;position:relative}
 .bg-hero{position:absolute;top:0;right:0;width:min(1000px,78%);height:340px;z-index:0;pointer-events:none;background:url('/brand/blueprint.jpg') 100% 0/cover no-repeat;mix-blend-mode:multiply;opacity:.9;
   -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 38%),linear-gradient(180deg,#000 55%,transparent 100%);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent 0,#000 38%),linear-gradient(180deg,#000 55%,transparent 100%);mask-composite:intersect}
@@ -205,7 +205,7 @@ const CSS = `
 .bg-burger{display:none;border:0;background:transparent;padding:6px;border-radius:6px;color:#1F2A3C;cursor:pointer}
 .bg-scrim{position:fixed;inset:0;background:rgba(27,42,65,.45);z-index:35}
 @media (max-width:960px){
-  .bg-rail{position:fixed;left:0;top:0;transform:translateX(-100%);transition:transform .18s ease;width:268px!important;box-shadow:0 0 40px rgba(20,16,8,.35)}
+  .bg-rail{position:fixed;left:0;top:0;padding-top:var(--sat);padding-bottom:var(--sab);box-sizing:border-box;transform:translateX(-100%);transition:transform .18s ease;width:268px!important;box-shadow:0 0 40px rgba(20,16,8,.35)}
   .bg-app.is-drawer .bg-rail{transform:none}
   .bg-app.is-collapsed .lbl,.bg-app.is-collapsed .bg-rail__name{display:revert}.bg-app.is-collapsed .bg-comms,.bg-app.is-collapsed .bg-rail__art{display:block}
   .bg-app.is-collapsed .bg-nav{justify-content:flex-start;padding:10px 12px}

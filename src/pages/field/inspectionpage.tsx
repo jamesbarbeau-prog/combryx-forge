@@ -256,7 +256,7 @@ function FindingSheet({ insp, init, nextSeq, onClose, onSaved }: { insp: Inspect
   const lists: ListKey[] = ['deficiency'];
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(20,28,44,0.55)', display: 'flex', alignItems: 'flex-end' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#F8F6F1', width: '100%', maxWidth: 640, margin: '0 auto', borderRadius: '18px 18px 0 0', padding: '16px 14px calc(16px + env(safe-area-inset-bottom))', maxHeight: '92dvh', overflowY: 'auto', display: 'grid', gap: 10 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#F8F6F1', width: '100%', maxWidth: 640, margin: '0 auto', borderRadius: '18px 18px 0 0', padding: '16px 14px calc(16px + var(--sab))', maxHeight: '92dvh', overflowY: 'auto', display: 'grid', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}><div style={{ fontWeight: 800, fontSize: 17, flex: 1 }}>{insp.kind === 'qci' ? 'Add a defect' : 'Add an item'}</div><button onClick={onClose} aria-label="Close" style={{ border: 'none', background: 'none', padding: 8 }}><X size={20} /></button></div>
         {lists.length > 1 && (
           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${lists.length},1fr)`, gap: 6 }}>
