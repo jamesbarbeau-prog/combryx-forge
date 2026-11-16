@@ -6,6 +6,29 @@ import { supabase } from '@/lib/supabase';
 import { BrandMark } from '@/components/brand';
 import QuickSearch from '@/components/quicksearch';
 
+interface CommCount { community_id: string; name: string; lots: number; open_cases: number; open_items: number }
+const COMM_COLORS = ['#1E5FC8', '#16A34A', '#F2B134', '#7C3AED', '#D64B3A', '#0891B2', '#EA580C', '#0D9488', '#65A30D'];
+
+function CommunitySidebar() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const [rows, setRows] = useState<CommCount[]>([]);
+  useEffect(() => { supabase.rpc('community_counts').then(({ data }) => setRows((data ?? []) as CommCount[])); }, []);
+  const activeId = /^\/warranty\/communities\/([^/]+)/.exec(pathname)?.[1];
+  return (
+    <aside className="bg-side" aria-label="Communities">
+      <div className="bg-side__h">Communities</div>
+      {rows.map((c, i) => (
+        <button key={c.community_id} className={`bg-side__i${activeId === c.community_id ? ' on' : ''}`} onClick={() => navigate(`/warranty/communities/${c.community_id}`)}>
+          <span className="dot" style={{ background: COMM_COLORS[i % COMM_COLORS.length] }} />
+          <span className="nm">{c.name}<small>{c.lots} homes</small></span>
+          <span className="ct" title={`${c.open_cases} open cases`}>{c.open_cases}</span>
+        </button>
+      ))}
+    </aside>
+  );
+}
+
 const today = new Date().toLocaleDateString('en-CA', { weekday: 'short', month: 'short', day: 'numeric' });
 
 const NAV = [
@@ -77,6 +100,16 @@ export default function WarrantyLayout() {
         .bg-menu-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: transparent; color: #0F172A; font: 600 13px var(--font-body); cursor: pointer; text-align: left; }
         .bg-menu-item:hover { background: #EEF2F8; }
         @media (max-width: 760px) { .bg-banner__in { padding: 10px 14px; gap: 12px; flex-wrap: wrap; } .bg-title { display: none; } .bg-date { display: none; } }
+        .bg-body { max-width: 1760px; margin: 0 auto; display: flex; align-items: flex-start; }
+        .bg-main { flex: 1; min-width: 0; }
+        .bg-side { position: sticky; top: 92px; width: 224px; flex-shrink: 0; margin: 20px 0 20px 20px; background: #fff; border: 1px solid #DDE5F1; border-radius: 16px; padding: 10px; box-shadow: 0 1px 2px rgba(11,19,43,0.04); max-height: calc(100vh - 112px); overflow: auto; }
+        .bg-side__h { font: 800 10.5px var(--font-body); letter-spacing: .18em; text-transform: uppercase; color: #7B8AA0; padding: 6px 10px 8px; }
+        .bg-side__i { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; padding: 9px 10px; border-radius: 10px; cursor: pointer; text-align: left; font-family: var(--font-body); }
+        .bg-side__i:hover { background: #F1F5FB; } .bg-side__i.on { background: #E8F0FF; box-shadow: inset 3px 0 0 #2563EB; }
+        .bg-side__i .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .bg-side__i .nm { flex: 1; min-width: 0; font: 700 13px var(--font-body); color: #0F172A; line-height: 1.2; } .bg-side__i .nm small { display: block; font: 500 11px var(--font-body); color: #7B8AA0; }
+        .bg-side__i .ct { font: 800 11.5px var(--font-body); color: #1D4ED8; background: #DBEAFE; border-radius: 999px; padding: 2px 8px; font-variant-numeric: tabular-nums; }
+        @media (max-width: 960px) { .bg-body { display: block; } .bg-side { position: static; width: auto; margin: 12px; display: flex; gap: 6px; overflow-x: auto; max-height: none; } .bg-side__h { display: none; } .bg-side__i { width: auto; white-space: nowrap; } .bg-side__i .nm small { display: none; } }
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
@@ -127,7 +160,7 @@ export default function WarrantyLayout() {
         </nav>
       </div>
 
-      <Outlet />
+      <div className="bg-body"><CommunitySidebar /><main className="bg-main"><Outlet /></main></div>
     </div>
   );
 }

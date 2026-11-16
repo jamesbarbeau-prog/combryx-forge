@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import * as api from '@/cm/api';
+import { importTrackerWorkbook } from '@/cm/trackerimport';
 import type { CmCase, CmCycle, CmIntake } from '@/cm/api';
 import { GuardianSignatureIcon } from '@/components/icons/GuardianSignatureIcons';
 import { Donut, Columns, HBars } from '@/components/charts';
@@ -128,6 +129,12 @@ export default function ConciliationPage() {
           <button className={prop === 'common_elements' ? 'on' : ''} onClick={() => setProp('common_elements')}>Common elements</button>
         </div>
         <button onClick={() => run('sync', async () => { const r = await api.runTarionSync(); return `Tarion sync: ${r.checked} checked` + (r.errors?.length ? ` — ${r.errors.length} error(s): ${r.errors[0]}` : ''); })} disabled={!!busy}>{busy === 'sync' ? 'Syncing…' : 'Sync Tarion'}</button>
+        <label className="btn" style={{ cursor: busy ? 'default' : 'pointer' }} title="Load cases, cycles, items and comms from your Apps Script tracker (.xlsx). Safe to re-run — existing cases are skipped.">
+          {busy === 'import' ? (msg || 'Importing…') : 'Import tracker'}
+          <input type="file" accept=".xlsx" hidden disabled={!!busy} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return;
+            run('import', async () => { const r = await importTrackerWorkbook(f, member.company_id, s => setMsg(s));
+              return `Imported ${r.cases} cases, ${r.cycles} cycles, ${r.items} items, ${r.comms} comms (${r.skipped} already existed). ${r.linked} linked to homes${r.unmatched.length ? `; no home match for ${r.unmatched.length}` : ''}.`; }); }} />
+        </label>
         <button className="pri" onClick={() => setNewOpen(v => !v)}>New case</button>
       </div>
       {err && <div className="err">{err}</div>}

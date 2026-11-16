@@ -8,6 +8,7 @@ import MailPage            from '@/pages/mailpage';
 import WarrantyTodayPage   from '@/pages/warrantytodaypage';
 import CommunitiesPage     from '@/pages/communitiespage';
 import LotsPage            from '@/pages/lotspage';
+import CommunityPage       from '@/pages/communitypage';
 import LotDetailPage       from '@/pages/lotdetailpage';
 import CasesPage           from '@/pages/casespage';
 import CaseDetailPage      from '@/pages/casedetailpage';
@@ -52,7 +53,7 @@ export const router = createBrowserRouter([
           { index: true,         element: <Navigate to="today" replace /> },
           { path: 'today',       element: <WarrantyTodayPage />           },
           { path: 'communities', element: <CommunitiesPage />             },
-          { path: 'communities/:projectId', element: <LotsPage /> },
+          { path: 'communities/:projectId', element: <CommunityPage /> },
           { path: 'lots',        element: <LotsPage />                   },
           { path: 'lots/:id',    element: <LotDetailPage />              },
           { path: 'cases',       element: <CasesPage />                  },
