@@ -278,6 +278,16 @@ function TarionTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div className="forge-card" style={{ padding: 24 }}>
+        <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Import deficiency files</p>
+        <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+          Upload the Excel deficiency files, one per community. Items already in the app are matched by work order number and corrected, and only missing ones are added, so a file can be uploaded again safely.
+        </p>
+        <Link to="/warranty/deficiency-import" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#3F6A8F', color: '#FFFFFF', textDecoration: 'none' }}>
+          Open the deficiency import
+        </Link>
+      </div>
+
+      <div className="forge-card" style={{ padding: 24 }}>
         <p style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>Tarion import</p>
         <p style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 16, lineHeight: 1.6 }}>
           Every new warranty form becomes a case with its items and homeowner photos, and coordinators get one email listing what came in.
