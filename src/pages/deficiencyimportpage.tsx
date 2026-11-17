@@ -87,12 +87,17 @@ function mapStatus(statusRaw: string | null, completedDate: Date | null): string
   return 'outstanding';
 }
 
+// Dates arrive as real Date cells (cellDates + raw) or, from CSV, as text. Text is day-first (23-01-2025),
+// never month-first, and an unreadable date is dropped rather than guessed.
 function safeDate(val: any): Date | null {
   if (!val) return null;
-  try {
-    const d = new Date(val);
-    return isNaN(d.getTime()) ? null : d;
-  } catch { return null; }
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const t = String(val).trim();
+  let m = t.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+  if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1], 12));
+  m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12));
+  return null;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -131,6 +136,7 @@ interface FileEntry {
   status:        FileStatus;
   cases_created: number;
   items_created: number;
+  items_updated?: number;
   errors:        string[];
 }
 
@@ -139,7 +145,7 @@ interface FileEntry {
 function parseExcel(buffer: ArrayBuffer): DefRow[] {
   const wb   = XLSX.read(buffer, { type: 'array', cellDates: true });
   const ws   = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: null, raw: false });
+  const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: null, raw: true });
 
   return rows.map(r => ({
     lot:         String(r['Lot'] ?? '').trim(),
@@ -192,6 +198,7 @@ async function importGroups(communityId: string, groups: ParsedGroup[]) {
   const COMPANY_ID = await getCompanyId();
   let cases_created = 0;
   let items_created = 0;
+  let items_updated = 0;
   const errors: string[] = [];
 
   // Get lots for this community
@@ -271,10 +278,25 @@ async function importGroups(communityId: string, groups: ParsedGroup[]) {
       cases_created++;
     }
 
-    // Insert items in batches of 50
+    // Items already in this case (matched by work order number) are corrected from the file, never added twice.
+    const { data: have } = await supabase.from('warranty_items').select('id, item_number').eq('case_id', caseId).is('deleted_at', null);
+    const haveByNo = new Map(((have ?? []) as { id: string; item_number: string }[]).map(h => [h.item_number, h.id]));
+    const fresh: DefRow[] = [];
+    const existing: Record<string, unknown>[] = [];
+    for (const item of group.items) {
+      if (item.wo_number && haveByNo.has(String(item.wo_number))) {
+        existing.push({ wo: String(item.wo_number), status: mapStatus(item.status_raw, item.completed), completed: item.completed?.toISOString() ?? '', date_in: item.date_in?.toISOString() ?? '' });
+      } else fresh.push(item);
+    }
+    for (let i = 0; i < existing.length; i += 500) {
+      const { data: n, error: upErr } = await supabase.rpc('import_refresh_items', { p_case: caseId, p_rows: existing.slice(i, i + 500) });
+      if (upErr) errors.push(`Update Lot ${group.lot_number} ${group.label}: ${upErr.message}`); else items_updated += Number(n ?? 0);
+    }
+
+    // Insert new items in batches of 50
     const BATCH = 50;
-    for (let i = 0; i < group.items.length; i += BATCH) {
-      const batch    = group.items.slice(i, i + BATCH);
+    for (let i = 0; i < fresh.length; i += BATCH) {
+      const batch    = fresh.slice(i, i + BATCH);
       const itemRows = batch.map((item, idx) => ({
         company_id:       COMPANY_ID,
         case_id:          caseId,
@@ -306,7 +328,7 @@ async function importGroups(communityId: string, groups: ParsedGroup[]) {
     }
   }
 
-  return { cases_created, items_created, errors };
+  return { cases_created, items_created, items_updated, errors };
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -359,7 +381,7 @@ export default function DeficiencyImportPage() {
         const r = await importGroups(entry.community!.id, entry.groups);
         setEntries(prev => prev.map(e =>
           e.filename === entry.filename
-            ? { ...e, status: r.errors.length ? 'error' : 'done', cases_created: r.cases_created, items_created: r.items_created, errors: r.errors }
+            ? { ...e, status: r.errors.length ? 'error' : 'done', cases_created: r.cases_created, items_created: r.items_created, items_updated: r.items_updated, errors: r.errors }
             : e
         ));
       } catch (err: any) {
@@ -486,7 +508,7 @@ export default function DeficiencyImportPage() {
                       {sc.label}
                     </span>
                     {entry.status === 'done' && (
-                      <p style={{ fontSize: 9, color: 'var(--color-muted)', marginTop: 2 }}>{entry.cases_created} cases · {entry.items_created} items</p>
+                      <p style={{ fontSize: 9, color: 'var(--color-muted)', marginTop: 2 }}>{entry.cases_created} cases · {entry.items_created} new · {entry.items_updated ?? 0} corrected</p>
                     )}
                   </div>
 
