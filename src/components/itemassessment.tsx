@@ -9,7 +9,7 @@ interface Assessment {
   cpg?: { sections?: string[]; interpretation?: string; threshold?: string };
   responsibility?: { determination?: string; reasoning?: string; exceptions?: string[] | string };
   defense_language?: string; risk_level?: string; risk_reasoning?: string;
-  recommended_evidence?: string[]; warranty_period?: string;
+  recommended_evidence?: string[]; warranty_period?: string; confidence?: string;
   _cached?: boolean; _obc_found?: number; _cpg_found?: number; error?: string;
 }
 
@@ -27,10 +27,11 @@ export function ItemAssessment({ itemId, description, room }: { itemId: string; 
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const run = useCallback(async () => {
+  // Re-run skips the saved answer and uses the larger model.
+  const run = useCallback(async (again = false) => {
     setBusy(true); setErr(null);
     try {
-      const { data, error } = await supabase.functions.invoke('interpret-warranty-item', { body: { description, room, item_id: itemId } });
+      const { data, error } = await supabase.functions.invoke('interpret-warranty-item', { body: { description, room, item_id: itemId, force: again, deep: again } });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(String(data.error));
       memo.set(itemId, data as Assessment); setA(data as Assessment);
@@ -38,7 +39,7 @@ export function ItemAssessment({ itemId, description, room }: { itemId: string; 
     setBusy(false);
   }, [itemId, description, room]);
 
-  useEffect(() => { if (!memo.has(itemId) && description?.trim()) run(); }, [itemId, description, run]);
+  useEffect(() => { if (!memo.has(itemId) && description?.trim()) run(false); }, [itemId, description, run]);
 
   const risk = RISK[(a?.risk_level ?? '').toLowerCase()] ?? { bg: '#EFEBE2', fg: '#485163' };
   const resp = a?.responsibility;
@@ -49,8 +50,9 @@ export function ItemAssessment({ itemId, description, room }: { itemId: string; 
         <Sparkles size={14} color="#2F5576" />
         <span style={{ fontSize: 12, fontWeight: 800, color: '#1F2A3C' }}>AI assessment</span>
         {a?.category && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#E6EEFB', color: '#2F5576' }}>{a.category}</span>}
+        {a?.confidence && <span title="How sure the assessment is" style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: '#EFEBE2', color: '#485163' }}>{a.confidence} confidence</span>}
         {a?.risk_level && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: risk.bg, color: risk.fg }}>{a.risk_level} risk</span>}
-        <button onClick={run} disabled={busy} title="Re-run assessment" style={{ marginLeft: 'auto', border: 0, background: 'transparent', cursor: busy ? 'wait' : 'pointer', color: '#5E6575', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontFamily: 'inherit' }}>
+        <button onClick={() => run(true)} disabled={busy} title="Re-run with the deeper model" style={{ marginLeft: 'auto', border: 0, background: 'transparent', cursor: busy ? 'wait' : 'pointer', color: '#5E6575', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontFamily: 'inherit' }}>
           <RefreshCw size={12} style={busy ? { animation: 'spin 1s linear infinite' } : undefined} />{busy ? 'Assessing…' : 'Re-run'}
         </button>
       </div>
