@@ -22,7 +22,7 @@ const json = (b: unknown, status = 200) =>
 
 const FAST_MODEL = Deno.env.get('AI_MODEL') ?? 'gemini-2.5-flash';
 const DEEP_MODEL = Deno.env.get('AI_MODEL_DEEP') ?? 'gemini-2.5-pro';
-const CACHE_VERSION = 'v4|';
+const CACHE_VERSION = 'v5|';
 let USED = FAST_MODEL;
 
 const READ_SYSTEM = `You are a senior Tarion warranty services representative for Ontario new homes. A homeowner's deficiency item is below.
@@ -53,6 +53,47 @@ Reply with JSON only, exactly this shape:
 "risk_level":"low|medium|high|critical","risk_reasoning":"Why.",
 "recommended_evidence":["specific photos or measurements"],
 "warranty_period":"delivery|year_1|year_2|msd|none|unknown"}`;
+
+
+// ───────── Major Structural Defect (years 3 to 7) ─────────
+// An MSD claim is NOT measured against the CPG. The only test is the definition in Ontario Regulation 892 (Administration of the Plan) under the
+// Ontario New Home Warranties Plan Act, section 1, "major structural defect" (post June 30, 2012 home paragraph).
+const MSD_TEXT = `ONTARIO NEW HOME WARRANTIES PLAN ACT, R.R.O. 1990, REG. 892, s. 1 ("major structural defect", post June 30, 2012 home):
+A major structural defect is any defect in work or materials in respect of a building, including a crack, distortion or displacement of a structural load-bearing element of the building, if it
+ (i) results in failure of a structural load-bearing element of the building or materially and adversely affects its load-bearing function, or
+ (ii) materially and adversely affects the use of the building for the purpose for which it was intended.
+It does not include a defect attributable in whole or in part to the exclusions listed in the definition, which include flood damage, dampness not arising from failure of a load-bearing portion of the building, damage to drains or services, damage to finishes, and damage arising from acts of God, the acts of the owners or their tenants, licensees or invitees, or malicious damage.
+"Structural load-bearing element" means a structural portion or component of the building that carries load (for example footings and foundation walls, beams, columns, joists, trusses, rafters, lintels, load-bearing walls).
+Claim period: from possession to the seventh anniversary of the date of possession (the Year 3 through Year 7 MSD claim). The builder has until the 90th day after Tarion receives the MSD form to repair or resolve the claim items.`;
+
+const MSD_READ_SYSTEM = `You are a senior Tarion warranty services representative and structural-claims specialist for Ontario new homes. This item came from a Major Structural Defect (MSD) claim form, years 3 to 7.
+Identify what the owner describes: the building element, whether it is a structural load-bearing element, and what is wrong with it. Do not pick CPG sections: the CPG does not apply to MSD claims.
+Say whether Ontario Building Code (Part 9) text could help decide if the element is load-bearing or what its structural role is (footings, foundation walls, beams, lintels, joists, trusses, bracing). If so, write up to 3 short search phrases using the Code's vocabulary.
+Reply with JSON only: {"defect":"one plain sentence on what is wrong and where","obc_relevant":false,"obc_queries":[]}`;
+
+const MSD_DECIDE_SYSTEM = `You are a 30-year veteran Tarion warranty services representative and conciliator who now advises an Ontario home builder. You assess ONE Major Structural Defect (MSD) claim item, years 3 to 7, fairly and in plain language.
+This is an MSD claim. Do NOT use the Construction Performance Guidelines, CPG tolerances, workmanship standards or Year 1 / Year 2 warranty logic. Do not say a crack is acceptable or unacceptable by its width alone. The only test is the MSD definition below.
+An item is an MSD only if BOTH of these are true:
+ A. It is a defect in work or materials in respect of the building (a crack, distortion or displacement of a structural load-bearing element counts), AND
+ B. It meets one of the two functional tests: (i) it results in failure of a structural load-bearing element, or materially and adversely affects its load-bearing function; OR (ii) it materially and adversely affects the use of the building for the purpose for which it was intended (a residence).
+And it must not fall within an exclusion (flood damage, dampness not arising from failure of a load-bearing portion, damage to drains or services, damage to finishes, acts of God, acts of the owners or others, malicious damage).
+Reason like a person: what is the element, is it load-bearing, what has actually failed or been impaired, is the effect material and adverse, is there an exclusion. Cosmetic cracks, drywall or finish cracks, minor settlement with no loss of load-bearing function, and nuisance conditions are NOT MSDs; say so plainly. Where the description does not show a load-bearing failure or loss of use, the honest answer is usually "not shown to be an MSD yet" with exactly what evidence is needed (for example a structural engineer's report, crack width and movement monitoring, level readings, photos with a scale).
+Rules:
+1. Cite only what is in the text given. Never invent a section or a figure. Copy any measurement exactly as printed, including thousands separators.
+2. Responsibility: builder = the item meets the MSD definition and no exclusion applies; homeowner = it does not meet the definition, or an exclusion applies; shared = mixed causes; insufficient_data = the description cannot show whether a load-bearing element failed or use is materially affected, and say exactly what is missing.
+3. Put the CPG field as not applicable.
+Reply with JSON only, exactly this shape:
+{"category":"structural_movement|water_intrusion|exterior_envelope|site_grading|safety|other",
+"finding":"One sentence verdict a busy manager can act on.",
+"confidence":"high|medium|low",
+"msd":{"element":"the building element and whether it is a structural load-bearing element","load_bearing_test":{"met":"yes|no|unclear","reasoning":"why"},"use_test":{"met":"yes|no|unclear","reasoning":"why"},"exclusion":"the exclusion that applies, or null","conclusion":"meets_msd|does_not_meet_msd|not_shown"},
+"cpg":{"sections":[],"interpretation":"Not applicable. This is an MSD claim, assessed against the Reg. 892 definition.","threshold":null},
+"obc":{"sections":[],"interpretation":"How the Code bears on the element, or why it does not.","tolerance":null,"mandatory":false},
+"responsibility":{"determination":"builder|homeowner|shared|insufficient_data","reasoning":"Plain reasoning in 2 to 4 sentences.","exceptions":null},
+"defense_language":"Short professional wording the builder could use with Tarion or the owner, citing the Reg. 892 definition.",
+"risk_level":"low|medium|high|critical","risk_reasoning":"Why.",
+"recommended_evidence":["specific engineer's report, measurements, photos"],
+"warranty_period":"msd"}`;
 
 async function requireUser(req: Request) {
   const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
@@ -143,19 +184,20 @@ Deno.serve(async (req: Request) => {
     if (!user) return json({ error: 'Sign in required' }, 401);
     if (!Deno.env.get('GEMINI_API_KEY') && !Deno.env.get('GROQ_API_KEY')) return json({ error: 'AI is not configured' }, 503);
 
-    const { description, room, item_id, force, deep } = await req.json();
+    const { description, room, item_id, force, deep, form } = await req.json();
     if (typeof description !== 'string' || !description.trim()) return json({ error: 'description is required' }, 400);
     if (description.length > 2000) return json({ error: 'description too long' }, 400);
     const { admin, companyId } = user;
 
-    let itemOk = false;
+    let itemOk = false; let isMsd = form === 'msd';
     if (item_id) {
-      const { data } = await admin.from('warranty_items').select('id').eq('id', item_id).eq('company_id', companyId).maybeSingle();
+      const { data } = await admin.from('warranty_items').select('id, source_period, cases(period_type)').eq('id', item_id).eq('company_id', companyId).maybeSingle();
       itemOk = !!data;
+      if (data && (data.source_period === 'msd' || (data as any).cases?.period_type === 'msd')) isMsd = true;
     }
 
     const norm = normalize(description);
-    const hash = simpleHash(CACHE_VERSION + norm);
+    const hash = simpleHash(CACHE_VERSION + (isMsd ? 'msd|' : '') + norm);
     const { data: cached } = force ? { data: null } : await admin.from('interpretation_cache').select('interpretation, item_description').eq('item_description_hash', hash).maybeSingle();
     let result: Record<string, any>; let cpgFound: string[] = []; let obcFound: string[] = []; let wasCached = false;
 
@@ -165,6 +207,21 @@ Deno.serve(async (req: Request) => {
     } else {
       const itemText = `ITEM: ${description}${room ? `\nROOM: ${room}` : ''}`;
 
+      let cpgRows: CpgRow[] = [];
+      let cpgText = ''; let obcText = '';
+      if (isMsd) {
+        // MSD: no CPG. Read the item, find supporting Code text about the element, decide against the Reg. 892 definition.
+        const pick = await ask(MSD_READ_SYSTEM, itemText, false, 1024);
+        const queries = pick.obc_relevant ? (Array.isArray(pick.obc_queries) ? pick.obc_queries.map(String).filter(Boolean) : []) : [];
+        const pages = queries.length ? await obcPages(admin, queries) : [];
+        cpgFound = [];
+        const obcNums = new Set<string>(); for (const p of pages) for (const m of p.content.matchAll(OBC_NUM)) obcNums.add(m[1].replace(/\.$/, ''));
+        obcFound = [...obcNums];
+        cpgText = MSD_TEXT;
+        obcText = pages.length ? pages.map(p => `[OBC Compendium page ${p.page_number}]\n${p.content}`).join('\n\n---\n\n') : 'Not provided.';
+        const understood = pick.defect ? `\nWHAT THE ITEM IS ABOUT: ${String(pick.defect)}` : '';
+        result = await ask(MSD_DECIDE_SYSTEM, `${itemText}${understood}\n\nMSD DEFINITION (Reg. 892):\n${MSD_TEXT}\n\nONTARIO BUILDING CODE TEXT:\n${obcText}`, true, 2048);
+      } else {
       // 1. READ: choose the governing CPG sections from the whole list
       const index = await loadIndex(admin);
       const list = index.map(r => `${r.section_number}  ${r.section_title ?? ''}`).join('\n');
@@ -173,7 +230,7 @@ Deno.serve(async (req: Request) => {
       const chosen: string[] = [...new Set((Array.isArray(pick.cpg) ? pick.cpg : []).map((c: any) => String(c?.section ?? '').trim()).filter((s: string) => valid.has(s)))].slice(0, 4) as string[];
 
       // 2. FETCH: full text of those sections, plus OBC pages when the Code could matter
-      let cpgRows: CpgRow[] = [];
+      cpgRows = [];
       if (chosen.length) {
         const { data } = await admin.from('cpg_chunks').select('section_number, section_title, content, tolerance_note').in('section_number', chosen);
         cpgRows = (data ?? []).sort((a: CpgRow, b: CpgRow) => chosen.indexOf(a.section_number) - chosen.indexOf(b.section_number));
@@ -184,14 +241,16 @@ Deno.serve(async (req: Request) => {
       const obcNums = new Set<string>(); for (const p of pages) for (const m of p.content.matchAll(OBC_NUM)) obcNums.add(m[1].replace(/\.$/, ''));
       obcFound = [...obcNums];
 
-      const cpgText = cpgRows.length
+      cpgText = cpgRows.length
         ? cpgRows.map(r => `[CPG ${r.section_number}] ${r.section_title ?? ''}\n${r.content.replace(/\r/g, '')}`).join('\n\n---\n\n')
         : 'No CPG section was found for this item.';
-      const obcText = pages.length ? pages.map(p => `[OBC Compendium page ${p.page_number}]\n${p.content}`).join('\n\n---\n\n') : 'Not provided. The Building Code was not judged relevant to this item.';
+      obcText = pages.length ? pages.map(p => `[OBC Compendium page ${p.page_number}]\n${p.content}`).join('\n\n---\n\n') : 'Not provided. The Building Code was not judged relevant to this item.';
       const understood = pick.defect ? `\nWHAT THE ITEM IS ABOUT: ${String(pick.defect)}` : '';
 
       // 3. DECIDE
       result = await ask(DECIDE_SYSTEM, `${itemText}${understood}\n\nTARION CPG TEXT:\n${cpgText}\n\nONTARIO BUILDING CODE TEXT:\n${obcText}`, !!deep, 2048);
+
+      }
 
       // 4. CHECK: no citation survives unless it was in the text the model saw
       const allowedObc = new Set(obcFound);
@@ -203,10 +262,10 @@ Deno.serve(async (req: Request) => {
       // Any "N mm" figure the model states must appear in the text it was given (the guideline text is the only authority).
       const flat = (t: string) => t.replace(/(\d)[ ,\u00a0](?=\d{3}(?!\d))/g, '$1');
       const mm = (t: string) => [...flat(t).matchAll(/(\d+(?:\.\d+)?)\s*mm\b/g)].map(m => m[1]);
-      const known = new Set(mm(`${cpgText} ${obcText}`));
+      const known = new Set(mm(`${cpgText} ${obcText} ${description}`));
       const said = [result.finding, result.cpg?.interpretation, result.cpg?.threshold, result.obc?.interpretation, result.responsibility?.reasoning, result.defense_language].map(x => String(x ?? '')).flatMap(mm);
       const odd = [...new Set(said.filter(n => !known.has(n)))];
-      if (odd.length) result.check_notes = [`The figure${odd.length > 1 ? 's' : ''} ${odd.map(n => n + ' mm').join(', ')} ${odd.length > 1 ? 'are' : 'is'} not in the guideline text. Check the CPG before using this.`];
+      if (odd.length) result.check_notes = [`The figure${odd.length > 1 ? 's' : ''} ${odd.map(n => n + ' mm').join(', ')} ${odd.length > 1 ? 'are' : 'is'} not in the source text. Check ${isMsd ? 'the owner’s description and the regulation' : 'the CPG'} before using this.`];
 
       const parsedOk = !!result.finding && !!result.responsibility;
       if (parsedOk) await admin.from('interpretation_cache').insert({

@@ -7,6 +7,7 @@ interface Assessment {
   category?: string; finding?: string;
   obc?: { sections?: string[]; interpretation?: string; tolerance?: string; mandatory?: boolean };
   cpg?: { sections?: string[]; interpretation?: string; threshold?: string };
+  msd?: { element?: string; load_bearing_test?: { met?: string; reasoning?: string }; use_test?: { met?: string; reasoning?: string }; exclusion?: string | null; conclusion?: string };
   responsibility?: { determination?: string; reasoning?: string; exceptions?: string[] | string };
   defense_language?: string; risk_level?: string; risk_reasoning?: string;
   recommended_evidence?: string[]; warranty_period?: string; confidence?: string; check_notes?: string[];
@@ -58,7 +59,7 @@ export function ItemAssessment({ itemId, description, room }: { itemId: string; 
       </div>
 
       {err && <div style={{ ...body, color: '#A5402F' }}>Could not assess this item: {err}</div>}
-      {busy && !a && <div style={{ ...body, color: '#5E6575' }}>Checking the description against the Ontario Building Code and the Tarion Construction Performance Guidelines…</div>}
+      {busy && !a && <div style={{ ...body, color: '#5E6575' }}>Checking the description against the Tarion warranty standards and the Ontario Building Code…</div>}
 
       {a && (
         <div style={{ display: 'grid', gap: 12 }}>
@@ -75,12 +76,28 @@ export function ItemAssessment({ itemId, description, room }: { itemId: string; 
           )}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 10 }}>
+            {a.msd ? (
+              <div style={{ background: '#fff', border: '1px solid #DDD6C9', borderRadius: 8, padding: 10 }}>
+                <div style={label}><BookOpen size={11} />Major structural defect test (Reg. 892)</div>
+                {a.msd.element && <div style={{ ...body, marginBottom: 6 }}>{a.msd.element}</div>}
+                {([['Load-bearing failure', a.msd.load_bearing_test], ['Use of the home', a.msd.use_test]] as const).map(([t, r]) => (
+                  <div key={t} style={{ ...body, marginBottom: 4 }}>
+                    <b>{t}:</b>{' '}
+                    <span style={{ fontWeight: 700, color: r?.met === 'yes' ? '#A5402F' : r?.met === 'no' ? '#4A7A55' : '#9A6A16' }}>{r?.met === 'yes' ? 'Met' : r?.met === 'no' ? 'Not met' : 'Not shown'}</span>
+                    {r?.reasoning && <> · {r.reasoning}</>}
+                  </div>
+                ))}
+                {a.msd.exclusion && <div style={{ ...body, color: '#2F394A' }}><b>Exclusion:</b> {a.msd.exclusion}</div>}
+                {a.msd.conclusion && <div style={{ ...body, fontWeight: 700, marginTop: 4 }}>{a.msd.conclusion === 'meets_msd' ? 'Meets the MSD definition' : a.msd.conclusion === 'does_not_meet_msd' ? 'Does not meet the MSD definition' : 'Not shown to be an MSD yet'}</div>}
+              </div>
+            ) : (
             <div style={{ background: '#fff', border: '1px solid #DDD6C9', borderRadius: 8, padding: 10 }}>
               <div style={label}><BookOpen size={11} />Tarion CPG</div>
               {list(a.cpg?.sections).length ? <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>{list(a.cpg?.sections).map(s => <span key={s} style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: '#F6ECD3', color: '#B45309' }}>{s}</span>)}</div> : <div style={{ ...body, color: '#5E6575' }}>No matching CPG section.</div>}
               {a.cpg?.interpretation && <div style={body}>{a.cpg.interpretation}</div>}
               {a.cpg?.threshold && <div style={{ ...body, color: '#2F394A', marginTop: 3 }}><b>Threshold:</b> {a.cpg.threshold}</div>}
             </div>
+            )}
             <div style={{ background: '#fff', border: '1px solid #DDD6C9', borderRadius: 8, padding: 10 }}>
               <div style={label}><BookOpen size={11} />Ontario Building Code</div>
               {list(a.obc?.sections).length ? <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>{list(a.obc?.sections).map(s => <span key={s} style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: '#E6EEFB', color: '#2F5576' }}>{s}</span>)}</div> : <div style={{ ...body, color: '#5E6575' }}>No matching OBC section.</div>}
