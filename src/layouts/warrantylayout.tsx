@@ -1,7 +1,7 @@
 // App shell: left rail (navigation + the 9 communities), slim top bar (search), content area.
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { Sunrise, Hourglass, LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
+import { Sunrise, Hourglass, LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Upload, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
 import { supabase } from '@/lib/supabase';
 import { CompanyMark } from '@/components/brand';
@@ -123,6 +123,11 @@ export default function WarrantyLayout() {
               </div>
             );
           })}
+          <div className="bg-navrow" style={{ marginTop: 2 }}>
+            <button className={`bg-nav${/^\/warranty\/(deficiency-import|qdef-import|trades-import)/.test(pathname) ? ' on' : ''}`} onClick={() => navigate('/warranty/deficiency-import')} title="Import deficiency files">
+              <Upload size={18} strokeWidth={1.8} /><span className="lbl">Import data</span>
+            </button>
+          </div>
           <div className="bg-navrow" style={{ marginTop: 2 }}>
             <button className={`bg-nav${pathname.startsWith('/warranty/settings') ? ' on' : ''}`} onClick={() => navigate('/warranty/settings')} title="Tarion & Settings">
               <Settings size={18} strokeWidth={1.8} /><span className="lbl">Tarion &amp; Settings</span>
