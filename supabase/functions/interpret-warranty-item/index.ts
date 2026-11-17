@@ -22,7 +22,7 @@ const json = (b: unknown, status = 200) =>
 
 const FAST_MODEL = Deno.env.get('AI_MODEL') ?? 'gemini-2.5-flash';
 const DEEP_MODEL = Deno.env.get('AI_MODEL_DEEP') ?? 'gemini-2.5-pro';
-const CACHE_VERSION = 'v3|';
+const CACHE_VERSION = 'v4|';
 let USED = FAST_MODEL;
 
 const READ_SYSTEM = `You are a senior Tarion warranty services representative for Ontario new homes. A homeowner's deficiency item is below.
@@ -36,7 +36,7 @@ Reply with JSON only: {"defect":"one plain sentence on what is wrong and where",
 const DECIDE_SYSTEM = `You are a 30-year veteran Tarion warranty services representative and conciliator who now advises an Ontario home builder. You assess one deficiency item at a time, fairly and in plain language.
 You are given the item and the full text of the CPG sections (and, sometimes, Ontario Building Code pages) that apply. Read the text, then reason like a person, not a keyword matcher: what is the homeowner saying is wrong, what does the guideline require ("Acceptable Performance/Condition"), does the described condition fall short of it, what does the "Warranty" line say about the period and what is covered, which exclusions or remarks apply, and what "Action" is required.
 Rules:
-1. Cite ONLY section numbers that appear in the text you were given. Never invent a section, a measurement or a tolerance. Quote thresholds only from the text.
+1. Cite ONLY section numbers that appear in the text you were given. Never invent a section, a measurement or a tolerance. Copy every measurement exactly as printed in the text, including thousands separators (1,500 mm is not 500 mm). Do not convert, round, combine or restate figures from memory.
 2. Do not answer "insufficient_data" just because the homeowner's words differ from the guideline's words. Use the closest governing section and say how confident you are. Use "insufficient_data" only when the description genuinely lacks what is needed to decide (for example no location, no description of the problem) and say exactly what is missing.
 3. If the item says it came from a PDI report or pre-delivery inspection, it is a builder-agreed item recorded before possession: the builder is responsible to complete it whatever the CPG says. Say so, and still note the CPG standard that would apply to the finished work.
 4. Warranty periods: Delivery and Occupancy (PDI) items; Year 1 workmanship and materials per the CPG; Year 2 for water penetration, the electrical, plumbing and heating delivery and distribution systems, exterior cladding and Code violations affecting health and safety; Major Structural Defects to Year 7. Take the period from the CPG "Warranty" line when it states one.
@@ -185,7 +185,7 @@ Deno.serve(async (req: Request) => {
       obcFound = [...obcNums];
 
       const cpgText = cpgRows.length
-        ? cpgRows.map(r => `[CPG ${r.section_number}] ${r.section_title ?? ''}\n${r.content.replace(/\r/g, '')}${r.tolerance_note ? '\nPerformance threshold: ' + r.tolerance_note : ''}`).join('\n\n---\n\n')
+        ? cpgRows.map(r => `[CPG ${r.section_number}] ${r.section_title ?? ''}\n${r.content.replace(/\r/g, '')}`).join('\n\n---\n\n')
         : 'No CPG section was found for this item.';
       const obcText = pages.length ? pages.map(p => `[OBC Compendium page ${p.page_number}]\n${p.content}`).join('\n\n---\n\n') : 'Not provided. The Building Code was not judged relevant to this item.';
       const understood = pick.defect ? `\nWHAT THE ITEM IS ABOUT: ${String(pick.defect)}` : '';
@@ -200,6 +200,13 @@ Deno.serve(async (req: Request) => {
       result.obc = { ...(result.obc ?? {}), sections: keep(result.obc?.sections, s => allowedObc.has(s.replace(/\.$/, ''))) };
       if (!result.risk_level || result.risk_level === 'unknown') result.risk_level = 'medium';
       result._model = USED;
+      // Any "N mm" figure the model states must appear in the text it was given (the guideline text is the only authority).
+      const flat = (t: string) => t.replace(/(\d)[ ,\u00a0](?=\d{3}(?!\d))/g, '$1');
+      const mm = (t: string) => [...flat(t).matchAll(/(\d+(?:\.\d+)?)\s*mm\b/g)].map(m => m[1]);
+      const known = new Set(mm(`${cpgText} ${obcText}`));
+      const said = [result.finding, result.cpg?.interpretation, result.cpg?.threshold, result.obc?.interpretation, result.responsibility?.reasoning, result.defense_language].map(x => String(x ?? '')).flatMap(mm);
+      const odd = [...new Set(said.filter(n => !known.has(n)))];
+      if (odd.length) result.check_notes = [`The figure${odd.length > 1 ? 's' : ''} ${odd.map(n => n + ' mm').join(', ')} ${odd.length > 1 ? 'are' : 'is'} not in the guideline text. Check the CPG before using this.`];
 
       const parsedOk = !!result.finding && !!result.responsibility;
       if (parsedOk) await admin.from('interpretation_cache').insert({

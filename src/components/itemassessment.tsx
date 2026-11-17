@@ -9,7 +9,7 @@ interface Assessment {
   cpg?: { sections?: string[]; interpretation?: string; threshold?: string };
   responsibility?: { determination?: string; reasoning?: string; exceptions?: string[] | string };
   defense_language?: string; risk_level?: string; risk_reasoning?: string;
-  recommended_evidence?: string[]; warranty_period?: string; confidence?: string;
+  recommended_evidence?: string[]; warranty_period?: string; confidence?: string; check_notes?: string[];
   _cached?: boolean; _obc_found?: number; _cpg_found?: number; error?: string;
 }
 
@@ -63,6 +63,7 @@ export function ItemAssessment({ itemId, description, room }: { itemId: string; 
       {a && (
         <div style={{ display: 'grid', gap: 12 }}>
           {a.finding && <div style={{ ...body, fontWeight: 600 }}>{a.finding}</div>}
+          {list(a.check_notes).map(n => <div key={n} style={{ ...body, background: '#FEECEC', border: '1px solid #E7B9B0', color: '#A5402F', borderRadius: 6, padding: '6px 10px' }}>{n}</div>)}
 
           {resp?.determination && (
             <div>
