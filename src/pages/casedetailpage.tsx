@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { ItemAssessment } from '@/components/itemassessment';
 import ItemPanel from '@/components/itempanel';
 import LotInspections from '@/components/lotinspections';
+import LotFileNav from '@/components/lotfilenav';
 import { ScheduleTradesDialog } from '@/components/scheduletrades';
 import { format, formatDistanceToNow, differenceInDays } from 'date-fns';
 
@@ -553,7 +554,7 @@ export default function CaseDetailPage() {
 
       {/* ── Header ── */}
       <div style={{ padding:'14px 24px', borderBottom:'1px solid var(--color-border)', background:'var(--color-panel)', display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
-        <button onClick={() => navigate(-1)} style={{ display:'flex', alignItems:'center', gap:5, background:'none', border:'none', cursor:'pointer', color:'var(--color-muted)', fontSize:12, padding:0, fontFamily:'var(--font-body)' }}>
+        <button onClick={() => (caseData.lot_id ? navigate(`/warranty/lots/${caseData.lot_id}`) : navigate(-1))} title={caseData.lot_id ? "Back to the owner's file" : 'Back'} style={{ display:'flex', alignItems:'center', gap:5, background:'none', border:'none', cursor:'pointer', color:'var(--color-muted)', fontSize:12, padding:0, fontFamily:'var(--font-body)' }}>
           <ArrowLeft size={13} /> Back
         </button>
         <ChevronRight size={12} color="var(--color-muted)" />
@@ -575,6 +576,8 @@ export default function CaseDetailPage() {
           <MoreHorizontal size={13} />
         </button>
       </div>
+
+      {caseData.lot_id && <LotFileNav lotId={caseData.lot_id} caseId={caseData.id} periodType={caseData.period_type} />}
 
       <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
 
