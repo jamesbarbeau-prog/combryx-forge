@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import AgingReview from '@/components/agingreview';
 
 interface Row {
   community_id: string; community: string; lots: number; open_items: number; avg_age_days: number | null; oldest_days: number | null;
@@ -24,6 +25,7 @@ const n = (v: number) => v.toLocaleString('en-CA');
 export default function AgingPage() {
   const nav = useNavigate();
   const [file, setFile] = useState('');
+  const [review, setReview] = useState(false);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [err, setErr] = useState('');
   const [pick, setPick] = useState<Row | null>(null);
@@ -60,12 +62,17 @@ export default function AgingPage() {
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <select value={file} onChange={e => { setFile(e.target.value); }} style={sel}>{FILES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+        <button onClick={() => setReview(v => !v)} style={{ height: 36, borderRadius: 8, padding: '0 14px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: review ? 'none' : '1px solid var(--color-border-hard)', background: review ? '#1F2A3C' : '#fff', color: review ? '#fff' : '#1F2A3C' }}>
+          {review ? 'Back to aging summary' : 'All sites review'}
+        </button>
       </div>
 
-      {err && <div style={{ color: '#A5402F', fontSize: 13, marginBottom: 10 }}>Could not load aging: {err}</div>}
-      {!rows && !err && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>Loading…</div>}
+      {review && <AgingReview file={file} />}
 
-      {rows && (
+      {!review && err && <div style={{ color: '#A5402F', fontSize: 13, marginBottom: 10 }}>Could not load aging: {err}</div>}
+      {!review && !rows && !err && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>Loading…</div>}
+
+      {!review && rows && (
         <>
           <div style={{ ...panel, padding: '18px 22px', marginBottom: 16 }}>
             <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 14 }}>
