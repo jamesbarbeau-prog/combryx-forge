@@ -59,7 +59,7 @@ function plan(items: Open[]) {
   const urgent = items.filter(i => i.urgent_word).sort((a, b) => b.age_days - a.age_days);
   const booking = items.filter(i => !i.scheduled_date && i.age_days > 60 && !i.urgent_word).sort((a, b) => b.age_days - a.age_days);
   const stale = items.filter(i => i.scheduled_date && i.scheduled_date < new Date().toISOString().slice(0, 10) && i.age_days > 60).sort((a, b) => b.age_days - a.age_days);
-  const closeReady = items.filter(i => (i.tarion === 'safe_close' || i.tarion === 'close_now') && !i.urgent_word && i.age_days > 90).sort((a, b) => b.age_days - a.age_days);
+  const closeReady = items.filter(i => (i.tarion === 'safe_close' || i.tarion === 'close_now') && !i.urgent_word && i.age_days > 180).sort((a, b) => b.age_days - a.age_days);
   return { lotRows, batches, urgent, booking, stale, closeReady };
 }
 
@@ -231,7 +231,7 @@ export default function GamePlan() {
                 {P.stale.length === 0 && <Empty text="None." />}
                 {P.stale.slice(0, 40).map(i => <ItemRow key={i.wo_number} i={i} showHome />)}
               </Section>
-              <Section title={`Tarion risk has passed (${n(P.closeReady.length)})`} sub="Closed more than two years ago. Candidates for a final notice to the homeowner, then closing.">
+              <Section title={`Tarion risk has passed (${n(P.closeReady.length)})`} sub="Closed more than two years ago and open more than 180 days. Candidates for a final notice to the homeowner, then closing.">
                 {P.closeReady.length === 0 && <Empty text="None." />}
                 {P.closeReady.slice(0, 40).map(i => <ItemRow key={i.wo_number} i={i} showHome />)}
                 {P.closeReady.length > 40 && <More k={P.closeReady.length - 40} />}
