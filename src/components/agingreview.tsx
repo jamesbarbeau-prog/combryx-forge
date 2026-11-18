@@ -11,9 +11,9 @@ interface RRow {
   bucket: string; bucket_reason: string;
 }
 const BUCKETS: { key: string; label: string; short: string; color: string }[] = [
-  { key: 'keep_followup', label: 'Keep open: resolve and update the owner', short: 'Keep open', color: '#3F6A8F' },
-  { key: 'safe_close', label: 'Safe to close: no Tarion form risk', short: 'Safe to close', color: '#5E7F5A' },
-  { key: 'close_now', label: 'Close: well past 3 years', short: 'Close', color: '#2F4A5E' },
+  { key: 'keep_followup', label: 'Keep open: resolve and update the owner', short: 'Keep open', color: '#C77D12' },
+  { key: 'safe_close', label: 'Safe to close: no Tarion form risk', short: 'Safe to close', color: '#2E9B6A' },
+  { key: 'close_now', label: 'Close: well past 3 years', short: 'Close', color: '#4A6FC2' },
   { key: 'needs_review', label: 'No closing date', short: 'No closing date', color: '#8D7140' },
 ];
 const COLOR = Object.fromEntries(BUCKETS.map(b => [b.key, b.color])) as Record<string, string>;

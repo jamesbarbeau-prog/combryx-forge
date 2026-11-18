@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Camera, Upload, Lock, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { signEvidenceUrls } from '@/lib/signedfiles';
 import { getCompanyId } from '@/lib/company';
 import { ItemAssessment } from '@/components/itemassessment';
 import { SendWorkOrder, WO_COLS, SWO_CSS, type WOFull } from '@/components/sendworkorder';
@@ -56,7 +57,7 @@ export default function ItemPanel({ itemId, onClose, onChanged }: { itemId: stri
       supabase.from('warranty_item_evidence').select('id,evidence_type,phase,file_url,file_name,notes,captured_at,is_locked').eq('item_id', itemId).order('captured_at', { ascending: false }),
       supabase.from('trades').select('id,trade_name,trade_type').eq('is_active', true).order('trade_name'),
     ]);
-    setEvidence((ev ?? []) as Evidence[]); setTrades((tr ?? []) as Trade[]);
+    setEvidence(await signEvidenceUrls((ev ?? []) as Evidence[])); setTrades((tr ?? []) as Trade[]);
     if (it.case_id) {
       const { data: c } = await supabase.from('cases').select('lot_id').eq('id', it.case_id).maybeSingle();
       if (c?.lot_id) {

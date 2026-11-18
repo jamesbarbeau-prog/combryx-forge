@@ -8,6 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { signEvidenceUrls } from '@/lib/signedfiles';
 import { ItemAssessment } from '@/components/itemassessment';
 import ItemPanel from '@/components/itempanel';
 import LotInspections from '@/components/lotinspections';
@@ -310,7 +311,7 @@ export default function CaseDetailPage() {
       .in('item_id', itemIds).order('captured_at', { ascending: true });
     if (data) {
       const grouped: Record<string, ItemEvidence[]> = {};
-      for (const e of data as ItemEvidence[]) { if (!grouped[e.item_id]) grouped[e.item_id] = []; grouped[e.item_id].push(e); }
+      for (const e of await signEvidenceUrls(data as ItemEvidence[])) { if (!grouped[e.item_id]) grouped[e.item_id] = []; grouped[e.item_id].push(e); }
       setEvidence(grouped);
     }
   }, []);

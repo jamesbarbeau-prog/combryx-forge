@@ -1,5 +1,5 @@
 // App shell: left rail (navigation + the 9 communities), slim top bar (search), content area.
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { Sunrise, Hourglass, LayoutDashboard, FolderOpen, Scale, Wrench, ClipboardCheck, ClipboardList, BarChart3, Settings, LogOut, Download, Upload, Home, Menu, PanelLeftClose, PanelLeftOpen, ChevronDown, Bell } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
@@ -162,7 +162,7 @@ export default function WarrantyLayout() {
             )}
           </div>
         </header>
-        <main className="bg-main"><div className="bg-hero" aria-hidden="true" /><div className="bg-page"><Outlet /></div></main>
+        <main className="bg-main"><div className="bg-hero" aria-hidden="true" /><div className="bg-page"><Suspense fallback={<div style={{ padding: 32, color: 'var(--color-muted)', fontSize: 13 }}>Loading…</div>}><Outlet /></Suspense></div></main>
       </div>
     </div>
   );

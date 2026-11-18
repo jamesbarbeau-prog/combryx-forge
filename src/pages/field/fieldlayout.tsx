@@ -1,4 +1,5 @@
 // Phone shell for on-site work: no sidebar, one big header, thumb-sized controls, and a calm sync status line.
+import { Suspense } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { CheckCircle2, CloudOff, Loader2, LogOut, Monitor, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useauth';
@@ -42,7 +43,7 @@ export default function FieldLayout() {
         </div>
         <SyncBar />
       </header>
-      <main style={{ maxWidth: 640, margin: '0 auto', padding: '14px 14px 110px' }}><Outlet /></main>
+      <main style={{ maxWidth: 640, margin: '0 auto', padding: '14px 14px 110px' }}><Suspense fallback={<div style={{ padding: 24, color: '#6C7280', fontSize: 13 }}>Loading…</div>}><Outlet /></Suspense></main>
       <style>{`.spin{animation:sp .9s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
