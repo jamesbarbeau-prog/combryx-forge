@@ -24,6 +24,7 @@ const btn = (primary: boolean, off?: boolean): React.CSSProperties => ({ height:
 const n = (v: number) => v.toLocaleString('en-CA');
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const bucketOf = (a: number) => BUCKETS.findIndex(b => a <= b.max);
+const cleanName = (s: string | null) => (s ?? '').replace(/^[,\s]+|[,\s]+$/g, '');
 const short = (s: string, k = 110) => (s.length > k ? s.slice(0, k - 1) + '…' : s);
 
 async function loadOpen(community: string | null): Promise<Open[]> {
@@ -42,7 +43,7 @@ function plan(items: Open[]) {
   const lots = new Map<string, { key: string; lot: string; label: string; owner: string; items: Open[] }>();
   const trades = new Map<string, { trade: string; items: Open[]; homes: Set<string> }>();
   for (const i of items) {
-    let l = lots.get(i.lot_number); if (!l) { l = { key: i.lot_number, lot: i.lot_number, label: i.address ?? `Lot ${i.lot_number}`, owner: i.owner ?? '', items: [] }; lots.set(i.lot_number, l); }
+    let l = lots.get(i.lot_number); if (!l) { l = { key: i.lot_number, lot: i.lot_number, label: i.address ?? `Lot ${i.lot_number}`, owner: cleanName(i.owner), items: [] }; lots.set(i.lot_number, l); }
     l.items.push(i);
     let t = trades.get(i.trade); if (!t) { t = { trade: i.trade, items: [], homes: new Set() }; trades.set(i.trade, t); }
     t.items.push(i); t.homes.add(i.lot_number);
@@ -56,7 +57,7 @@ function plan(items: Open[]) {
   const urgent = items.filter(i => i.urgent_word).sort((a, b) => b.age_days - a.age_days);
   const booking = items.filter(i => !i.scheduled_date && i.age_days > 60 && !i.urgent_word).sort((a, b) => b.age_days - a.age_days);
   const stale = items.filter(i => i.scheduled_date && i.scheduled_date < new Date().toISOString().slice(0, 10) && i.age_days > 60).sort((a, b) => b.age_days - a.age_days);
-  const closeReady = items.filter(i => (i.tarion === 'safe_close' || i.tarion === 'close_now') && !i.urgent_word).sort((a, b) => b.age_days - a.age_days);
+  const closeReady = items.filter(i => (i.tarion === 'safe_close' || i.tarion === 'close_now') && !i.urgent_word && i.age_days > 90).sort((a, b) => b.age_days - a.age_days);
   return { lotRows, batches, urgent, booking, stale, closeReady };
 }
 
@@ -162,6 +163,8 @@ export default function GamePlan() {
             <select value={community} onChange={e => setCommunity(e.target.value)} style={sel}>{communities.map(c => <option key={c}>{c}</option>)}</select>
             <button style={btn(false)} onClick={() => setHtml(buildPlanHtml(communities.map(c => ({ c, items: all.filter(i => i.community === c) }))))}>Print plan, all communities</button>
             <button style={btn(false)} onClick={() => setHtml(buildPlanHtml([{ c: community, items }]))}>Print this community</button>
+            <button style={btn(false)} onClick={() => setHtml(buildFullHtml(community, items))}>Print every work order</button>
+            <span style={{ fontSize: 12, color: 'var(--color-text-sub)' }}>{n(items.length)} work orders in {n(counts.lots)} homes, from the QDEF report of {items.reduce((a, i) => (i.last_seen > a ? i.last_seen : a), '')}</span>
           </div>
 
           <div style={{ ...panel, padding: '18px 22px', marginBottom: 12 }}>
@@ -284,7 +287,7 @@ function Section({ title, sub, children }: { title: string; sub?: string; childr
   );
 }
 const Empty = ({ text }: { text: string }) => <div style={{ fontSize: 13, color: 'var(--color-muted)', padding: '8px 0' }}>{text}</div>;
-const More = ({ k }: { k: number }) => <div style={{ fontSize: 12, color: 'var(--color-muted)', padding: '8px 0' }}>{n(k)} more. Print the plan for the full list.</div>;
+const More = ({ k }: { k: number }) => <div style={{ fontSize: 12, color: 'var(--color-muted)', padding: '8px 0' }}>{n(k)} more. Use "Print every work order" for the full list.</div>;
 function Line({ a, b, c }: { a: React.ReactNode; b: string; c: string }) {
   return <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 2fr 110px', gap: 10, padding: '8px 0', borderTop: '1px solid var(--color-border)', fontSize: 13 }}><span>{a}</span><span style={{ color: 'var(--color-text-sub)' }}>{b}</span><span style={{ textAlign: 'right' }}>{c}</span></div>;
 }
@@ -302,6 +305,19 @@ function Tile({ label, value, color }: { label: string; value: string; color?: s
   return <div><div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1, color: color ?? 'var(--color-text)' }}>{value}</div><div style={{ fontSize: 12, color: 'var(--color-text-sub)', marginTop: 4 }}>{label}</div></div>;
 }
 
+// Every open work order for one community, by home. This is the complete account; the plan above shows only the top of each queue.
+function buildFullHtml(c: string, items: Open[]): string {
+  const P = plan(items); const day = items.reduce((a, i) => (i.last_seen > a ? i.last_seen : a), '');
+  const css = `body{font-family:Georgia,'Times New Roman',serif;color:#1F2A3C;margin:0;font-size:10.5px}h1{font-size:18px;margin:0 0 2px}.note{font-size:11px;color:#3d4758}
+  h2{font-size:12px;margin:12px 0 2px;border-bottom:1.5px solid #B08D4F;padding-bottom:1px;page-break-after:avoid}table{border-collapse:collapse;width:100%}td{border-bottom:1px solid #e6e0d2;padding:2px 4px;vertical-align:top}
+  td.r{text-align:right;white-space:nowrap}.red{color:#A5402F;font-weight:700}tr{page-break-inside:avoid}@page{margin:12mm}`;
+  const homes = [...P.lotRows].sort((a, b) => a.lot.localeCompare(b.lot, undefined, { numeric: true }));
+  const body = homes.map(l => `<h2>${esc(l.lot)} ${esc(l.label)}${l.owner ? ', ' + esc(l.owner) : ''}: ${l.items.length} open</h2><table>${[...l.items].sort((a, b) => b.age_days - a.age_days).map(i =>
+    `<tr><td class="r">${esc(String(i.wo_number))}</td><td>${i.urgent_word ? `<span class="red">${esc(i.urgent_word)}:</span> ` : ''}${esc(short(i.description, 170))}</td><td>${esc(i.trade)}</td><td class="r">${i.scheduled_date ? esc(i.scheduled_date) : 'not booked'}</td><td class="r">${i.age_days} d</td></tr>`).join('')}</table>`).join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${css}</style></head><body><h1>${esc(c)}: every open work order</h1>
+  <div class="note">From the QDEF aging report of ${esc(day)}. ${n(items.length)} work orders in ${n(homes.length)} homes. Days are counted from the day each work order was created.</div>${body}</body></html>`;
+}
+
 // One community per printed page set.
 function buildPlanHtml(groups: { c: string; items: Open[] }[]): string {
   const today = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -317,7 +333,7 @@ function buildPlanHtml(groups: { c: string; items: Open[] }[]): string {
     const b = BUCKETS.map(() => 0); items.forEach(i => { b[bucketOf(i.age_days)]++; });
     const row = (i: Open) => `<tr><td>${esc(i.lot_number)} ${esc(i.address ?? '')}</td><td>${i.urgent_word ? `<span class="red">${esc(i.urgent_word)}:</span> ` : ''}${esc(short(i.description, 120))}</td><td>${esc(i.trade)}</td><td>${i.scheduled_date ? esc(i.scheduled_date) : 'not booked'}</td><td class="r">${i.age_days}</td></tr>`;
     const head = '<tr><th>Home</th><th>Item</th><th>Trade</th><th>Booked</th><th class="r">Days</th></tr>';
-    return `<div class="c"><h1>${esc(c)}: game plan</h1><div class="note">${today}. Days are counted from the day each work order was created.</div>
+    return `<div class="c"><h1>${esc(c)}: game plan</h1><div class="note">${today}. Days are counted from the day each work order was created. Showing the top of each queue; the full list is under "Print every work order".</div>
     <div class="t"><div><b>${n(items.length)}</b><span>open work orders</span></div><div><b>${n(P.lotRows.length)}</b><span>homes</span></div><div><b class="red">${n(b[4])}</b><span>over 120 days</span></div><div><b>${n(P.urgent.length)}</b><span>urgent wording</span></div><div><b>${n(P.booking.length)}</b><span>not booked, over 60 days</span></div></div>
     <div class="note">${BUCKETS.map((x, k) => `${x.label}: ${n(b[k])}`).join(' &nbsp;|&nbsp; ')}</div>
     <div class="note" style="margin-top:6px">${esc(T.text)}</div>
