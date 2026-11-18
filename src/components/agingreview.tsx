@@ -1,21 +1,20 @@
-// All sites review: every home with aged open items, with an assisted recommendation to keep open, close safely, or close.
-// The AI only reads each description (2-year-warranty type? possible major structural defect?). The keep/close rule is fixed in the
-// aging_review() database function, so the screen and the report always agree. Nothing here closes an item.
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// All sites review: every home with aged open items, with a days-based recommendation to keep open, close safely, or close.
+// The rule lives in the aging_review() database function, so the screen and the report always agree. Nothing here closes an item.
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 interface RRow {
   item_id: string; lot_id: string; community: string; lot_number: string; address: string | null; owner: string | null;
   closing_date: string | null; age_days: number | null; item_number: string | null; form: string; description: string;
-  two_year_type: boolean | null; msd_risk: string | null; confidence: string | null; reason: string | null; bucket: string; bucket_reason: string;
+  bucket: string; bucket_reason: string;
 }
 const BUCKETS: { key: string; label: string; short: string; color: string }[] = [
-  { key: 'keep_followup', label: 'Keep open and update the owner', short: 'Keep open', color: '#3F6A8F' },
-  { key: 'keep_msd', label: 'Keep open: possible major structural defect', short: 'Possible MSD', color: '#A5402F' },
-  { key: 'needs_review', label: 'Needs a person to read it', short: 'Needs a person', color: '#8D7140' },
+  { key: 'keep_followup', label: 'Keep open: resolve and update the owner', short: 'Keep open', color: '#3F6A8F' },
   { key: 'safe_close', label: 'Safe to close: no Tarion form risk', short: 'Safe to close', color: '#5E7F5A' },
-  { key: 'close_now', label: 'Close: well past 3 years, not an MSD risk', short: 'Close', color: '#2F4A5E' },
+  { key: 'close_now', label: 'Close: well past 3 years', short: 'Close', color: '#2F4A5E' },
+  { key: 'needs_review', label: 'No closing date', short: 'No closing date', color: '#8D7140' },
 ];
 const COLOR = Object.fromEntries(BUCKETS.map(b => [b.key, b.color])) as Record<string, string>;
 const SHORT = Object.fromEntries(BUCKETS.map(b => [b.key, b.short])) as Record<string, string>;
@@ -30,29 +29,26 @@ export default function AgingReview({ file }: { file: string }) {
   const nav = useNavigate();
   const [minDays, setMinDays] = useState(300);
   const [rows, setRows] = useState<RRow[] | null>(null);
-  const [pending, setPending] = useState<number | null>(null);
+  const [keepDays, setKeepDays] = useState(730);
+  const [closeDays, setCloseDays] = useState(1095);
   const [err, setErr] = useState('');
-  const [busy, setBusy] = useState<'' | 'ai' | 'preview' | 'email'>('');
+  const [busy, setBusy] = useState<'' | 'preview' | 'email'>('');
   const [note, setNote] = useState('');
   const [bucket, setBucket] = useState('');
   const [shown, setShown] = useState(40);
   const [preview, setPreview] = useState('');
-  const stop = useRef(false);
 
   const load = useCallback(async () => {
     setErr(''); setRows(null);
     const all: RRow[] = [];
     for (let from = 0; from < 20000; from += 1000) {
-      const { data, error } = await supabase.rpc('aging_review', { p_min_days: minDays, p_community: null, p_file: file || null }).range(from, from + 999);
+      const { data, error } = await supabase.rpc('aging_review', { p_min_days: minDays, p_community: null, p_file: file || null, p_keep_days: keepDays, p_close_days: closeDays }).range(from, from + 999);
       if (error) { setErr(error.message); return; }
       all.push(...((data ?? []) as RRow[])); if (!data || data.length < 1000) break;
     }
     setRows(all);
-    const p = await supabase.rpc('aging_review_pending', { p_min_days: minDays, p_file: file || null });
-    setPending(p.error ? null : Number(p.data ?? 0));
-  }, [minDays, file]);
+  }, [minDays, keepDays, closeDays, file]);
   useEffect(() => { void load(); setShown(40); }, [load]);
-  useEffect(() => () => { stop.current = true; }, []);
 
   const counts = useMemo(() => { const c: Record<string, number> = {}; (rows ?? []).forEach(r => { c[r.bucket] = (c[r.bucket] ?? 0) + 1; }); return c; }, [rows]);
 
@@ -66,24 +62,9 @@ export default function AgingReview({ file }: { file: string }) {
     return [...m.values()];
   }, [rows, bucket]);
 
-  async function runAi() {
-    stop.current = false; setBusy('ai'); setNote(''); setErr('');
-    try {
-      for (let i = 0; i < 200 && !stop.current; i++) {
-        const { data, error } = await supabase.functions.invoke('aging-review', { body: { action: 'classify', min_days: minDays, file: file || null, limit: 40 } });
-        if (error || data?.error) { setErr(data?.error ?? error?.message ?? 'The AI review failed.'); break; }
-        setPending(data.remaining);
-        setNote(`${n(data.remaining)} items left to read…`);
-        if (!data.remaining || !data.done) break;
-      }
-      await load();
-      setNote('');
-    } finally { setBusy(''); }
-  }
-
   async function report(send: boolean) {
     setBusy(send ? 'email' : 'preview'); setNote(''); setErr('');
-    const { data, error } = await supabase.functions.invoke('aging-review', { body: { action: 'report', min_days: minDays, file: file || null, send } });
+    const { data, error } = await supabase.functions.invoke('aging-review', { body: { action: 'report', min_days: minDays, keep_days: keepDays, close_days: closeDays, file: file || null, send } });
     setBusy('');
     if (error || data?.error) { setErr(data?.error ?? error?.message ?? 'The report failed.'); return; }
     if (send) {
@@ -98,33 +79,34 @@ export default function AgingReview({ file }: { file: string }) {
     <div>
       <div style={{ ...panel, padding: '16px 18px', marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>All sites review: open items more than</h2>
-          <select value={minDays} onChange={e => setMinDays(Number(e.target.value))} style={sel}>
-            {[120, 180, 300, 365, 730, 1095].map(d => <option key={d} value={d}>{d} days after closing</option>)}
-          </select>
+          <h2 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>All sites review</h2>
+          <label style={{ fontSize: 13, color: 'var(--color-text-sub)', display: 'flex', alignItems: 'center', gap: 6 }}>Show items over
+            <select value={minDays} onChange={e => setMinDays(Number(e.target.value))} style={sel}>
+              {[120, 185, 300, 365, 545, 730, 1095].map(d => <option key={d} value={d}>{d} days</option>)}
+            </select></label>
+          <label style={{ fontSize: 13, color: 'var(--color-text-sub)', display: 'flex', alignItems: 'center', gap: 6 }}>Keep open up to
+            <select value={keepDays} onChange={e => setKeepDays(Number(e.target.value))} style={sel}>
+              {[185, 365, 545, 730].map(d => <option key={d} value={d}>{d} days{d === 730 ? ' (2 years)' : ''}</option>)}
+            </select></label>
+          <label style={{ fontSize: 13, color: 'var(--color-text-sub)', display: 'flex', alignItems: 'center', gap: 6 }}>Close beyond
+            <select value={closeDays} onChange={e => setCloseDays(Number(e.target.value))} style={sel}>
+              {[730, 1095, 1460].map(d => <option key={d} value={d}>{d} days{d === 1095 ? ' (3 years)' : ''}</option>)}
+            </select></label>
           <span style={{ flex: 1 }} />
-          {pending ? <button disabled={busy !== ''} onClick={runAi} style={btn(true, busy !== '')}>{busy === 'ai' ? 'Reading…' : `Run AI review (${n(pending)} items)`}</button> : null}
           <button disabled={busy !== '' || !total} onClick={() => report(false)} style={btn(false, busy !== '' || !total)}>{busy === 'preview' ? 'Building…' : 'Preview report'}</button>
-          <button disabled={busy !== '' || !total} onClick={() => report(true)} style={btn(false, busy !== '' || !total)}>{busy === 'email' ? 'Sending…' : 'Email report to me'}</button>
+          <button disabled={busy !== '' || !total} onClick={() => report(true)} style={btn(true, busy !== '' || !total)}>{busy === 'email' ? 'Sending…' : 'Email report to me'}</button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--color-text-sub)', margin: '8px 0 0', maxWidth: 820 }}>
-          The AI reads each item to judge whether it could still go on the 2-year form and whether it could be a major structural defect. The keep or close recommendation then follows the rules below, by days since closing. Nothing is closed from this screen.
+          Every open item is sorted by days since the home closed. Nothing is closed from this screen.
         </p>
         {note && <div style={{ fontSize: 13, color: '#3F6A8F', marginTop: 8 }}>{note}</div>}
         {err && <div style={{ fontSize: 13, color: '#A5402F', marginTop: 8 }}>{err}</div>}
-        {pending ? <div style={{ fontSize: 13, color: '#8D7140', marginTop: 8 }}>{n(pending)} items have not been read by the AI yet. Until they are, they stay under "Needs a person" and are never recommended for closing.</div> : null}
-        <details style={{ marginTop: 10, fontSize: 13, color: 'var(--color-text-sub)' }}>
-          <summary style={{ cursor: 'pointer', fontWeight: 700, color: 'var(--color-text)' }}>How items are sorted</summary>
-          <ol style={{ margin: '8px 0 0', paddingLeft: 20, lineHeight: 1.6 }}>
-            <li>No closing date, or closing still ahead: needs a person.</li>
-            <li>Up to 365 days since closing: keep open and update the owner.</li>
-            <li>An MSD file item, or one the AI thinks could be a major structural defect: keep open as a possible MSD until 7 years, then close.</li>
-            <li>AI not sure, or not read yet: needs a person. These are never recommended for closing.</li>
-            <li>366 to 730 days: keep open if it could still go on the 2-year form (water penetration, electrical, plumbing or heating distribution, Building Code health and safety). Otherwise safe to close, because no later form can pick it up.</li>
-            <li>731 to 1,095 days: safe to close, no structural risk found.</li>
-            <li>Over 1,095 days (3 years): close, no structural risk found.</li>
-          </ol>
-        </details>
+        <ol style={{ margin: '10px 0 0', paddingLeft: 20, lineHeight: 1.6, fontSize: 13, color: 'var(--color-text-sub)' }}>
+          <li>Up to {keepDays} days since closing: keep open, resolve it and update the owner.</li>
+          <li>{keepDays + 1} to {closeDays} days: safe to close. It is past the 2-year window, so no later Tarion form can pick it up.</li>
+          <li>Over {closeDays} days: close.</li>
+          <li>No closing date: listed separately, because it cannot be aged.</li>
+        </ol>
       </div>
 
       {!rows && !err && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>Loading…</div>}
@@ -156,7 +138,7 @@ export default function AgingReview({ file }: { file: string }) {
                         <span style={{ color: 'var(--color-text-sub)' }}>{FORM_LABEL[r.form] ?? r.form}</span>
                         <span>
                           <span>{r.description || <i style={{ color: 'var(--color-muted)' }}>No description</i>}</span>
-                          <span style={{ display: 'block', color: 'var(--color-text-sub)', marginTop: 2 }}>{r.bucket_reason}{r.reason ? ` AI: ${r.reason}` : ''}</span>
+                          <span style={{ display: 'block', color: 'var(--color-text-sub)', marginTop: 2 }}>{r.bucket_reason}</span>
                         </span>
                         <span style={{ justifySelf: 'end', padding: '2px 8px', borderRadius: 999, background: COLOR[r.bucket] + '1F', color: COLOR[r.bucket], fontWeight: 700, whiteSpace: 'nowrap' }}>{SHORT[r.bucket]}</span>
                       </div>
@@ -170,8 +152,8 @@ export default function AgingReview({ file }: { file: string }) {
         </>
       )}
 
-      {preview && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(20,28,40,.55)', zIndex: 50, display: 'flex', flexDirection: 'column', padding: 24 }}>
+      {preview && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(20,28,40,.6)', zIndex: 2000, display: 'flex', flexDirection: 'column', padding: 24, boxSizing: 'border-box' }}>
           <div style={{ ...panel, display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: '#fff' }}>
             <div style={{ display: 'flex', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--color-border)', alignItems: 'center' }}>
               <b style={{ fontSize: 14 }}>Aging review report</b><span style={{ flex: 1 }} />
@@ -179,9 +161,10 @@ export default function AgingReview({ file }: { file: string }) {
               <button style={btn(false)} onClick={() => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([preview], { type: 'text/html' })); a.download = 'aging-review.html'; a.click(); }}>Download</button>
               <button style={btn(true)} onClick={() => setPreview('')}>Close</button>
             </div>
-            <iframe id="aging-report-frame" title="Aging review report" srcDoc={preview} style={{ flex: 1, border: 0, minHeight: 0 }} />
+            <iframe id="aging-report-frame" title="Aging review report" srcDoc={`<body style="margin:20px 28px">${preview}</body>`} style={{ flex: 1, border: 0, minHeight: 0 }} />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
