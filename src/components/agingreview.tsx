@@ -1,6 +1,6 @@
 // All sites review: every home with aged open items, with a days-based recommendation to keep open, close safely, or close.
 // The rule lives in the aging_review() database function, so the screen and the report always agree. Nothing here closes an item.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -12,8 +12,10 @@ interface RRow {
 }
 const BUCKETS: { key: string; label: string; short: string; color: string }[] = [
   { key: 'keep_followup', label: 'Keep open: resolve and update the owner', short: 'Keep open', color: '#C77D12' },
+  { key: 'review_close', label: 'Review and close: not a 2-year item', short: 'Review and close', color: '#B5527A' },
   { key: 'safe_close', label: 'Safe to close: no Tarion form risk', short: 'Safe to close', color: '#2E9B6A' },
   { key: 'close_now', label: 'Close: well past 3 years', short: 'Close', color: '#4A6FC2' },
+  { key: 'unread', label: 'Not read by the AI yet', short: 'Not read yet', color: '#7A7F8C' },
   { key: 'needs_review', label: 'No closing date', short: 'No closing date', color: '#8D7140' },
 ];
 const COLOR = Object.fromEntries(BUCKETS.map(b => [b.key, b.color])) as Record<string, string>;
@@ -30,9 +32,11 @@ export default function AgingReview({ file }: { file: string }) {
   const [minDays, setMinDays] = useState(300);
   const [rows, setRows] = useState<RRow[] | null>(null);
   const [keepDays, setKeepDays] = useState(730);
+  const [pending, setPending] = useState<number | null>(null);
+  const stop = useRef(false);
   const [closeDays, setCloseDays] = useState(1095);
   const [err, setErr] = useState('');
-  const [busy, setBusy] = useState<'' | 'preview' | 'email'>('');
+  const [busy, setBusy] = useState<'' | 'ai' | 'preview' | 'email'>('');
   const [note, setNote] = useState('');
   const [bucket, setBucket] = useState('');
   const [shown, setShown] = useState(40);
@@ -47,8 +51,11 @@ export default function AgingReview({ file }: { file: string }) {
       all.push(...((data ?? []) as RRow[])); if (!data || data.length < 1000) break;
     }
     setRows(all);
+    const p = await supabase.rpc('aging_review_pending', { p_keep_days: keepDays, p_file: file || null });
+    setPending(p.error ? null : Number(p.data ?? 0));
   }, [minDays, keepDays, closeDays, file]);
   useEffect(() => { void load(); setShown(40); }, [load]);
+  useEffect(() => () => { stop.current = true; }, []);
 
   const counts = useMemo(() => { const c: Record<string, number> = {}; (rows ?? []).forEach(r => { c[r.bucket] = (c[r.bucket] ?? 0) + 1; }); return c; }, [rows]);
 
@@ -61,6 +68,24 @@ export default function AgingReview({ file }: { file: string }) {
     }
     return [...m.values()];
   }, [rows, bucket]);
+
+  async function runAi() {
+    stop.current = false; setBusy('ai'); setNote(''); setErr('');
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+    try {
+      for (let i = 0; i < 400 && !stop.current; i++) {
+        const { data, error } = await supabase.functions.invoke('aging-review', { body: { action: 'classify', keep_days: keepDays, file: file || null, limit: 20 } });
+        if (error || data?.error) { setErr(data?.error ?? error?.message ?? 'The AI read failed.'); break; }
+        if (data.rate_limited) {
+          for (let w = data.retry_after as number; w > 0 && !stop.current; w--) { setNote(`The free AI tier needs a short pause (${w}s). It carries on by itself. ${n(pending ?? 0)} items left.`); await sleep(1000); }
+          continue;
+        }
+        setPending(data.remaining); setNote(`${n(data.remaining)} items left to read…`);
+        if (!data.remaining || !data.done) break;
+      }
+      await load(); setNote(stop.current ? 'Stopped. What was read is saved.' : '');
+    } finally { setBusy(''); }
+  }
 
   async function report(send: boolean) {
     setBusy(send ? 'email' : 'preview'); setNote(''); setErr('');
@@ -86,26 +111,30 @@ export default function AgingReview({ file }: { file: string }) {
             </select></label>
           <label style={{ fontSize: 13, color: 'var(--color-text-sub)', display: 'flex', alignItems: 'center', gap: 6 }}>Keep open up to
             <select value={keepDays} onChange={e => setKeepDays(Number(e.target.value))} style={sel}>
-              {[185, 365, 545, 730].map(d => <option key={d} value={d}>{d} days{d === 730 ? ' (2 years)' : ''}</option>)}
+              {[365, 545, 730].map(d => <option key={d} value={d}>{d} days{d === 730 ? ' (2 years)' : ''}</option>)}
             </select></label>
           <label style={{ fontSize: 13, color: 'var(--color-text-sub)', display: 'flex', alignItems: 'center', gap: 6 }}>Close beyond
             <select value={closeDays} onChange={e => setCloseDays(Number(e.target.value))} style={sel}>
               {[730, 1095, 1460].map(d => <option key={d} value={d}>{d} days{d === 1095 ? ' (3 years)' : ''}</option>)}
             </select></label>
           <span style={{ flex: 1 }} />
+          {pending ? (busy === 'ai'
+            ? <button onClick={() => { stop.current = true; }} style={btn(false)}>Stop reading</button>
+            : <button disabled={busy !== ''} onClick={runAi} style={btn(true, busy !== '')}>{`Read ${n(pending)} items with AI`}</button>) : null}
           <button disabled={busy !== '' || !total} onClick={() => report(false)} style={btn(false, busy !== '' || !total)}>{busy === 'preview' ? 'Building…' : 'Preview report'}</button>
           <button disabled={busy !== '' || !total} onClick={() => report(true)} style={btn(true, busy !== '' || !total)}>{busy === 'email' ? 'Sending…' : 'Email report to me'}</button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--color-text-sub)', margin: '8px 0 0', maxWidth: 820 }}>
-          Every open item is sorted by days since the home closed. Nothing is closed from this screen.
+          Every open item is sorted by days since the home closed, and the AI checks the 2-year question only. Nothing is closed from this screen.
         </p>
         {note && <div style={{ fontSize: 13, color: '#3F6A8F', marginTop: 8 }}>{note}</div>}
         {err && <div style={{ fontSize: 13, color: '#A5402F', marginTop: 8 }}>{err}</div>}
         <ol style={{ margin: '10px 0 0', paddingLeft: 20, lineHeight: 1.6, fontSize: 13, color: 'var(--color-text-sub)' }}>
-          <li>Up to {keepDays} days since closing: keep open, resolve it and update the owner.</li>
-          <li>{keepDays + 1} to {closeDays} days: safe to close. It is past the 2-year window, so no later Tarion form can pick it up.</li>
+          <li>Up to 365 days since closing: keep open. It is still on the year-end form.</li>
+          <li>366 to {keepDays} days: the AI answers one question, could this be a 2-year item? The 2-year form covers only water penetration, distribution (electrical, plumbing, heating) and Building Code violations. If yes, keep open and update the owner. If not (a floor squeak, say), it cannot go on the 2-year form even if it rode over from the year-end form, so review and close it.</li>
+          <li>{keepDays + 1} to {closeDays} days: safe to close, no Tarion form can pick it up.</li>
           <li>Over {closeDays} days: close.</li>
-          <li>No closing date: listed separately, because it cannot be aged.</li>
+          <li>Items the AI has not read, or is unsure about, and homes with no closing date, are listed separately. They are never recommended for closing.</li>
         </ol>
       </div>
 
