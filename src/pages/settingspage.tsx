@@ -195,6 +195,8 @@ function TarionTab() {
   const [syncMsg, setSyncMsg]   = useState<{ ok: boolean; lines: string[] } | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoMsg, setPhotoMsg]   = useState<{ ok: boolean; lines: string[] } | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [linkMsg, setLinkMsg] = useState<{ ok: boolean; lines: string[] } | null>(null);
 
   const load = useCallback(async () => {
     const [s, i, r, c] = await Promise.all([
@@ -252,6 +254,30 @@ function TarionTab() {
     setSyncing(false); load();
   }
 
+  // Walks back through the last 400 days of Tarion forms, 30 days at a time. A form for a home that already has a case from the Excel files
+  // is linked to that case (so its photos can be fetched); other forms are imported as usual. Then pulls the photos.
+  async function linkOldForms() {
+    setLinkBusy(true); setLinkMsg(null);
+    const tally: Record<string, number> = {}; const errors: string[] = [];
+    const start = Date.now() - 400 * 864e5;
+    try {
+      for (let w = 0; w < 14; w++) {
+        const from = new Date(start + w * 30 * 864e5).toISOString().slice(0, 10);
+        for (let k = 0; k < 6; k++) {
+          setLinkMsg({ ok: true, lines: [`Checking Tarion forms from ${from}… (${w + 1} of 14)`, ...Object.entries(tally).map(([a, b]) => `${a}: ${b}`)] });
+          const { data, error } = await supabase.functions.invoke('tarion-sync', { body: { mode: 'forms', windowFrom: from, windowDays: 30 } });
+          if (error) { let d = error.message; try { const j = await (error as any).context?.json?.(); if (j?.error) d = j.error; } catch { /* generic */ } errors.push(`${from}: ${d}`); throw new Error('stop'); }
+          const res = data?.forms?.results ?? {};
+          for (const [a, b] of Object.entries(res)) if (typeof b === 'number' && a !== 'seen_in_window' && a !== 'new_forms') tally[a] = (tally[a] ?? 0) + b;
+          (data?.forms?.errors ?? []).forEach((e: string) => errors.push(e));
+          if ((res.new_forms ?? 0) < 60) break;
+        }
+      }
+    } catch { /* errors already recorded */ }
+    const lines = [Object.keys(tally).length ? Object.entries(tally).map(([a, b]) => `${a}: ${b}`).join(', ') : 'No forms to link.', 'Next: press "Get photos for all homes".', ...errors.slice(0, 8).map(e => 'Problem: ' + e)];
+    setLinkMsg({ ok: !errors.length, lines }); setLinkBusy(false); load();
+  }
+
   // Looks at every imported form again and pulls its photos from Tarion's photo service. Repeats until none are left (each pass has a time limit).
   async function getAllPhotos() {
     setPhotoBusy(true); setPhotoMsg(null);
@@ -299,6 +325,14 @@ function TarionTab() {
         <button onClick={getAllPhotos} disabled={photoBusy || syncing} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#F8F6F1', color: '#1F2A3C', border: '1px solid #D9D2C5', cursor: photoBusy ? 'wait' : 'pointer', marginTop: 10 }}>
           <RefreshCw size={13} /> {photoBusy ? 'Getting photos…' : 'Get photos for all homes'}
         </button>
+        <button onClick={linkOldForms} disabled={linkBusy || photoBusy || syncing} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, background: '#F8F6F1', color: '#1F2A3C', border: '1px solid #D9D2C5', cursor: linkBusy ? 'wait' : 'pointer', marginTop: 10 }}>
+          <RefreshCw size={13} /> {linkBusy ? 'Matching forms…' : 'Match older Tarion forms to my homes'}
+        </button>
+        {linkMsg && (
+          <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 8, fontSize: 12, lineHeight: 1.6, background: linkMsg.ok ? 'rgba(22,163,74,0.07)' : 'rgba(220,38,38,0.07)', border: `1px solid ${linkMsg.ok ? 'rgba(22,163,74,0.25)' : 'rgba(220,38,38,0.25)'}` }}>
+            {linkMsg.lines.map((l, i) => <div key={i}>{l}</div>)}
+          </div>
+        )}
         {photoMsg && (
           <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 8, fontSize: 12, lineHeight: 1.6, background: photoMsg.ok ? 'rgba(22,163,74,0.07)' : 'rgba(220,38,38,0.07)', border: `1px solid ${photoMsg.ok ? 'rgba(22,163,74,0.25)' : 'rgba(220,38,38,0.25)'}` }}>
             {photoMsg.lines.map((l, i) => <div key={i}>{l}</div>)}

@@ -3,7 +3,7 @@
 // Two jobs, one login:
 //   conciliation  scheduled-inspection letters (NP) -> Conciliation Manager (cm_* tables)   [unchanged logic]
 //   forms         every NEW warranty claim form -> case + items, owner photos, coordinator digest email
-// Body: { mode: 'all' | 'forms' | 'conciliation' | 'photos', backfillDays?: number (max 400), recheck?: boolean (photos: look again at every imported form) }
+// Body: { mode: 'all' | 'forms' | 'conciliation' | 'photos', backfillDays?: number (max 400), windowFrom?: ISO date + windowDays (forms: look only at forms created in that window, for walking back through old forms), recheck?: boolean (photos: look again at every imported form) }
 //
 // Secrets: TARION_USERNAME, TARION_PASSWORD, TARION_ORG_ID, optional TARION_TOKEN, TARION_LOGIN_URL, TARION_API_VERSION (default 54.0)
 //          scheduled runs: CM_CRON_SECRET (+ CM_COMPANY_ID)
@@ -170,23 +170,24 @@ async function runConciliation(s: Session, db: any, companyId: string, deadline:
 /* ================= warranty forms ================= */
 const num = (s: unknown) => { const n = parseInt(String(s ?? '').replace(/\D/g, ''), 10); return isNaN(n) ? 1e9 : n; };
 
-async function runForms(s: Session, admin: any, companyId: string, backfillDays?: number) {
+async function runForms(s: Session, admin: any, companyId: string, backfillDays?: number, windowFrom?: string, windowDays?: number) {
   const errors: string[] = [], results: Record<string, number> = {};
   const { data: map } = await admin.from('warranty_form_map').select('tarion_code');
   const codes: string[] = (map ?? []).map((m: Rec) => m.tarion_code);
   const { count: seen } = await admin.from('tarion_form_imports').select('id', { count: 'exact', head: true }).eq('company_id', companyId);
   const days = Math.min(400, backfillDays ?? (seen ? 3 : 7));
-  const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 19) + 'Z';
+  const since = windowFrom && !isNaN(Date.parse(windowFrom)) ? new Date(windowFrom).toISOString().slice(0, 19) + 'Z' : new Date(Date.now() - days * 864e5).toISOString().slice(0, 19) + 'Z';
+  const until = windowFrom && windowDays && !isNaN(Date.parse(windowFrom)) ? new Date(Date.parse(windowFrom) + Math.min(60, Math.max(1, windowDays)) * 864e5).toISOString().slice(0, 19) + 'Z' : '';
 
   // 1) forms that were waiting for a lot with this enrolment number
-  const { data: waiting } = await admin.from('tarion_form_imports').select('payload').eq('company_id', companyId).eq('status', 'needs_review').like('reason', 'No lot%').not('payload', 'is', null).limit(40);
+  const { data: waiting } = await admin.from('tarion_form_imports').select('payload').eq('company_id', companyId).eq('status', 'needs_review').or('reason.like.No lot%,reason.like.%already exists for this lot%').not('payload', 'is', null).limit(40);
   for (const w of waiting ?? []) {
     const { data, error } = await admin.rpc('tw_ingest_form', { p_company: companyId, p: { ...w.payload, retry: true } });
     if (error) errors.push('retry: ' + error.message.slice(0, 160)); else if (data.action === 'created') results.created_after_review = (results.created_after_review ?? 0) + 1;
   }
 
   // 2) new forms from Tarion
-  const cases = (await soql(s, `SELECT Id, CaseNumber, Status, Case_Type__c, ContactId, Enrolment_Number__c, CreatedDate, RecordType.Name FROM Case WHERE CreatedDate >= ${since} AND Case_Type__c IN (${codes.map(c => `'${q(c)}'`).join(',')}) ORDER BY CreatedDate ASC LIMIT 400`))
+  const cases = (await soql(s, `SELECT Id, CaseNumber, Status, Case_Type__c, ContactId, Enrolment_Number__c, CreatedDate, RecordType.Name FROM Case WHERE CreatedDate >= ${since}${until ? ` AND CreatedDate < ${until}` : ''} AND Case_Type__c IN (${codes.map(c => `'${q(c)}'`).join(',')}) ORDER BY CreatedDate ASC LIMIT 400`))
     .filter(c => c.RecordType?.Name !== 'RFC');
   const haveSet = new Set<string>();
   for (let i = 0; i < cases.length; i += 80) {
@@ -262,9 +263,12 @@ async function runPhotos(s: Session, admin: any, companyId: string, deadline: nu
   for (const imp of pend ?? []) {
     if (Date.now() > deadline) break;
     try {
-      const { data: items } = await admin.from('warranty_items').select('id, item_number, tarion_deficiency_id').eq('case_id', imp.case_id).not('tarion_deficiency_id', 'is', null);
+      const { data: items } = await admin.from('warranty_items').select('id, item_number, description, tarion_deficiency_id').eq('case_id', imp.case_id).not('tarion_deficiency_id', 'is', null);
       const byDef = new Map<string, Rec>((items ?? []).map((i: Rec) => [i.tarion_deficiency_id, i]));
-      const byNo = new Map<string, Rec>((items ?? []).map((i: Rec) => [String(i.item_number), i]));
+      // Tarion's photo folders are named by the form's line number. Items made from a Tarion form carry that number; items from the Excel files carry a work order number,
+      // and their line number is the number that starts the item text.
+      const lineNo = (i: Rec) => /^\d{1,4}$/.test(String(i.item_number)) ? String(i.item_number) : (String(i.description ?? '').match(/^\s*(\d+)\s/)?.[1] ?? String(i.item_number));
+      const byNo = new Map<string, Rec>((items ?? []).map((i: Rec) => [lineNo(i), i]));
       const cand = new Map<string, { id: string; kind: 'cv' | 'att' | 'zip'; title: string; ext: string; created: string; item: Rec | undefined; extract?: () => Uint8Array }>();
       const strat: Record<string, number> = { service: 0, links: 0, caseFiles: 0, attachments: 0 };
       let svc = 'service not asked';
@@ -421,7 +425,7 @@ Deno.serve(async req => {
     const s = await login();
     const report: Rec = { mode };
     if (mode === 'all' || mode === 'forms') {
-      try { report.forms = await runForms(s, admin, companyId, body.backfillDays); } catch (e) { report.forms = { results: {}, errors: ['forms: ' + (e as Error).message] }; }
+      try { report.forms = await runForms(s, admin, companyId, body.backfillDays, body.windowFrom, body.windowDays); } catch (e) { report.forms = { results: {}, errors: ['forms: ' + (e as Error).message] }; }
     }
     if (mode === 'all' || mode === 'conciliation') {
       try { report.conciliation = await runConciliation(s, db, companyId, t0 + 75_000); } catch (e) { report.conciliation = { checked: 0, results: {}, errors: ['conciliation: ' + (e as Error).message] }; }
