@@ -15,7 +15,7 @@ const BUCKETS: { key: string; label: string; short: string; color: string }[] = 
   { key: 'review_close', label: 'Review and close: not a 2-year item', short: 'Review and close', color: '#B5527A' },
   { key: 'safe_close', label: 'Safe to close: no Tarion form risk', short: 'Safe to close', color: '#2E9B6A' },
   { key: 'close_now', label: 'Close: well past 3 years', short: 'Close', color: '#4A6FC2' },
-  { key: 'unread', label: 'Not read by the AI yet', short: 'Not read yet', color: '#7A7F8C' },
+  { key: 'unread', label: 'Not checked yet', short: 'Not checked', color: '#7A7F8C' },
   { key: 'needs_review', label: 'No closing date', short: 'No closing date', color: '#8D7140' },
 ];
 const COLOR = Object.fromEntries(BUCKETS.map(b => [b.key, b.color])) as Record<string, string>;
@@ -69,21 +69,12 @@ export default function AgingReview({ file }: { file: string }) {
     return [...m.values()];
   }, [rows, bucket]);
 
-  async function runAi() {
-    stop.current = false; setBusy('ai'); setNote(''); setErr('');
-    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+  async function runRules() {
+    setBusy('ai'); setNote(''); setErr('');
     try {
-      for (let i = 0; i < 400 && !stop.current; i++) {
-        const { data, error } = await supabase.functions.invoke('aging-review', { body: { action: 'classify', keep_days: keepDays, file: file || null, limit: 20 } });
-        if (error || data?.error) { setErr(data?.error ?? error?.message ?? 'The AI read failed.'); break; }
-        if (data.rate_limited) {
-          for (let w = data.retry_after as number; w > 0 && !stop.current; w--) { setNote(`The free AI tier needs a short pause (${w}s). It carries on by itself. ${n(pending ?? 0)} items left.`); await sleep(1000); }
-          continue;
-        }
-        setPending(data.remaining); setNote(`${n(data.remaining)} items left to read…`);
-        if (!data.remaining || !data.done) break;
-      }
-      await load(); setNote(stop.current ? 'Stopped. What was read is saved.' : '');
+      const { data, error } = await supabase.rpc('aging_apply_rules', { p_keep_days: keepDays, p_file: file || null });
+      if (error) { setErr(error.message); return; }
+      await load(); setNote(`${n(Number(data ?? 0))} items checked.`);
     } finally { setBusy(''); }
   }
 
@@ -118,23 +109,21 @@ export default function AgingReview({ file }: { file: string }) {
               {[730, 1095, 1460].map(d => <option key={d} value={d}>{d} days{d === 1095 ? ' (3 years)' : ''}</option>)}
             </select></label>
           <span style={{ flex: 1 }} />
-          {pending ? (busy === 'ai'
-            ? <button onClick={() => { stop.current = true; }} style={btn(false)}>Stop reading</button>
-            : <button disabled={busy !== ''} onClick={runAi} style={btn(true, busy !== '')}>{`Read ${n(pending)} items with AI`}</button>) : null}
+          {pending ? <button disabled={busy !== ''} onClick={runRules} style={btn(true, busy !== '')}>{busy === 'ai' ? 'Checking…' : `Check ${n(pending)} items`}</button> : null}
           <button disabled={busy !== '' || !total} onClick={() => report(false)} style={btn(false, busy !== '' || !total)}>{busy === 'preview' ? 'Building…' : 'Preview report'}</button>
           <button disabled={busy !== '' || !total} onClick={() => report(true)} style={btn(true, busy !== '' || !total)}>{busy === 'email' ? 'Sending…' : 'Email report to me'}</button>
         </div>
         <p style={{ fontSize: 13, color: 'var(--color-text-sub)', margin: '8px 0 0', maxWidth: 820 }}>
-          Every open item is sorted by days since the home closed, and the AI checks the 2-year question only. Nothing is closed from this screen.
+          Every open item is sorted by days since the home closed, and one 2-year question is checked by wording (water, plumbing, electrical, heating, safety). Nothing is closed from this screen.
         </p>
         {note && <div style={{ fontSize: 13, color: '#3F6A8F', marginTop: 8 }}>{note}</div>}
         {err && <div style={{ fontSize: 13, color: '#A5402F', marginTop: 8 }}>{err}</div>}
         <ol style={{ margin: '10px 0 0', paddingLeft: 20, lineHeight: 1.6, fontSize: 13, color: 'var(--color-text-sub)' }}>
           <li>Up to 365 days since closing: keep open. It is still on the year-end form.</li>
-          <li>366 to {keepDays} days: the AI answers one question, could this be a 2-year item? The 2-year form covers only water penetration, distribution (electrical, plumbing, heating) and Building Code violations. If yes, keep open and update the owner. If not (a floor squeak, say), it cannot go on the 2-year form even if it rode over from the year-end form, so review and close it.</li>
+          <li>366 to {keepDays} days: one question is checked from the item wording: could this be a 2-year item? The 2-year form covers only water penetration, distribution (electrical, plumbing, heating) and Building Code violations. If yes, keep open and update the owner. If not (a floor squeak, say), it cannot go on the 2-year form even if it rode over from the year-end form, so review and close it.</li>
           <li>{keepDays + 1} to {closeDays} days: safe to close, no Tarion form can pick it up.</li>
           <li>Over {closeDays} days: close.</li>
-          <li>Items the AI has not read, or is unsure about, and homes with no closing date, are listed separately. They are never recommended for closing.</li>
+          <li>Items that have not been checked yet, or have no description, and homes with no closing date, are listed separately. They are never recommended for closing.</li>
         </ol>
       </div>
 
