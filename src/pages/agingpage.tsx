@@ -1,9 +1,10 @@
-// Aging: open items by community, counted in days since each home closed.
+// Aging: Game plan (work orders aged from creation, the QDEF way) and the Tarion window view (days since each home closed).
 // Route: /warranty/aging
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import AgingReview from '@/components/agingreview';
+import GamePlan from '@/components/gameplan';
 
 interface Row {
   community_id: string; community: string; lots: number; open_items: number; avg_age_days: number | null; oldest_days: number | null;
@@ -25,6 +26,7 @@ const n = (v: number) => v.toLocaleString('en-CA');
 export default function AgingPage() {
   const nav = useNavigate();
   const [file, setFile] = useState('');
+  const [view, setView] = useState<'plan' | 'tarion'>('plan');
   const [review, setReview] = useState(false);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [err, setErr] = useState('');
@@ -56,23 +58,34 @@ export default function AgingPage() {
   return (
     <div style={{ padding: '26px 32px', maxWidth: 1200, fontFamily: 'var(--font-body)', color: 'var(--color-text)' }}>
       <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Aging</h1>
-      <p style={{ fontSize: 13, color: 'var(--color-text-sub)', margin: '4px 0 16px', maxWidth: 720 }}>
-        Open items only, counted in days since each home closed. Homes with no closing date, or one still ahead, are shown separately.
+      <p style={{ fontSize: 13, color: 'var(--color-text-sub)', margin: '4px 0 12px', maxWidth: 720 }}>
+        {view === 'plan'
+          ? 'Open work orders, counted in days since each one was created. A short Tarion note sits on every community.'
+          : 'Open items, counted in days since each home closed. Homes with no closing date, or one still ahead, are shown separately.'}
       </p>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        {([['plan', 'Game plan'], ['tarion', 'Tarion window']] as const).map(([k, l]) => (
+          <button key={k} onClick={() => setView(k)} style={{ height: 36, borderRadius: 8, padding: '0 16px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: view === k ? 'none' : '1px solid var(--color-border-hard)', background: view === k ? '#1F2A3C' : '#fff', color: view === k ? '#fff' : '#1F2A3C' }}>{l}</button>
+        ))}
+      </div>
 
+      {view === 'plan' && <GamePlan />}
+
+      {view === 'tarion' && (
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <select value={file} onChange={e => { setFile(e.target.value); }} style={sel}>{FILES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         <button onClick={() => setReview(v => !v)} style={{ height: 36, borderRadius: 8, padding: '0 14px', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: review ? 'none' : '1px solid var(--color-border-hard)', background: review ? '#1F2A3C' : '#fff', color: review ? '#fff' : '#1F2A3C' }}>
           {review ? 'Back to aging summary' : 'All sites review'}
         </button>
       </div>
+      )}
 
-      {review && <AgingReview file={file} />}
+      {view === 'tarion' && review && <AgingReview file={file} />}
 
-      {!review && err && <div style={{ color: '#A5402F', fontSize: 13, marginBottom: 10 }}>Could not load aging: {err}</div>}
-      {!review && !rows && !err && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>Loading…</div>}
+      {view === 'tarion' && !review && err && <div style={{ color: '#A5402F', fontSize: 13, marginBottom: 10 }}>Could not load aging: {err}</div>}
+      {view === 'tarion' && !review && !rows && !err && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>Loading…</div>}
 
-      {!review && rows && (
+      {view === 'tarion' && !review && rows && (
         <>
           <div style={{ ...panel, padding: '18px 22px', marginBottom: 16 }}>
             <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', marginBottom: 14 }}>
