@@ -201,9 +201,22 @@ function buildReport(company: string, rows: any[], keepDays: number, closeDays: 
 <p style="font-size:13px;color:#485163;margin:0 0 12px">${n(nSafe + nClose + nReview)} open items in ${n(lots.length)} homes can be closed. Review and close (${n(nReview)}): inside the ${keepDays}-day window but not a 2-year item (water penetration, distribution or Building Code), so the 2-year form cannot pick them up. Safe to close (${n(nSafe)}): still open after ${keepDays} days. Close (${n(nClose)}): more than ${closeDays} days since closing. The pie on each home shows all of its outstanding items. ${n(nKeep)} other open items stay open${nUnread ? ` and ${n(nUnread)} have not been read by the AI yet` : ''} (see Aging in the app). Nothing has been closed.</p>`;
   const byComm = new Map<string, typeof lots>();
   for (const l of lots) { const k = l.first.community; if (!byComm.has(k)) byComm.set(k, []); byComm.get(k)!.push(l); }
+  // Every outstanding item of a site (not just the closeable ones), for the site summary.
+  const siteCounts = new Map<string, Record<string, number>>();
+  for (const r of rows) { const c = siteCounts.get(r.community) ?? {}; c[r.bucket] = (c[r.bucket] ?? 0) + 1; siteCounts.set(r.community, c); }
+  if (detail === 'full') {
+    // Printing: the summary is page 1 and every site starts on a fresh page, so one site never runs on into the next.
+    h = `<style>@page{size:Letter;margin:14mm 12mm 16mm;@bottom-right{content:"Page " counter(page);font:10px Arial,sans-serif;color:#6C7280}}
+.site{margin-top:36px;border-top:2px dashed #C6BDAC;padding-top:10px}
+@media print{.site{break-before:page;page-break-before:always;margin-top:0;border-top:0;padding-top:0}.lot{break-inside:avoid;page-break-inside:avoid}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>` + h;
+    const cell = 'padding:5px 10px;text-align:right;border-bottom:1px solid #E4DED2';
+    h += `<table style="border-collapse:collapse;font-size:13px;margin:4px 0 8px;width:100%"><thead><tr style="text-align:right;color:#6C7280;font-size:12px"><th style="text-align:left;padding:5px 10px;border-bottom:2px solid #1F2A3C">Site</th><th style="${cell}">Homes to close</th><th style="${cell}">Review and close</th><th style="${cell}">Safe to close</th><th style="${cell}">Close</th><th style="${cell}">Keep open</th></tr></thead><tbody>${[...byComm.entries()].map(([comm, list]) => { const c = siteCounts.get(comm) ?? {}; return `<tr><td style="padding:5px 10px;border-bottom:1px solid #E4DED2;font-weight:bold">${esc(comm)}</td><td style="${cell}">${list.length}</td><td style="${cell}">${c.review_close ?? 0}</td><td style="${cell}">${c.safe_close ?? 0}</td><td style="${cell}">${c.close_now ?? 0}</td><td style="${cell}">${c.keep_followup ?? 0}</td></tr>`; }).join('')}</tbody></table>`;
+  }
   for (const [comm, list] of byComm) {
     const items = list.reduce((a, l) => a + l.close.length, 0);
-    h += `<h2 style="font-size:16px;margin:22px 0 6px;border-top:3px solid #1F2A3C;padding-top:8px">${esc(comm)} <span style="font-weight:normal;font-size:13px;color:#6C7280">· ${list.length} homes, ${items} items to close</span></h2>`;
+    const sc = siteCounts.get(comm) ?? {}; const scTotal = Object.values(sc).reduce((a, b) => a + b, 0);
+    h += `<div class="site"><h2 style="font-size:18px;margin:0 0 8px">${esc(comm)} <span style="font-weight:normal;font-size:13px;color:#6C7280">\u00b7 ${list.length} homes, ${items} items to close</span></h2>`;
+    if (detail === 'full') h += `<table role="presentation" style="border-collapse:collapse;margin:0 0 14px;border-bottom:2px solid #1F2A3C;width:100%"><tr><td style="width:128px;padding:0 14px 10px 0;vertical-align:top">${pieSvg(sc, 110)}</td><td style="vertical-align:top;padding-bottom:10px"><div style="font-size:13px;margin-bottom:4px">${scTotal} outstanding items on the open files at this site</div><div style="font-size:12px;color:#485163">${legend(sc)}</div></td></tr></table>`;
     for (const l of list) {
       const f = l.first;
       const head = `<b>${esc(f.address ?? 'Lot ' + f.lot_number)}</b> <span style="color:#6C7280">· Lot ${esc(f.lot_number)}${f.owner ? ' · ' + esc(f.owner) : ''}${f.age_days != null ? ' · ' + n(f.age_days) + ' days since closing' : ''}</span>`;
@@ -211,9 +224,10 @@ function buildReport(company: string, rows: any[], keepDays: number, closeDays: 
       const chart = detail === 'full' ? pieSvg(l.counts) : barHtml(l.counts);
       const itemsHtml = l.close.map(r => `<div style="font-size:12.5px;margin:3px 0;color:#2B3446"><span style="display:inline-block;min-width:78px;font-weight:bold">${esc(r.item_number ?? '')}</span><span style="display:inline-block;font-size:11px;padding:0 6px;border-radius:9px;color:#fff;background:${TAG[r.bucket].color};margin-right:6px">${TAG[r.bucket].text}</span>${esc((r.description ?? '').slice(0, detail === 'full' ? 200 : 90))}</div>`).join('');
       h += detail === 'full'
-        ? `<table role="presentation" style="border-collapse:collapse;width:100%;margin:8px 0 12px;page-break-inside:avoid"><tr><td style="width:88px;vertical-align:top;padding:2px 12px 0 0">${chart}</td><td style="vertical-align:top"><div style="font-size:13px">${head}</div><div style="font-size:12px;color:#485163;margin:2px 0 4px">${total} outstanding: ${legend(l.counts)}</div>${itemsHtml}</td></tr></table>`
+        ? `<table class="lot" role="presentation" style="border-collapse:collapse;width:100%;margin:8px 0 12px;page-break-inside:avoid"><tr><td style="width:88px;vertical-align:top;padding:2px 12px 0 0">${chart}</td><td style="vertical-align:top"><div style="font-size:13px">${head}</div><div style="font-size:12px;color:#485163;margin:2px 0 4px">${total} outstanding: ${legend(l.counts)}</div>${itemsHtml}</td></tr></table>`
         : `<div style="margin:8px 0 12px"><div style="font-size:13px">${head}</div>${chart}<div style="font-size:12px;color:#485163;margin:0 0 4px">${total} outstanding: ${legend(l.counts)}</div>${itemsHtml}</div>`;
     }
+    h += '</div>';
   }
   if (!lots.length) h += `<p style="font-size:13px">Nothing is ready to close at these settings.</p>`;
   if (detail === 'compact') h += `<p style="font-size:13px;margin-top:20px">Pie charts and the full list are in the app: <a href="${esc(appUrl)}/warranty/aging">Aging, All sites review</a>.</p>`;
