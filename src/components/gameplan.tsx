@@ -25,7 +25,9 @@ const n = (v: number) => v.toLocaleString('en-CA');
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 const bucketOf = (a: number) => BUCKETS.findIndex(b => a <= b.max);
 const cleanName = (s: string | null) => (s ?? '').replace(/^[,\s]+|[,\s]+$/g, '');
-const short = (s: string, k = 110) => (s.length > k ? s.slice(0, k - 1) + '…' : s);
+// QDEF cell text runs words together and carries form filler; tidy it for reading and printing.
+const tidy = (s: string) => s.replace(/\(\s*Choose\s*your\s*next\s*selection\s*\)/gi, ' ').replace(/\(\s*Please\s*describe\s*\)/gi, ' ').replace(/\s+/g, ' ').trim();
+const short = (s: string, k = 110) => { s = tidy(s); return s.length > k ? s.slice(0, k - 1) + '…' : s; };
 
 async function loadOpen(community: string | null): Promise<Open[]> {
   const out: Open[] = [];
